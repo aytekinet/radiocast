@@ -1,0 +1,6 @@
+{
+  "name": "RadioCast",
+  "description": "Dünya genelinden ve Türkiye'den binlerce canlı radyo istasyonunu dinleyebileceğiniz, favoriler ve çalma listeleri oluşturabileceğiniz modern radyo uygulaması.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
