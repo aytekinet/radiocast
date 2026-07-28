@@ -95,7 +95,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = React.memo(({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Radyo, podcast, frekans veya tür ara..."
+            placeholder="Radyo ara..."
             className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-zinc-100 dark:bg-zinc-800/90 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 border border-zinc-200 dark:border-zinc-700/70 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-inner"
           />
           {searchQuery && (
