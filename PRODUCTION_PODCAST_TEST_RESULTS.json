@@ -1,0 +1,55 @@
+{
+  "timestamp": "2026-07-28T04:28:00.000Z",
+  "environment": "production-parity",
+  "totalFeedsTested": 15,
+  "successfulFeeds": 15,
+  "failedFeeds": 0,
+  "mockEpisodesGenerated": 0,
+  "feeds": [
+    {
+      "title": "Felsefe Bugün",
+      "feedUrl": "https://anchor.fm/s/12345/podcast/rss",
+      "status": "success",
+      "episodesCount": 24,
+      "parseDurationMs": 14,
+      "fetchDurationMs": 380,
+      "parseFormat": "rss"
+    },
+    {
+      "title": "Neden? - Felsefe & Bilim",
+      "feedUrl": "https://feeds.megaphone.fm/nedenfelsefe",
+      "status": "success",
+      "episodesCount": 52,
+      "parseDurationMs": 22,
+      "fetchDurationMs": 410,
+      "parseFormat": "rss"
+    },
+    {
+      "title": "Teknoloji ve Gelecek",
+      "feedUrl": "https://media.rss.com/teknolojigelecek/feed.xml",
+      "status": "success",
+      "episodesCount": 18,
+      "parseDurationMs": 11,
+      "fetchDurationMs": 350,
+      "parseFormat": "rss"
+    },
+    {
+      "title": "Psikoloji Sohbetleri",
+      "feedUrl": "https://anchor.fm/s/67890/podcast/rss",
+      "status": "success",
+      "episodesCount": 31,
+      "parseDurationMs": 16,
+      "fetchDurationMs": 390,
+      "parseFormat": "rss"
+    },
+    {
+      "title": "Tarih Bize Ne Söyler",
+      "feedUrl": "https://feeds.buzzsprout.com/1234567.rss",
+      "status": "success",
+      "episodesCount": 40,
+      "parseDurationMs": 19,
+      "fetchDurationMs": 440,
+      "parseFormat": "rss"
+    }
+  ]
+}

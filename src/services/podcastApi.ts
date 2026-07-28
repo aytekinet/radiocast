@@ -197,254 +197,86 @@ export async function searchPodcasts(query: string, country = 'TR', page = 1): P
   );
 }
 
-async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise<PodcastEpisode[]> {
-  const tryUrls = [
-    `/api/podcasts/feed?url=${encodeURIComponent(feedUrl)}`,
-    `https://corsproxy.io/?url=${encodeURIComponent(feedUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(feedUrl)}`,
-    feedUrl
-  ];
+async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise<{ episodes: PodcastEpisode[]; success: boolean; errorCode?: string }> {
+  try {
+    const url = `/api/podcasts/feed?url=${encodeURIComponent(feedUrl)}`;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-  for (const url of tryUrls) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
 
-      const res = await fetch(url, {
-        headers: { 'Accept': 'application/xml, text/xml, application/rss+xml, application/json, */*' },
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json') || url.includes('/api/')) {
-          try {
-            const data = await res.json();
-            if (data && Array.isArray(data.episodes) && data.episodes.length > 0) {
-              return data.episodes.map((ep: any, idx: number) => {
-                const pubMillis = safeParseEpisodeDateMillis(ep);
-                return {
-                  id: ep.id || `ep-${show.id}-${idx}`,
-                  showId: show.id,
-                  showTitle: data.title || show.title,
-                  title: ep.title,
-                  description: ep.description || `${show.publisher || 'Podcast'} yayını.`,
-                  audioUrl: ep.audioUrl,
-                  durationSeconds: ep.durationSeconds || 1800,
-                  publishedDate: ep.publishedDate || 'Güncel',
-                  pubDateMillis: pubMillis,
-                  coverUrl: ep.coverUrl || show.coverUrl,
-                  category: show.category || 'Podcast'
-                };
-              });
-            }
-          } catch {
-            // not json
-          }
-        }
-
-        const text = await res.text();
-        if (text && (text.includes('<rss') || text.includes('<xml') || text.includes('<feed') || text.includes('<item'))) {
-          // First try fast regex extraction to avoid DOMParser namespace quirks
-          const cleanXml = text.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
-          const regexItems: PodcastEpisode[] = [];
-          
-          let pos = 0;
-          let idx = 0;
-          while (true) {
-            const start = cleanXml.indexOf('<item', pos);
-            if (start === -1) break;
-            const end = cleanXml.indexOf('</item>', start);
-            if (end === -1) break;
-
-            const itemStr = cleanXml.substring(start, end + 7);
-            pos = end + 7;
-
-            let audioUrl = '';
-            const encMatch = itemStr.match(/<enclosure[^>]*\burl=["']([^"']+)["']/i);
-            if (encMatch && encMatch[1]) {
-              audioUrl = encMatch[1].trim();
-            } else {
-              const mediaMatch = itemStr.match(/<media:content[^>]*\burl=["']([^"']+)["']/i);
-              if (mediaMatch && mediaMatch[1]) {
-                audioUrl = mediaMatch[1].trim();
-              }
-            }
-
-            if (!audioUrl) continue;
-
-            const titleMatch = itemStr.match(/<title>(.*?)<\/title>/i);
-            const descMatch = itemStr.match(/<description>(.*?)<\/description>/i) || itemStr.match(/<itunes:summary>(.*?)<\/itunes:summary>/i);
-            const pubDateMatch = itemStr.match(/<pubDate>(.*?)<\/pubDate>/i);
-            const durationMatch = itemStr.match(/<itunes:duration>(.*?)<\/itunes:duration>/i);
-
-            const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : `Bölüm ${idx + 1}`;
-            const description = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : title;
-            const pubDate = pubDateMatch ? pubDateMatch[1].trim() : '';
-            const pubDateMillis = safeParseEpisodeDateMillis({ pubDate });
-
-            let durationSec = 1800;
-            if (durationMatch && durationMatch[1]) {
-              const durStr = durationMatch[1].trim();
-              if (durStr.includes(':')) {
-                const parts = durStr.split(':').map(Number);
-                if (parts.length === 3) durationSec = parts[0] * 3600 + parts[1] * 60 + parts[2];
-                else if (parts.length === 2) durationSec = parts[0] * 60 + parts[1];
-              } else if (!isNaN(Number(durStr))) {
-                durationSec = Number(durStr);
-              }
-            }
-
-            regexItems.push({
-              id: `rss-ep-${show.id}-${idx}`,
-              showId: show.id,
-              showTitle: show.title,
-              title,
-              description: description || `${show.publisher || 'Podcast'} yayını.`,
-              audioUrl,
-              durationSeconds: durationSec,
-              publishedDate: pubDate ? new Date(pubDateMillis || Date.now()).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Güncel',
-              pubDateMillis,
-              coverUrl: show.coverUrl,
-              category: show.category || 'Podcast'
-            });
-
-            idx++;
-          }
-
-          if (regexItems.length > 0) {
-            return regexItems;
-          }
-
-          // Fallback to DOMParser
-          const parser = new DOMParser();
-          const xml = parser.parseFromString(text, 'text/xml');
-          const items = Array.from(xml.querySelectorAll('item'));
-          if (items.length > 0) {
-            return items.map((item, idx) => {
-              const title = item.querySelector('title')?.textContent?.trim() || `Bölüm ${idx + 1}`;
-              const rawDesc = item.querySelector('description')?.textContent || item.querySelector('summary')?.textContent || '';
-              const description = rawDesc.replace(/<[^>]*>/g, '').trim();
-              const enclosure = item.querySelector('enclosure');
-              const audioUrl = enclosure?.getAttribute('url') || '';
-              const pubDate = item.querySelector('pubDate')?.textContent?.trim() || '';
-              const pubDateMillis = safeParseEpisodeDateMillis({ pubDate });
-              const duration = item.querySelector('duration')?.textContent?.trim() || '1800';
-              let durationSec = 1800;
-              if (duration.includes(':')) {
-                const parts = duration.split(':').map(Number);
-                if (parts.length === 3) durationSec = parts[0] * 3600 + parts[1] * 60 + parts[2];
-                else if (parts.length === 2) durationSec = parts[0] * 60 + parts[1];
-              } else if (!isNaN(Number(duration))) {
-                durationSec = Number(duration);
-              }
-
-              return {
-                id: `rss-ep-${show.id}-${idx}`,
-                showId: show.id,
-                showTitle: show.title,
-                title,
-                description: description || `${show.publisher || 'Podcast'} yayını.`,
-                audioUrl,
-                durationSeconds: durationSec,
-                publishedDate: pubDate ? new Date(pubDateMillis || Date.now()).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Güncel',
-                pubDateMillis,
-                coverUrl: show.coverUrl,
-                category: show.category || 'Podcast'
-              };
-            }).filter(e => e.audioUrl.length > 0);
-          }
-        }
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.episodes)) {
+        const episodes = data.episodes.map((ep: any, idx: number) => {
+          const pubMillis = safeParseEpisodeDateMillis(ep);
+          return {
+            id: ep.id || `ep-${show.id}-${idx}`,
+            showId: show.id,
+            showTitle: data.podcast?.title || show.title,
+            title: ep.title,
+            description: ep.description || `${show.publisher || 'Podcast'} yayını.`,
+            audioUrl: ep.audioUrl,
+            durationSeconds: ep.durationSeconds || 1800,
+            publishedDate: ep.publishedDate || 'Güncel',
+            pubDateMillis: pubMillis,
+            coverUrl: ep.coverUrl || show.coverUrl,
+            category: show.category || 'Podcast'
+          };
+        });
+        return { episodes, success: true };
       }
-    } catch {
-      // try next
+      return { episodes: [], success: data.success ?? false, errorCode: data.errorCode || 'FEED_PARSE_FAILED' };
     }
+    return { episodes: [], success: false, errorCode: 'FEED_FETCH_FAILED' };
+  } catch {
+    return { episodes: [], success: false, errorCode: 'FEED_FETCH_FAILED' };
   }
-  return [];
+}
+
+export async function getPodcastEpisodesResult(show: PodcastShow): Promise<{ episodes: PodcastEpisode[]; success: boolean; errorCode?: string }> {
+  if (show.feedUrl) {
+    const res = await fetchAndParseRssFeed(show.feedUrl, show);
+    if (res.success || res.episodes.length > 0) {
+      const sorted = res.episodes
+        .map((ep, originalIndex) => ({ ep, originalIndex }))
+        .sort((a, b) => {
+          const timeA = safeParseEpisodeDateMillis(a.ep);
+          const timeB = safeParseEpisodeDateMillis(b.ep);
+
+          if (timeA > 0 && timeB > 0) {
+            if (timeB !== timeA) return timeB - timeA;
+            return a.originalIndex - b.originalIndex;
+          }
+          if (timeA > 0 && timeB === 0) return -1;
+          if (timeA === 0 && timeB > 0) return 1;
+          return a.originalIndex - b.originalIndex;
+        })
+        .map(item => item.ep);
+
+      return { episodes: sorted, success: true };
+    }
+    return { episodes: [], success: false, errorCode: res.errorCode || 'FEED_FETCH_FAILED' };
+  }
+
+  if (show.episodes && show.episodes.length > 0) {
+    return { episodes: show.episodes, success: true };
+  }
+
+  return { episodes: [], success: true };
 }
 
 export async function getPodcastEpisodes(show: PodcastShow): Promise<PodcastEpisode[]> {
-  let episodes: PodcastEpisode[] = [];
-
-  if (show.feedUrl) {
-    try {
-      episodes = await fetchAndParseRssFeed(show.feedUrl, show);
-    } catch (err) {
-      console.warn('Failed to load podcast feed:', err);
-    }
-  }
-
-  if (episodes.length === 0 && show.episodes && show.episodes.length > 0) {
-    episodes = show.episodes;
-  }
-
-  if (episodes.length === 0) {
-    episodes = generateFallbackEpisodesForShow(show);
-  }
-
-  return episodes
-    .map((ep, originalIndex) => ({ ep, originalIndex }))
-    .sort((a, b) => {
-      const timeA = safeParseEpisodeDateMillis(a.ep);
-      const timeB = safeParseEpisodeDateMillis(b.ep);
-
-      if (timeA > 0 && timeB > 0) {
-        if (timeB !== timeA) return timeB - timeA;
-        return a.originalIndex - b.originalIndex;
-      }
-      if (timeA > 0 && timeB === 0) return -1;
-      if (timeA === 0 && timeB > 0) return 1;
-      return a.originalIndex - b.originalIndex;
-    })
-    .map(item => item.ep);
+  const result = await getPodcastEpisodesResult(show);
+  return result.episodes;
 }
 
-function generateFallbackEpisodesForShow(show: PodcastShow): PodcastEpisode[] {
-  const now = Date.now();
-  const dayMs = 86400000;
-  return [
-    {
-      id: `${show.id}-fb-1`,
-      showId: show.id,
-      showTitle: show.title,
-      title: `${show.title} - Güncel Bölüm: Son Gelişmeler ve Analizler`,
-      description: `${show.publisher || 'Yayıncı'} tarafından hazırlanan bu yayında öne çıkan başlıklar ve detaylı değerlendirmeler.`,
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      durationSeconds: 2140,
-      publishedDate: new Date(now - dayMs * 2).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
-      pubDateMillis: now - dayMs * 2,
-      coverUrl: show.coverUrl,
-      category: show.category || 'Podcast'
-    },
-    {
-      id: `${show.id}-fb-2`,
-      showId: show.id,
-      showTitle: show.title,
-      title: `${show.title} - Özel Derleme ve Söyleşi`,
-      description: 'Gündeme dair merak edilen sorular, önemli değerlendirmeler ve keyifli sohbet.',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-      durationSeconds: 1890,
-      publishedDate: new Date(now - dayMs * 9).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
-      pubDateMillis: now - dayMs * 9,
-      coverUrl: show.coverUrl,
-      category: show.category || 'Podcast'
-    },
-    {
-      id: `${show.id}-fb-3`,
-      showId: show.id,
-      showTitle: show.title,
-      title: `${show.title} - Dinleyici Özel Bölümü`,
-      description: 'Takipçilerden gelen bildirimlerin ve özel başlıkların ele alındığı podcast bölümü.',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-      durationSeconds: 2450,
-      publishedDate: new Date(now - dayMs * 16).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
-      pubDateMillis: now - dayMs * 16,
-      coverUrl: show.coverUrl,
-      category: show.category || 'Podcast'
-    }
-  ];
+function generateFallbackEpisodesForShow(_show: PodcastShow): PodcastEpisode[] {
+  return [];
 }
 
 const FALLBACK_PODCAST_SHOWS: PodcastShow[] = [

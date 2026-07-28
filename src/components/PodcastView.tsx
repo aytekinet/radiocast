@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PodcastShow, PodcastEpisode } from '../types';
-import { searchPodcasts, getPopularPodcasts, getPodcastEpisodes, safeParseEpisodeDateMillis } from '../services/podcastApi';
+import { searchPodcasts, getPopularPodcasts, getPodcastEpisodesResult, safeParseEpisodeDateMillis } from '../services/podcastApi';
 import { getAllPodcastProgress } from '../services/storage';
 import { 
   Mic, 
@@ -35,7 +35,9 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   const [selectedShow, setSelectedShow] = useState<PodcastShow | null>(null);
   const [showEpisodes, setShowEpisodes] = useState<PodcastEpisode[]>([]);
   const [loadingEpisodes, setLoadingEpisodes] = useState<boolean>(false);
+  const [episodeStatus, setEpisodeStatus] = useState<'idle' | 'loading' | 'success' | 'empty' | 'failed'>('idle');
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
+  const requestIdRef = React.useRef<number>(0);
 
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
@@ -77,19 +79,35 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   }, []);
 
   const loadEpisodesForShow = async (show: PodcastShow) => {
+    const currentReqId = ++requestIdRef.current;
     setLoadingEpisodes(true);
+    setEpisodeStatus('loading');
+    setShowEpisodes([]);
+
     try {
-      const episodes = await getPodcastEpisodes(show);
-      const sorted = [...episodes].sort((a, b) => {
-        const timeA = safeParseEpisodeDateMillis(a);
-        const timeB = safeParseEpisodeDateMillis(b);
-        return timeB - timeA;
-      });
-      setShowEpisodes(sorted);
+      const res = await getPodcastEpisodesResult(show);
+      if (requestIdRef.current !== currentReqId) return;
+
+      if (res.success) {
+        const sorted = [...res.episodes].sort((a, b) => {
+          const timeA = safeParseEpisodeDateMillis(a);
+          const timeB = safeParseEpisodeDateMillis(b);
+          return timeB - timeA;
+        });
+        setShowEpisodes(sorted);
+        setEpisodeStatus(sorted.length > 0 ? 'success' : 'empty');
+      } else {
+        setShowEpisodes([]);
+        setEpisodeStatus('failed');
+      }
     } catch {
+      if (requestIdRef.current !== currentReqId) return;
       setShowEpisodes([]);
+      setEpisodeStatus('failed');
     } finally {
-      setLoadingEpisodes(false);
+      if (requestIdRef.current === currentReqId) {
+        setLoadingEpisodes(false);
+      }
     }
   };
 
@@ -221,7 +239,34 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
           </div>
 
           <div className="space-y-3">
-            {showEpisodes.map((ep, idx) => {
+            {episodeStatus === 'loading' && (
+              <div className="p-12 text-center text-amber-500 font-bold flex flex-col items-center gap-3 bg-white dark:bg-zinc-900/50 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                <RefreshCw className="w-8 h-8 animate-spin" />
+                <p className="text-sm">Bölümler yükleniyor...</p>
+              </div>
+            )}
+
+            {episodeStatus === 'failed' && (
+              <div className="p-10 text-center bg-red-500/10 rounded-2xl border border-red-500/30 space-y-3">
+                <p className="font-bold text-red-500 text-sm">Bölümler yüklenemedi. Yayıncının RSS sunucusuna veya akışına ulaşılamadı.</p>
+                <button
+                  onClick={() => loadEpisodesForShow(selectedShow)}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs inline-flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Tekrar Dene</span>
+                </button>
+              </div>
+            )}
+
+            {episodeStatus === 'empty' && (
+              <div className="p-12 text-center bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-1">
+                <p className="font-bold text-zinc-800 dark:text-zinc-200 text-sm">Bu podcast kanalında henüz yayınlanmış bölüm bulunmuyor.</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Yayıncı henüz RSS akışına geçerli bir ses dosyası eklememiş olabilir.</p>
+              </div>
+            )}
+
+            {episodeStatus === 'success' && showEpisodes.map((ep, idx) => {
               const isThisPlaying = currentEpisodeId === ep.id && isPlaying;
               const savedSecs = progressMap[ep.id] || 0;
               const hasProgress = savedSecs > 0;

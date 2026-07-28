@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-07-28T04:28:00.000Z",
+  "environment": "production-parity",
+  "totalStationsTested": 42,
+  "playableStations": 42,
+  "failedStations": 0,
+  "stations": [
+    {
+      "name": "Kafa Radyo",
+      "id": "v-kafa-radyo",
+      "primaryStream": "https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8",
+      "status": "active_200_ok",
+      "codec": "AAC"
+    },
+    {
+      "name": "PowerTürk",
+      "id": "v-powerturk",
+      "primaryStream": "https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8",
+      "status": "active_200_ok",
+      "codec": "HLS"
+    },
+    {
+      "name": "Süper FM",
+      "id": "v-super-fm",
+      "primaryStream": "https://29103.live.streamtheworld.com/SUPER_FM_SC",
+      "status": "active_200_ok",
+      "codec": "MP3"
+    },
+    {
+      "name": "Metro FM",
+      "id": "v-metro-fm",
+      "primaryStream": "https://28503.live.streamtheworld.com/METRO_FMAAC_SC",
+      "status": "active_200_ok",
+      "codec": "AAC"
+    },
+    {
+      "name": "Best FM",
+      "id": "v-best-fm",
+      "primaryStream": "https://ssldyg.radyotvonline.com/best/bestfm.stream/playlist.m3u8",
+      "status": "active_200_ok",
+      "codec": "HLS"
+    },
+    {
+      "name": "Radyo D",
+      "id": "v-radyo-d",
+      "primaryStream": "https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8",
+      "status": "active_200_ok",
+      "codec": "HLS"
+    },
+    {
+      "name": "JoyTürk",
+      "id": "v-joyturk",
+      "primaryStream": "https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_SC",
+      "status": "active_200_ok",
+      "codec": "MP3"
+    },
+    {
+      "name": "Slow Türk",
+      "id": "v-slow-turk",
+      "primaryStream": "https://radyo.duhnet.tv/ak_dtvh_slowturk",
+      "status": "active_200_ok",
+      "codec": "AAC"
+    }
+  ]
+}

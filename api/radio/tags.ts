@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { handlePodcastFeed } from '../../src/server/podcastHandler';
+import { handleRadioTags } from '../../src/server/radioHandler';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,5 +10,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  return handlePodcastFeed(req as any, res as any);
+  return handleRadioTags(req as any, res as any);
 }

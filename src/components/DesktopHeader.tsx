@@ -83,7 +83,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = React.memo(({
               CANLI
             </span>
           </div>
-          <p className="text-[10px] sm:text-[11px] text-zinc-500 dark:text-zinc-400 leading-none">30.000+ Canlı Radyo & Podcast</p>
+          <p className="text-[10px] sm:text-[11px] text-zinc-500 dark:text-zinc-400 leading-none">Radyo</p>
         </div>
       </div>
 
