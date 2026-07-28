@@ -106,7 +106,8 @@ export default function App() {
   const filteredStations = useMemo(() => {
     let result = stations;
 
-    if (selectedCategory && selectedCategory !== 'all') {
+    // Do NOT filter by selected category if user entered a search query (search should be general across selected country)
+    if (!searchQuery.trim() && selectedCategory && selectedCategory !== 'all') {
       result = result.filter((s) => matchesCategory(s, selectedCategory));
     }
 
@@ -118,7 +119,7 @@ export default function App() {
     }
 
     return result;
-  }, [stations, selectedCategory, quickFilter]);
+  }, [stations, selectedCategory, quickFilter, searchQuery]);
 
   // Audio Playback Engine State
   const [currentItem, setCurrentItem] = useState<PlayableItem | null>(null);

@@ -322,6 +322,28 @@ export const COUNTRY_NAMES_TR: Record<string, string> = {
   IE: 'İrlanda'
 };
 
+export function getCountryFlagEmoji(code: string): string {
+  if (!code || code.length !== 2) return '🌐';
+  const codePoints = code
+    .toUpperCase()
+    .split('')
+    .map((char) => 127397 + char.charCodeAt(0));
+  return String.fromCodePoint(...codePoints);
+}
+
+export const ALL_COUNTRIES = Object.entries(COUNTRY_NAMES_TR).map(([code, name]) => ({
+  code,
+  iso_3166_1: code,
+  name,
+  flag: getCountryFlagEmoji(code)
+})).sort((a, b) => {
+  if (a.code === 'TR') return -1;
+  if (b.code === 'TR') return 1;
+  if (a.code === 'AZ') return -1;
+  if (b.code === 'AZ') return 1;
+  return a.name.localeCompare(b.name, 'tr');
+});
+
 export const POPULAR_COUNTRIES = [
   { code: 'TR', name: 'Türkiye', flag: '🇹🇷' },
   { code: 'AZ', name: 'Azerbaycan', flag: '🇦🇿' },

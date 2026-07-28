@@ -31,6 +31,8 @@ export interface RadioCountry {
   code: string; // ISO code (e.g., 'TR')
   name: string; // Turkish/Localized display name
   stationCount: number;
+  iso_3166_1?: string;
+  stationcount?: number;
 }
 
 export interface Playlist {

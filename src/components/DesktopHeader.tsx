@@ -12,7 +12,7 @@ import {
   Check
 } from 'lucide-react';
 import { AppThemeMode, ThemePalette } from '../types';
-import { POPULAR_COUNTRIES } from '../constants/categories';
+import { ALL_COUNTRIES } from '../constants/categories';
 
 interface DesktopHeaderProps {
   searchQuery: string;
@@ -120,7 +120,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = React.memo(({
             className="pl-7 pr-3 py-1.5 text-xs rounded-xl bg-zinc-100 dark:bg-zinc-800/90 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/70 focus:outline-none focus:border-amber-500 appearance-none cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
           >
             <option value="">Tüm Ülkeler</option>
-            {POPULAR_COUNTRIES.map((c) => (
+            {ALL_COUNTRIES.map((c) => (
               <option key={c.code} value={c.code}>
                 {c.flag} {c.name}
               </option>

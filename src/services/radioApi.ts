@@ -1,6 +1,6 @@
 import { RadioStation, RadioCountry } from '../types';
 import { VERIFIED_TURKISH_STATIONS } from '../data/fallbackStations';
-import { GENRE_CATEGORIES, matchesCategory } from '../constants/categories';
+import { GENRE_CATEGORIES, ALL_COUNTRIES, matchesCategory } from '../constants/categories';
 
 const RADIO_BROWSER_MIRRORS = [
   'https://de1.api.radio-browser.info',
@@ -232,10 +232,12 @@ export async function searchStations(params: {
   }
 
   if ((!country || country === 'TR') && query) {
-    return VERIFIED_TURKISH_STATIONS.filter(s =>
-      s.name.toLowerCase().includes(query.toLowerCase()) ||
-      s.tags.toLowerCase().includes(query.toLowerCase())
+    const qLower = query.toLowerCase();
+    const verifiedMatches = VERIFIED_TURKISH_STATIONS.filter(s =>
+      s.name.toLowerCase().includes(qLower) ||
+      s.tags.toLowerCase().includes(qLower)
     );
+    return deduplicateStationsByName(verifiedMatches);
   }
 
   return [];
@@ -290,15 +292,13 @@ export async function getCountries(): Promise<RadioCountry[]> {
     console.warn('Failed to fetch countries:', err);
   }
 
-  return [
-    { code: 'TR', name: 'Türkiye', stationCount: 850 },
-    { code: 'DE', name: 'Almanya', stationCount: 3000 },
-    { code: 'US', name: 'Amerika Birleşik Devletleri', stationCount: 5000 },
-    { code: 'GB', name: 'Birleşik Krallık', stationCount: 2200 },
-    { code: 'FR', name: 'Fransa', stationCount: 1800 },
-    { code: 'NL', name: 'Hollanda', stationCount: 1200 },
-    { code: 'AZ', name: 'Azerbaycan', stationCount: 150 }
-  ];
+  return ALL_COUNTRIES.map(c => ({
+    code: c.code,
+    iso_3166_1: c.code,
+    name: c.name,
+    stationCount: 100,
+    stationcount: 100
+  }));
 }
 
 export async function getPopularTags(): Promise<{ name: string; stationCount: number }[]> {

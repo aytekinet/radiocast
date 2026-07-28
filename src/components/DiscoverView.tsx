@@ -19,7 +19,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Playlist, RadioStation } from '../types';
-import { GENRE_CATEGORIES, POPULAR_COUNTRIES, COUNTRY_NAMES_TR } from '../constants/categories';
+import { GENRE_CATEGORIES, ALL_COUNTRIES, POPULAR_COUNTRIES, COUNTRY_NAMES_TR } from '../constants/categories';
 import { StationCard } from './StationCard';
 import { PlaybackStatus } from '../services/audioEngine';
 
@@ -257,11 +257,11 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
           <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-amber-500/30 text-zinc-800 dark:text-zinc-200 shadow-sm">
             <div className="flex items-center space-x-3">
               <span className="text-xl">
-                {POPULAR_COUNTRIES.find((c) => c.code === selectedCountry)?.flag || '🌍'}
+                {ALL_COUNTRIES.find((c) => c.code === selectedCountry)?.flag || '🌍'}
               </span>
               <div>
                 <h3 className="text-xs font-bold text-zinc-900 dark:text-white">
-                  {POPULAR_COUNTRIES.find((c) => c.code === selectedCountry)?.name || COUNTRY_NAMES_TR[selectedCountry] || selectedCountry} Radyoları
+                  {ALL_COUNTRIES.find((c) => c.code === selectedCountry)?.name || COUNTRY_NAMES_TR[selectedCountry] || selectedCountry} Radyoları
                 </h3>
                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                   Yabancı ülke seçiminde tüm popüler istasyonlar kategori sınırlaması olmaksızın listelenmektedir.
@@ -353,7 +353,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
               {searchQuery
                 ? `Arama Sonuçları: "${searchQuery}"`
                 : selectedCountry
-                ? `${POPULAR_COUNTRIES.find((c) => c.code === selectedCountry)?.name || selectedCountry} Radyoları`
+                ? `${ALL_COUNTRIES.find((c) => c.code === selectedCountry)?.name || COUNTRY_NAMES_TR[selectedCountry] || selectedCountry} Radyoları`
                 : 'En Çok Dinlenen Radyolar'}
             </span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700/60 font-mono">

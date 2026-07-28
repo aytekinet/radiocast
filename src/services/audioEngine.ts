@@ -207,6 +207,7 @@ class AudioEngine {
     if (this.callbacks.onStatusChange) {
       this.callbacks.onStatusChange(newStatus);
     }
+    this.updateMediaSessionState();
   }
 
   private startProgressSaveLoop() {
@@ -248,6 +249,7 @@ class AudioEngine {
     if (this.callbacks.onItemChange) {
       this.callbacks.onItemChange(this.currentItem);
     }
+    this.updateMediaSession();
 
     this.setStatus('connecting');
 
@@ -321,6 +323,7 @@ class AudioEngine {
     if (this.callbacks.onItemChange) {
       this.callbacks.onItemChange(this.currentItem);
     }
+    this.updateMediaSession();
 
     this.setStatus('connecting');
     this.candidates = [episode.audioUrl];
@@ -349,6 +352,7 @@ class AudioEngine {
     if (this.callbacks.onItemChange) {
       this.callbacks.onItemChange(this.currentItem);
     }
+    this.updateMediaSession();
 
     this.setStatus('connecting');
     this.candidates = [track.listenUrl];
@@ -629,6 +633,32 @@ class AudioEngine {
     };
   }
 
+  private setMediaSessionHandler(action: MediaSessionAction, handler: MediaSessionActionHandler | null) {
+    if ('mediaSession' in navigator && typeof navigator.mediaSession.setActionHandler === 'function') {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch {
+        // Unsupported action in this browser
+      }
+    }
+  }
+
+  private updateMediaSessionState() {
+    if ('mediaSession' in navigator) {
+      try {
+        if (this.status === 'playing') {
+          navigator.mediaSession.playbackState = 'playing';
+        } else if (this.status === 'paused') {
+          navigator.mediaSession.playbackState = 'paused';
+        } else if (this.status === 'idle' || this.status === 'error') {
+          navigator.mediaSession.playbackState = 'none';
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   private updateMediaSession() {
     if ('mediaSession' in navigator && this.currentItem) {
       let title = 'Radyo Dünyası';
@@ -653,35 +683,46 @@ class AudioEngine {
         coverUrl = this.currentItem.audiobookTrack.book.cover || coverUrl;
       }
 
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title,
-        artist,
-        album,
-        artwork: [
-          {
-            src: coverUrl,
-            sizes: '128x128',
-            type: 'image/png'
-          }
-        ]
-      });
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title,
+          artist,
+          album,
+          artwork: [
+            {
+              src: coverUrl,
+              sizes: '128x128',
+              type: 'image/png'
+            },
+            {
+              src: coverUrl,
+              sizes: '512x512',
+              type: 'image/png'
+            }
+          ]
+        });
+      } catch {
+        // ignore metadata errors
+      }
 
-      navigator.mediaSession.setActionHandler('play', () => this.togglePlayPause());
-      navigator.mediaSession.setActionHandler('pause', () => this.togglePlayPause());
-      navigator.mediaSession.setActionHandler('stop', () => this.stop());
-      navigator.mediaSession.setActionHandler('nexttrack', () => {
+      this.updateMediaSessionState();
+
+      this.setMediaSessionHandler('play', () => this.togglePlayPause());
+      this.setMediaSessionHandler('pause', () => this.togglePlayPause());
+      this.setMediaSessionHandler('stop', () => this.stop());
+      this.setMediaSessionHandler('nexttrack', () => {
         if (this.callbacks.onNext) this.callbacks.onNext();
       });
-      navigator.mediaSession.setActionHandler('previoustrack', () => {
+      this.setMediaSessionHandler('previoustrack', () => {
         if (this.callbacks.onPrevious) this.callbacks.onPrevious();
       });
 
       if (this.currentItem.type !== 'radio') {
-        navigator.mediaSession.setActionHandler('seekbackward', () => this.seekRelative(-15));
-        navigator.mediaSession.setActionHandler('seekforward', () => this.seekRelative(30));
+        this.setMediaSessionHandler('seekbackward', () => this.seekRelative(-15));
+        this.setMediaSessionHandler('seekforward', () => this.seekRelative(30));
       } else {
-        navigator.mediaSession.setActionHandler('seekbackward', null);
-        navigator.mediaSession.setActionHandler('seekforward', null);
+        this.setMediaSessionHandler('seekbackward', null);
+        this.setMediaSessionHandler('seekforward', null);
       }
     }
   }

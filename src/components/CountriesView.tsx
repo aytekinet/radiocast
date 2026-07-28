@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Globe2, Search, ChevronRight } from 'lucide-react';
 import { getCountries } from '../services/radioApi';
-import { COUNTRY_NAMES_TR } from '../constants/categories';
+import { ALL_COUNTRIES, COUNTRY_NAMES_TR, getCountryFlagEmoji } from '../constants/categories';
 
 interface CountriesViewProps {
   onSelectCountry: (code: string) => void;
@@ -12,6 +12,7 @@ interface CountryInfo {
   iso_3166_1: string;
   stationcount: number;
   displayName?: string;
+  flag?: string;
 }
 
 export const CountriesView: React.FC<CountriesViewProps> = React.memo(({ onSelectCountry }) => {
@@ -24,32 +25,71 @@ export const CountriesView: React.FC<CountriesViewProps> = React.memo(({ onSelec
     async function load() {
       try {
         setIsLoading(true);
-        const list = await getCountries();
-        if (isMounted) {
-          const normalized = list.map((item: any) => {
+        const list: any[] = await getCountries();
+        if (!isMounted) return;
+
+        const countMap = new Map<string, number>();
+        if (Array.isArray(list)) {
+          for (const item of list) {
             const iso = (item.iso_3166_1 || item.code || '').toUpperCase();
-            const trName = COUNTRY_NAMES_TR[iso];
-            return {
-              name: item.name || iso,
-              iso_3166_1: iso,
-              stationcount: item.stationcount || item.stationCount || 0,
-              displayName: trName || item.name || iso
-            };
-          }).filter(c => c.iso_3166_1 && c.iso_3166_1.length === 2);
-
-          // Sort: TR and AZ first, then by station count descending
-          normalized.sort((a, b) => {
-            if (a.iso_3166_1 === 'TR') return -1;
-            if (b.iso_3166_1 === 'TR') return 1;
-            if (a.iso_3166_1 === 'AZ') return -1;
-            if (b.iso_3166_1 === 'AZ') return 1;
-            return b.stationcount - a.stationcount;
-          });
-
-          setCountries(normalized);
+            if (iso) {
+              countMap.set(iso, item.stationcount || item.stationCount || 0);
+            }
+          }
         }
+
+        // Merge ALL_COUNTRIES with API counts and any extra API countries
+        const combinedMap = new Map<string, CountryInfo>();
+
+        for (const c of ALL_COUNTRIES) {
+          const apiCount = countMap.get(c.code);
+          combinedMap.set(c.code, {
+            name: c.name,
+            iso_3166_1: c.code,
+            stationcount: apiCount && apiCount > 0 ? apiCount : 100,
+            displayName: c.name,
+            flag: c.flag
+          });
+        }
+
+        if (Array.isArray(list)) {
+          for (const item of list) {
+            const iso = (item.iso_3166_1 || item.code || '').toUpperCase();
+            if (iso && iso.length === 2 && !combinedMap.has(iso)) {
+              const trName = COUNTRY_NAMES_TR[iso] || item.name || iso;
+              combinedMap.set(iso, {
+                name: item.name || iso,
+                iso_3166_1: iso,
+                stationcount: item.stationcount || item.stationCount || 0,
+                displayName: trName,
+                flag: getCountryFlagEmoji(iso)
+              });
+            }
+          }
+        }
+
+        const normalized = Array.from(combinedMap.values());
+
+        // Sort: TR first, AZ second, then by station count descending
+        normalized.sort((a, b) => {
+          if (a.iso_3166_1 === 'TR') return -1;
+          if (b.iso_3166_1 === 'TR') return 1;
+          if (a.iso_3166_1 === 'AZ') return -1;
+          if (b.iso_3166_1 === 'AZ') return 1;
+          return b.stationcount - a.stationcount;
+        });
+
+        setCountries(normalized);
       } catch (err) {
         console.error('Failed to load countries', err);
+        const fallbackList = ALL_COUNTRIES.map(c => ({
+          name: c.name,
+          iso_3166_1: c.code,
+          stationcount: 100,
+          displayName: c.name,
+          flag: c.flag
+        }));
+        if (isMounted) setCountries(fallbackList);
       } finally {
         if (isMounted) setIsLoading(false);
       }
