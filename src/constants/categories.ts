@@ -96,7 +96,7 @@ export const GENRE_CATEGORIES: GenreCategory[] = [
     id: 'classical', 
     name: 'KLASİK', 
     tag: 'classical', 
-    tags: ['classical', 'klasik', 'jazz', 'caz', 'symphony', 'senfoni', 'opera', 'borusan', 'trt radyo 3'],
+    tags: ['classical', 'klasik', 'jazz', 'caz', 'symphony', 'senfoni', 'opera', 'borusan', 'trt radyo 3', 'voyage', 'radyo voyage', 'ambient', 'chillout', 'relax', 'new age', 'instrumental'],
     excludeKeywords: ['spor', 'haber', 'football', 'futbol', 'pop', 'arabesk'],
     iconName: 'Guitar', 
     color: 'from-amber-700 to-stone-800' 
@@ -189,6 +189,8 @@ export const TR_MANUAL_OVERRIDES: Record<string, { categoryId: string; isVirtual
   'kiss fm': { categoryId: 'yabanci' },
 
   // KLASİK
+  'radyo voyage': { categoryId: 'classical' },
+  'voyage': { categoryId: 'classical' },
   'borusan klasik': { categoryId: 'classical' },
   'radyo klasik': { categoryId: 'classical' },
   'trt radyo 3': { categoryId: 'classical' },
