@@ -119,25 +119,84 @@ export async function fetchITunesPodcastsDirect(query: string, country = 'TR', l
   return [];
 }
 
-export async function getPopularPodcasts(country = 'TR', page = 1): Promise<PodcastShow[]> {
-  // 1. Try local Express API route
+export interface PodcastCatalogResponse {
+  items: PodcastShow[];
+  count: number;
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
+export async function fetchPodcastCatalog(params: {
+  limit?: number;
+  offset?: number;
+  category?: string;
+  query?: string;
+} = {}): Promise<PodcastCatalogResponse> {
+  const limit = params.limit || 50;
+  const offset = params.offset || 0;
+  const category = params.category || 'all';
+  const query = params.query || '';
+
   try {
-    const res = await fetch(`/api/podcasts/search?q=podcast&country=${encodeURIComponent(country)}&page=${page}`);
+    const url = `/api/podcasts/catalog?limit=${limit}&offset=${offset}&category=${encodeURIComponent(category)}&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length >= 8) {
-        return data.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
+      if (data && data.success && Array.isArray(data.items)) {
+        const shows: PodcastShow[] = data.items.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          publisher: item.author || 'Yayıncı',
+          coverUrl: item.image || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=400&q=80',
+          category: item.categories?.[0] || 'Podcast',
+          description: item.description || '',
+          feedUrl: item.feedUrl,
+          releaseDateMillis: item.releaseDateMillis || 0,
+          episodes: []
+        }));
+
+        return {
+          items: shows,
+          count: data.count || shows.length,
+          total: data.total || shows.length,
+          limit: data.limit || limit,
+          offset: data.offset || offset,
+          hasMore: data.hasMore ?? false
+        };
       }
     }
+  } catch (err) {
+    console.warn('Podcast catalog fetch failed, using fallback:', err);
+  }
+
+  // Fallback to iTunes search
+  const fallbackShows = await getPopularPodcasts();
+  const paged = fallbackShows.slice(offset, offset + limit);
+  return {
+    items: paged,
+    count: paged.length,
+    total: fallbackShows.length,
+    limit,
+    offset,
+    hasMore: (offset + limit) < fallbackShows.length
+  };
+}
+
+export async function getPopularPodcasts(_country = 'TR', _page = 1): Promise<PodcastShow[]> {
+  try {
+    const res = await fetchPodcastCatalog({ limit: 50, offset: 0 });
+    if (res.items.length > 0) return res.items;
   } catch (err) {
     console.warn('Popular podcasts backend fetch warning:', err);
   }
 
-  // 2. Direct client-side iTunes queries (Crucial for Vercel static hosting!)
+  // Direct client-side iTunes queries
   try {
-    const keywords = ['podcast', 'türkçe', 'sohbet', 'teknoloji', 'felsefe', 'psikoloji', 'tarih', 'haber', 'mizah', 'ekonomi', 'sanat', 'spor', 'müzik', 'sinema'];
+    const keywords = ['felsefe', 'haber', 'gündem', 'teknoloji', 'bilim', 'psikoloji', 'tarih', 'mizah', 'ekonomi', 'spor', 'sanat', 'edebiyat', 'müzik', 'bilişim', 'eğitim', 'finans', 'girişimcilik', 'sinema', 'dizi', 'sağlık', 'yaşam', 'kişisel gelişim', 'oyun', 'çocuk', 'ebeveyn', 'futbol', 'türkçe', 'türkiye', 'kripto'];
     const results = await Promise.allSettled(
-      keywords.map(kw => fetchITunesPodcastsDirect(kw, country, 30))
+      keywords.map(kw => fetchITunesPodcastsDirect(kw, 'TR', 50))
     );
 
     const allShows: PodcastShow[] = [];
@@ -168,20 +227,13 @@ export async function getPopularPodcasts(country = 'TR', page = 1): Promise<Podc
 export async function searchPodcasts(query: string, country = 'TR', page = 1): Promise<PodcastShow[]> {
   if (!query.trim()) return getPopularPodcasts(country, page);
 
-  // 1. Try local Express API route
   try {
-    const res = await fetch(`/api/podcasts/search?q=${encodeURIComponent(query)}&country=${encodeURIComponent(country)}&page=${page}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
-      }
-    }
+    const res = await fetchPodcastCatalog({ limit: 50, offset: 0, query });
+    if (res.items.length > 0) return res.items;
   } catch (err) {
     console.warn('Podcast search error:', err);
   }
 
-  // 2. Direct client-side iTunes search
   try {
     const directResults = await fetchITunesPodcastsDirect(query, country, 100);
     if (directResults.length > 0) {

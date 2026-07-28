@@ -1,118 +1,168 @@
 import type { Request, Response } from 'express';
 import { getFromCache, setToCache } from './cache';
 import { fetchAndParsePodcastRss } from './rssParser';
+import { queryPodcastCatalogPage, getOrBuildPodcastCatalog } from './podcasts/podcastCatalogService';
+
+export async function handlePodcastCatalog(req: Request, res: Response) {
+  const limit = parseInt(req.query.limit as string || '50', 10);
+  const offset = parseInt(req.query.offset as string || '0', 10);
+  const category = (req.query.category as string || 'all').trim();
+  const q = (req.query.q as string || '').trim();
+
+  try {
+    const result = await queryPodcastCatalogPage({ limit, offset, category, query: q });
+    res.setHeader('Content-Type', 'application/json');
+    return res.json({
+      success: true,
+      items: result.items,
+      count: result.items.length,
+      total: result.total,
+      limit: result.limit,
+      offset: result.offset,
+      hasMore: result.hasMore
+    });
+  } catch (err) {
+    console.error('[podcast-catalog:error]', err);
+    return res.status(500).json({ success: false, error: 'Catalog retrieval failed' });
+  }
+}
+
+export async function handlePodcastTrending(req: Request, res: Response) {
+  try {
+    const catalog = await getOrBuildPodcastCatalog();
+    const trending = catalog.slice(0, 30);
+    res.setHeader('Content-Type', 'application/json');
+    return res.json({
+      success: true,
+      items: trending,
+      total: trending.length
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Trending fetch failed' });
+  }
+}
+
+export async function handlePodcastRecent(req: Request, res: Response) {
+  try {
+    const catalog = await getOrBuildPodcastCatalog();
+    const sortedByDate = [...catalog].sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
+    const recent = sortedByDate.slice(0, 30);
+    res.setHeader('Content-Type', 'application/json');
+    return res.json({
+      success: true,
+      items: recent,
+      total: recent.length
+    });
+  } catch {
+    return res.status(500).json({ success: false, error: 'Recent fetch failed' });
+  }
+}
 
 export async function handlePodcastFeed(req: Request, res: Response) {
-  const feedUrl = (req.query.url as string || req.query.feedUrl as string || '').trim();
-  
-  if (!feedUrl) {
+  let rawUrl = (req.query.url as string || req.query.feedUrl as string || '').trim();
+
+  // Handle double-encoding if needed
+  if (rawUrl.includes('%253A') || rawUrl.includes('%252F')) {
+    try {
+      rawUrl = decodeURIComponent(rawUrl);
+    } catch {}
+  }
+
+  if (!rawUrl) {
+    console.error('[podcast-feed:error]', { requestId: Date.now(), errorCode: 'MISSING_FEED_URL' });
     return res.status(400).json({
       success: false,
       podcast: null,
       episodes: [],
       count: 0,
-      errorCode: 'INVALID_URL'
+      errorCode: 'MISSING_FEED_URL'
     });
   }
 
-  const cacheKey = `podcast_feed_v2_${encodeURIComponent(feedUrl)}`;
+  let hostname = '';
+  try {
+    hostname = new URL(rawUrl).hostname;
+  } catch {}
+
+  const requestId = Date.now();
+  console.info('[podcast-feed:start]', { requestId, hostname });
+
+  const cacheKey = `podcast_feed_v3_${encodeURIComponent(rawUrl)}`;
   const cached = getFromCache<any>(cacheKey);
   if (cached) {
-    return res.setHeader('Content-Type', 'application/json').json(cached);
+    res.setHeader('Content-Type', 'application/json');
+    return res.json(cached);
   }
 
-  const result = await fetchAndParsePodcastRss(feedUrl);
+  const result = await fetchAndParsePodcastRss(rawUrl);
 
   if (result.success) {
-    // Cache successful feeds for 15 minutes
+    console.info('[podcast-feed:parsed]', {
+      requestId,
+      rawItemCount: result.diagnostics?.totalItems || 0,
+      validEpisodeCount: result.count,
+      parseFormat: result.diagnostics?.parseFormat || 'unknown'
+    });
     setToCache(cacheKey, result, 15 * 60 * 1000);
   } else {
-    // Cache failures briefly (1 minute) to avoid spamming broken RSS endpoints
+    console.error('[podcast-feed:error]', {
+      requestId,
+      errorCode: result.errorCode || 'UNKNOWN_ERROR',
+      durationMs: result.diagnostics?.fetchDurationMs || 0,
+      hostname
+    });
     setToCache(cacheKey, result, 1 * 60 * 1000);
   }
 
-  return res.setHeader('Content-Type', 'application/json').json(result);
+  res.setHeader('Content-Type', 'application/json');
+  return res.json(result);
 }
 
 export async function handlePodcastSearch(req: Request, res: Response) {
   const q = (req.query.q as string || '').trim();
-  const country = (req.query.country as string || 'TR').toUpperCase();
-  const page = Math.max(1, parseInt(req.query.page as string || '1', 10));
+  const category = (req.query.category as string || 'all').trim();
+  const limit = parseInt(req.query.limit as string || '50', 10);
+  const offset = parseInt(req.query.offset as string || '0', 10);
 
-  const cacheKey = `podcast_search_${encodeURIComponent(q)}_${country}_p${page}`;
-  const cached = getFromCache<any[]>(cacheKey);
-  if (cached) {
-    return res.setHeader('Content-Type', 'application/json').json(cached);
+  try {
+    const result = await queryPodcastCatalogPage({ limit, offset, category, query: q });
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Return array or object based on client format support
+    const legacyArray = result.items.map(item => ({
+      id: item.id,
+      title: item.title,
+      publisher: item.author,
+      coverUrl: item.image,
+      category: item.categories[0] || 'Podcast',
+      description: item.description,
+      feedUrl: item.feedUrl,
+      releaseDateMillis: item.releaseDateMillis || 0
+    }));
+
+    return res.json(legacyArray);
+  } catch {
+    return res.status(502).json({ error: 'Podcast search failed' });
+  }
+}
+
+export async function handlePodcastRefresh(req: Request, res: Response) {
+  const authHeader = req.headers.authorization || '';
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({ success: false, error: 'Unauthorized cron trigger' });
   }
 
   try {
-    let searchTerms: string[] = [];
-    if (!q || q.toLowerCase() === 'podcast' || q.toLowerCase() === 'popular') {
-      searchTerms = [
-        'türkçe', 'podcast', 'haber', 'gündem', 'felsefe', 'psikoloji', 
-        'teknoloji', 'bilim', 'tarih', 'sohbet', 'müzik', 'spor', 
-        'mizah', 'ekonomi', 'sanat'
-      ];
-    } else {
-      searchTerms = [q];
-    }
-
-    const resultsMap = new Map<string, any>();
-
-    await Promise.all(
-      searchTerms.map(async (term) => {
-        try {
-          const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&country=${encodeURIComponent(country)}&media=podcast&entity=podcast&limit=100`;
-          const response = await fetch(url, {
-            headers: { 'User-Agent': 'GlobalRadioWeb/1.0 (Mozilla/5.0)' }
-          });
-
-          if (response.ok) {
-            const data = await response.json() as { results?: any[] };
-            if (data.results && Array.isArray(data.results)) {
-              for (const item of data.results) {
-                if (item.feedUrl && item.collectionName && item.collectionId) {
-                  const key = `itunes-${item.collectionId}`;
-                  if (!resultsMap.has(key)) {
-                    const releaseDateStr = item.releaseDate || '';
-                    let releaseDateMillis = 0;
-                    if (releaseDateStr) {
-                      const d = new Date(releaseDateStr);
-                      if (!isNaN(d.getTime())) releaseDateMillis = d.getTime();
-                    }
-
-                    resultsMap.set(key, {
-                      id: key,
-                      title: item.collectionName || item.trackName || 'Podcast',
-                      publisher: item.artistName || 'Yayıncı',
-                      coverUrl: item.artworkUrl600 || item.artworkUrl100 || item.artworkUrl60 || '',
-                      feedUrl: item.feedUrl,
-                      storeUrl: item.collectionViewUrl || '',
-                      episodeCount: item.trackCount || 0,
-                      genre: item.primaryGenreName || 'Podcast',
-                      country: item.country || country,
-                      category: item.primaryGenreName || 'Podcast',
-                      description: `${item.artistName || 'Yayıncı'} - ${item.primaryGenreName || 'Türkçe'} podcast serisi.`,
-                      releaseDate: releaseDateStr,
-                      releaseDateMillis: releaseDateMillis
-                    });
-                  }
-                }
-              }
-            }
-          }
-        } catch {
-          // ignore term failure
-        }
-      })
-    );
-
-    const podcasts = Array.from(resultsMap.values());
-    podcasts.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
-
-    setToCache(cacheKey, podcasts, 30 * 60 * 1000);
-    return res.setHeader('Content-Type', 'application/json').json(podcasts);
-  } catch {
-    return res.status(502).json({ error: 'Podcast search failed' });
+    const freshCatalog = await getOrBuildPodcastCatalog(true);
+    return res.json({
+      success: true,
+      message: 'Podcast catalog refreshed successfully',
+      totalPodcasts: freshCatalog.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: 'Catalog refresh failed' });
   }
 }

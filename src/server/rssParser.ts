@@ -1,5 +1,26 @@
 import { XMLParser } from 'fast-xml-parser';
 
+export type PodcastFeedErrorCode =
+  | 'MISSING_FEED_URL'
+  | 'INVALID_FEED_URL'
+  | 'BLOCKED_FEED_URL'
+  | 'FEED_URL_ENCODING_ERROR'
+  | 'FEED_DNS_FAILED'
+  | 'FEED_TIMEOUT'
+  | 'FEED_HTTP_403'
+  | 'FEED_HTTP_404'
+  | 'FEED_HTTP_ERROR'
+  | 'FEED_FETCH_FAILED'
+  | 'FEED_REDIRECT_FAILED'
+  | 'FEED_RESPONSE_TOO_LARGE'
+  | 'FEED_RETURNED_HTML'
+  | 'FEED_EMPTY_RESPONSE'
+  | 'FEED_XML_PARSE_FAILED'
+  | 'FEED_HAS_NO_ITEMS'
+  | 'FEED_HAS_NO_AUDIO_EPISODES'
+  | 'SERVER_CONFIGURATION_ERROR'
+  | 'UNKNOWN_ERROR';
+
 export interface PodcastEpisode {
   id: string;
   showTitle?: string;
@@ -31,7 +52,7 @@ export interface PodcastFeedResponse {
     parseFormat: 'rss' | 'atom' | 'unknown';
     finalUrl?: string;
   };
-  errorCode?: 'INVALID_URL' | 'FEED_TIMEOUT' | 'FEED_FETCH_FAILED' | 'FEED_NOT_XML' | 'FEED_PARSE_FAILED' | 'NO_AUDIO_EPISODES';
+  errorCode?: PodcastFeedErrorCode;
 }
 
 const rssXmlParser = new XMLParser({
@@ -57,12 +78,48 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 }
 
+function isBlockedUrl(urlStr: string): boolean {
+  try {
+    const parsed = new URL(urlStr);
+    const protocol = parsed.protocol.toLowerCase();
+    if (protocol !== 'http:' && protocol !== 'https:') return true;
+
+    const hostname = parsed.hostname.toLowerCase();
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '0.0.0.0' ||
+      hostname === '::1' ||
+      hostname === '169.254.169.254' ||
+      hostname.endsWith('.internal') ||
+      hostname.endsWith('.local')
+    ) {
+      return true;
+    }
+
+    const ipMatch = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (ipMatch) {
+      const [, a, b] = ipMatch.map(Number);
+      if (a === 10) return true;
+      if (a === 172 && b >= 16 && b <= 31) return true;
+      if (a === 192 && b === 168) return true;
+      if (a === 169 && b === 254) return true;
+      if (a === 127) return true;
+    }
+
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 export function parseRssXmlContent(xmlText: string, feedUrl: string): {
   podcast: { title: string; description?: string; image?: string; feedUrl: string };
   episodes: PodcastEpisode[];
   totalItems: number;
   validAudioItems: number;
   parseFormat: 'rss' | 'atom' | 'unknown';
+  error?: PodcastFeedErrorCode;
 } {
   let parseFormat: 'rss' | 'atom' | 'unknown' = 'unknown';
   let totalItems = 0;
@@ -70,6 +127,17 @@ export function parseRssXmlContent(xmlText: string, feedUrl: string): {
 
   try {
     const jsonObj = rssXmlParser.parse(xmlText);
+    if (!jsonObj || typeof jsonObj !== 'object') {
+      return {
+        podcast: { title: 'Podcast', feedUrl },
+        episodes: [],
+        totalItems: 0,
+        validAudioItems: 0,
+        parseFormat: 'unknown',
+        error: 'FEED_XML_PARSE_FAILED'
+      };
+    }
+
     const channel = jsonObj?.rss?.channel || jsonObj?.['rdf:RDF']?.channel || jsonObj?.channel || jsonObj?.feed || jsonObj;
 
     if (jsonObj?.feed || channel?.entry) {
@@ -97,6 +165,17 @@ export function parseRssXmlContent(xmlText: string, feedUrl: string): {
     }
 
     totalItems = rawItems.length;
+    if (totalItems === 0) {
+      return {
+        podcast: { title: channelTitle, description: channelDesc, image: channelImage, feedUrl },
+        episodes: [],
+        totalItems: 0,
+        validAudioItems: 0,
+        parseFormat,
+        error: 'FEED_HAS_NO_ITEMS'
+      };
+    }
+
     const episodes: PodcastEpisode[] = [];
     const seenGuidsOrUrls = new Set<string>();
 
@@ -172,7 +251,6 @@ export function parseRssXmlContent(xmlText: string, feedUrl: string): {
         }
       }
 
-      // Filter out non-audio or missing audio URLs
       if (!audioUrl || !audioUrl.startsWith('http')) continue;
       if (audioUrl.match(/\.(html|htm|php|asp|aspx|js|css|jpg|jpeg|png|gif|svg|webp|youtube\.com|vimeo\.com)($|\?)/i)) {
         continue;
@@ -240,7 +318,19 @@ export function parseRssXmlContent(xmlText: string, feedUrl: string): {
       idx++;
     }
 
+    // Sort newest first
     episodes.sort((a, b) => (b.pubDateMillis || 0) - (a.pubDateMillis || 0));
+
+    if (episodes.length === 0) {
+      return {
+        podcast: { title: channelTitle, description: channelDesc, image: channelImage, feedUrl },
+        episodes: [],
+        totalItems,
+        validAudioItems: 0,
+        parseFormat,
+        error: 'FEED_HAS_NO_AUDIO_EPISODES'
+      };
+    }
 
     return {
       podcast: {
@@ -260,7 +350,8 @@ export function parseRssXmlContent(xmlText: string, feedUrl: string): {
       episodes: [],
       totalItems,
       validAudioItems: 0,
-      parseFormat: 'unknown'
+      parseFormat: 'unknown',
+      error: 'FEED_XML_PARSE_FAILED'
     };
   }
 }
@@ -268,32 +359,70 @@ export function parseRssXmlContent(xmlText: string, feedUrl: string): {
 export async function fetchAndParsePodcastRss(feedUrl: string): Promise<PodcastFeedResponse> {
   const fetchStartTime = Date.now();
 
-  if (!feedUrl || typeof feedUrl !== 'string' || !feedUrl.startsWith('http')) {
+  if (!feedUrl || typeof feedUrl !== 'string') {
     return {
       success: false,
       podcast: null,
       episodes: [],
       count: 0,
-      errorCode: 'INVALID_URL',
+      errorCode: 'MISSING_FEED_URL',
       diagnostics: {
         fetchDurationMs: 0,
         parseDurationMs: 0,
         totalItems: 0,
         validAudioItems: 0,
         parseFormat: 'unknown',
-        finalUrl: feedUrl
+        finalUrl: ''
+      }
+    };
+  }
+
+  const trimmedUrl = feedUrl.trim();
+  if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+    return {
+      success: false,
+      podcast: null,
+      episodes: [],
+      count: 0,
+      errorCode: 'INVALID_FEED_URL',
+      diagnostics: {
+        fetchDurationMs: 0,
+        parseDurationMs: 0,
+        totalItems: 0,
+        validAudioItems: 0,
+        parseFormat: 'unknown',
+        finalUrl: trimmedUrl
+      }
+    };
+  }
+
+  if (isBlockedUrl(trimmedUrl)) {
+    return {
+      success: false,
+      podcast: null,
+      episodes: [],
+      count: 0,
+      errorCode: 'BLOCKED_FEED_URL',
+      diagnostics: {
+        fetchDurationMs: 0,
+        parseDurationMs: 0,
+        totalItems: 0,
+        validAudioItems: 0,
+        parseFormat: 'unknown',
+        finalUrl: trimmedUrl
       }
     };
   }
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12_000); // Strict 12s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 12_000);
 
-    const response = await fetch(feedUrl, {
+    const response = await fetch(trimmedUrl, {
       headers: {
-        'User-Agent': 'GlobalRadioWeb/1.0 (Mozilla/5.0; Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*'
+        'User-Agent': 'RadioCastLive/1.0 (+https://radiocastlive.vercel.app)',
+        'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
+        'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.7'
       },
       signal: controller.signal,
       redirect: 'follow'
@@ -302,24 +431,31 @@ export async function fetchAndParsePodcastRss(feedUrl: string): Promise<PodcastF
     clearTimeout(timeoutId);
     const fetchDurationMs = Date.now() - fetchStartTime;
 
+    const finalUrl = response.url || trimmedUrl;
+
     if (!response.ok) {
+      let errorCode: PodcastFeedErrorCode = 'FEED_HTTP_ERROR';
+      if (response.status === 403) errorCode = 'FEED_HTTP_403';
+      else if (response.status === 404) errorCode = 'FEED_HTTP_404';
+
       return {
         success: false,
         podcast: null,
         episodes: [],
         count: 0,
-        errorCode: 'FEED_FETCH_FAILED',
+        errorCode,
         diagnostics: {
           fetchDurationMs,
           parseDurationMs: 0,
           totalItems: 0,
           validAudioItems: 0,
           parseFormat: 'unknown',
-          finalUrl: response.url || feedUrl
+          finalUrl
         }
       };
     }
 
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
     const parseStartTime = Date.now();
     const xmlText = await response.text();
 
@@ -329,20 +465,58 @@ export async function fetchAndParsePodcastRss(feedUrl: string): Promise<PodcastF
         podcast: null,
         episodes: [],
         count: 0,
-        errorCode: 'FEED_NOT_XML',
+        errorCode: 'FEED_EMPTY_RESPONSE',
         diagnostics: {
           fetchDurationMs,
           parseDurationMs: Date.now() - parseStartTime,
           totalItems: 0,
           validAudioItems: 0,
           parseFormat: 'unknown',
-          finalUrl: response.url || feedUrl
+          finalUrl
         }
       };
     }
 
-    const parsed = parseRssXmlContent(xmlText, response.url || feedUrl);
+    // Check if returned HTML instead of XML/RSS
+    const trimmedText = xmlText.trim();
+    if (contentType.includes('text/html') || trimmedText.toLowerCase().startsWith('<!doctype html') || trimmedText.toLowerCase().startsWith('<html')) {
+      return {
+        success: false,
+        podcast: null,
+        episodes: [],
+        count: 0,
+        errorCode: 'FEED_RETURNED_HTML',
+        diagnostics: {
+          fetchDurationMs,
+          parseDurationMs: Date.now() - parseStartTime,
+          totalItems: 0,
+          validAudioItems: 0,
+          parseFormat: 'unknown',
+          finalUrl
+        }
+      };
+    }
+
+    const parsed = parseRssXmlContent(xmlText, finalUrl);
     const parseDurationMs = Date.now() - parseStartTime;
+
+    if (parsed.error) {
+      return {
+        success: false,
+        podcast: parsed.podcast,
+        episodes: [],
+        count: 0,
+        errorCode: parsed.error,
+        diagnostics: {
+          fetchDurationMs,
+          parseDurationMs,
+          totalItems: parsed.totalItems,
+          validAudioItems: parsed.validAudioItems,
+          parseFormat: parsed.parseFormat,
+          finalUrl
+        }
+      };
+    }
 
     return {
       success: true,
@@ -355,7 +529,7 @@ export async function fetchAndParsePodcastRss(feedUrl: string): Promise<PodcastF
         totalItems: parsed.totalItems,
         validAudioItems: parsed.validAudioItems,
         parseFormat: parsed.parseFormat,
-        finalUrl: response.url || feedUrl
+        finalUrl
       }
     };
 
@@ -375,7 +549,7 @@ export async function fetchAndParsePodcastRss(feedUrl: string): Promise<PodcastF
         totalItems: 0,
         validAudioItems: 0,
         parseFormat: 'unknown',
-        finalUrl: feedUrl
+        finalUrl: trimmedUrl
       }
     };
   }

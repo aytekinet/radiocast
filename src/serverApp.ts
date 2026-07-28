@@ -5,7 +5,14 @@ import { URL } from 'url';
 import { XMLParser } from 'fast-xml-parser';
 import { VERIFIED_TURKISH_STATIONS } from './data/fallbackStations';
 import { processTakedownRequest } from './services/takedownHandler';
-import { handlePodcastFeed as unifiedPodcastFeed, handlePodcastSearch as unifiedPodcastSearch } from './server/podcastHandler';
+import { 
+  handlePodcastFeed as unifiedPodcastFeed, 
+  handlePodcastSearch as unifiedPodcastSearch,
+  handlePodcastCatalog,
+  handlePodcastTrending,
+  handlePodcastRecent,
+  handlePodcastRefresh
+} from './server/podcastHandler';
 import { handleRadioStations as unifiedRadioStations, handleRadioSearch as unifiedRadioSearch, handleRadioCountries as unifiedRadioCountries, handleRadioTags as unifiedRadioTags, handleRadioClick as unifiedRadioClick } from './server/radioHandler';
 
 export const app = express();
@@ -766,6 +773,10 @@ app.get('/api/radio/countries', (req, res) => unifiedRadioCountries(req, res));
 app.get('/api/radio/tags', (req, res) => unifiedRadioTags(req, res));
 app.post('/api/radio/click', (req, res) => unifiedRadioClick(req, res));
 app.get('/api/podcasts/search', (req, res) => unifiedPodcastSearch(req, res));
+app.get('/api/podcasts/catalog', (req, res) => handlePodcastCatalog(req, res));
+app.get('/api/podcasts/trending', (req, res) => handlePodcastTrending(req, res));
+app.get('/api/podcasts/recent', (req, res) => handlePodcastRecent(req, res));
+app.get('/api/internal/podcasts/refresh', (req, res) => handlePodcastRefresh(req, res));
 app.get('/api/podcasts/feed', (req, res) => unifiedPodcastFeed(req, res));
 app.get('/api/podcast-feed', (req, res) => unifiedPodcastFeed(req, res));
 

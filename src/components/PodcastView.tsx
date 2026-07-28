@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PodcastShow, PodcastEpisode } from '../types';
-import { searchPodcasts, getPopularPodcasts, getPodcastEpisodesResult, safeParseEpisodeDateMillis } from '../services/podcastApi';
+import { searchPodcasts, getPopularPodcasts, fetchPodcastCatalog, getPodcastEpisodesResult, safeParseEpisodeDateMillis } from '../services/podcastApi';
 import { getAllPodcastProgress } from '../services/storage';
 import { 
   Mic, 
@@ -40,6 +40,10 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   const requestIdRef = React.useRef<number>(0);
 
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [offset, setOffset] = useState<number>(0);
+  const [totalPodcasts, setTotalPodcasts] = useState<number>(0);
+  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
   const PODCAST_CATEGORIES = [
     { id: 'all', name: 'Tüm Podcastler', query: '' },
@@ -111,33 +115,55 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     }
   };
 
-  const loadPodcasts = async (query = '') => {
-    setLoading(true);
+  const loadPodcasts = async (query = '', category = activeCategory, isReset = true) => {
+    if (isReset) {
+      setLoading(true);
+      setOffset(0);
+    }
     try {
-      let data: PodcastShow[] = [];
-      if (query.trim()) {
-        data = await searchPodcasts(query);
+      const res = await fetchPodcastCatalog({
+        limit: 50,
+        offset: isReset ? 0 : offset,
+        category,
+        query
+      });
+
+      if (isReset) {
+        setPodcasts(res.items);
       } else {
-        data = await getPopularPodcasts();
+        setPodcasts(prev => {
+          const seen = new Set(prev.map(p => p.feedUrl || p.id));
+          const newItems = res.items.filter(p => !seen.has(p.feedUrl || p.id));
+          return [...prev, ...newItems];
+        });
       }
-      const sortedData = [...data].sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
-      setPodcasts(sortedData);
+
+      setTotalPodcasts(res.total);
+      setHasMore(res.hasMore);
+      setOffset((isReset ? 0 : offset) + res.items.length);
     } catch {
       // Fallback
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const loadMorePodcasts = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    await loadPodcasts(searchQuery, activeCategory, false);
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    loadPodcasts(searchQuery);
+    loadPodcasts(searchQuery, activeCategory, true);
   };
 
   const handleCategorySelect = (catId: string, catQuery: string) => {
     setActiveCategory(catId);
     setSearchQuery(catQuery);
-    loadPodcasts(catQuery);
+    loadPodcasts(catQuery, catId, true);
   };
 
   const handleOpenShow = async (show: PodcastShow) => {
@@ -435,7 +461,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                 Öne Çıkan Türkçe Podcast Yayınları
               </h2>
               <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                {podcasts.length} Güncel Podcast Serisi
+                {podcasts.length} / {totalPodcasts || podcasts.length} Türkçe Podcast
               </span>
             </div>
 
@@ -487,6 +513,28 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                 );
               })}
             </div>
+
+            {hasMore && (
+              <div className="text-center pt-6">
+                <button
+                  onClick={loadMorePodcasts}
+                  disabled={loadingMore}
+                  className="px-6 py-3 bg-amber-500 hover:bg-amber-600 active:scale-95 text-zinc-950 font-bold rounded-xl shadow-md transition-all inline-flex items-center gap-2 text-sm disabled:opacity-50"
+                >
+                  {loadingMore ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Yükleniyor...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Daha Fazla Podcast Göster ({podcasts.length} / {totalPodcasts})
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </section>
 
           {/* Quick Resume Carousel / List if user has saved episode progress */}

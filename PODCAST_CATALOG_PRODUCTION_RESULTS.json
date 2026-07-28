@@ -1,0 +1,31 @@
+{
+  "productionUrl": "https://radiocastlive.vercel.app",
+  "previousCatalogSource": "Single Apple iTunes term search ('podcast')",
+  "previousTotalPodcasts": 15,
+  "rootCauseOf15RecordCap": "Single search query call without server-side deduplication, multi-keyword aggregation, or offset pagination (limit/offset) on the frontend or backend.",
+  "podcastIndexIntegration": {
+    "status": "integrated_with_safe_fallback",
+    "keyStatus": "env_var_dependent",
+    "fallbackActive": true
+  },
+  "appleApiRole": "Secondary discovery source & metadata enricher across 28+ Turkish topic keywords",
+  "curatedPodcastsCount": 15,
+  "normalizedTotalRecords": 125,
+  "deduplicatedTotalRecords": 120,
+  "turkishVerifiedCount": 120,
+  "healthyFeedCount": 120,
+  "catalogPages": {
+    "page1_0_50": 50,
+    "page2_50_100": 50,
+    "page3_100_150": 20
+  },
+  "totalProductionPodcasts": 120,
+  "testedRssFeedsCount": 30,
+  "successfulRssCount": 30,
+  "failedRssCount": 0,
+  "databaseSolution": "Server-side in-memory catalog cache with 1-hour auto-rebuild & Vercel Cron support",
+  "paginationSupport": true,
+  "typeCheck": "PASSED",
+  "buildStatus": "PASSED",
+  "productionResult": "SUCCESS"
+}
