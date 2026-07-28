@@ -199,15 +199,52 @@ export async function searchPodcasts(query: string, country = 'TR', page = 1): P
 
 async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise<PodcastEpisode[]> {
   const tryUrls = [
-    feedUrl,
+    `/api/podcasts/feed?url=${encodeURIComponent(feedUrl)}`,
     `https://corsproxy.io/?url=${encodeURIComponent(feedUrl)}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(feedUrl)}`,
+    feedUrl
   ];
 
   for (const url of tryUrls) {
     try {
-      const res = await fetch(url, { headers: { 'Accept': 'application/xml, text/xml, */*' } });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const res = await fetch(url, {
+        headers: { 'Accept': 'application/xml, text/xml, application/rss+xml, application/json, */*' },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
       if (res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json') || url.includes('/api/')) {
+          try {
+            const data = await res.json();
+            if (data && Array.isArray(data.episodes) && data.episodes.length > 0) {
+              return data.episodes.map((ep: any, idx: number) => {
+                const pubMillis = safeParseEpisodeDateMillis(ep);
+                return {
+                  id: ep.id || `ep-${show.id}-${idx}`,
+                  showId: show.id,
+                  showTitle: data.title || show.title,
+                  title: ep.title,
+                  description: ep.description || `${show.publisher || 'Podcast'} yayını.`,
+                  audioUrl: ep.audioUrl,
+                  durationSeconds: ep.durationSeconds || 1800,
+                  publishedDate: ep.publishedDate || 'Güncel',
+                  pubDateMillis: pubMillis,
+                  coverUrl: ep.coverUrl || show.coverUrl,
+                  category: show.category || 'Podcast'
+                };
+              });
+            }
+          } catch {
+            // not json
+          }
+        }
+
         const text = await res.text();
         if (text && (text.includes('<rss') || text.includes('<xml') || text.includes('<feed') || text.includes('<item'))) {
           // First try fast regex extraction to avoid DOMParser namespace quirks
@@ -265,7 +302,7 @@ async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise
               showId: show.id,
               showTitle: show.title,
               title,
-              description: description || `${show.publisher} podcast yayını.`,
+              description: description || `${show.publisher || 'Podcast'} yayını.`,
               audioUrl,
               durationSeconds: durationSec,
               publishedDate: pubDate ? new Date(pubDateMillis || Date.now()).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Güncel',
@@ -309,7 +346,7 @@ async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise
                 showId: show.id,
                 showTitle: show.title,
                 title,
-                description: description || `${show.publisher} podcast yayını.`,
+                description: description || `${show.publisher || 'Podcast'} yayını.`,
                 audioUrl,
                 durationSeconds: durationSec,
                 publishedDate: pubDate ? new Date(pubDateMillis || Date.now()).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Güncel',
@@ -332,41 +369,10 @@ export async function getPodcastEpisodes(show: PodcastShow): Promise<PodcastEpis
   let episodes: PodcastEpisode[] = [];
 
   if (show.feedUrl) {
-    // 1. Try server API
     try {
-      const res = await fetch(`/api/podcasts/feed?url=${encodeURIComponent(show.feedUrl)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && Array.isArray(data.episodes) && data.episodes.length > 0) {
-          episodes = data.episodes.map((ep: any, idx: number) => {
-            const pubMillis = safeParseEpisodeDateMillis(ep);
-            return {
-              id: ep.id || `ep-${show.id}-${idx}`,
-              showId: show.id,
-              showTitle: data.title || show.title,
-              title: ep.title,
-              description: ep.description,
-              audioUrl: ep.audioUrl,
-              durationSeconds: ep.durationSeconds || 1800,
-              publishedDate: ep.publishedDate || 'Güncel',
-              pubDateMillis: pubMillis,
-              coverUrl: ep.coverUrl || show.coverUrl,
-              category: show.category || 'Podcast'
-            };
-          });
-        }
-      }
+      episodes = await fetchAndParseRssFeed(show.feedUrl, show);
     } catch (err) {
-      console.warn('Failed to load podcast feed via server API:', err);
-    }
-
-    // 2. Client-side XML parser fallback
-    if (episodes.length === 0) {
-      try {
-        episodes = await fetchAndParseRssFeed(show.feedUrl, show);
-      } catch (xmlErr) {
-        console.warn('Client-side XML RSS parse failed:', xmlErr);
-      }
+      console.warn('Failed to load podcast feed:', err);
     }
   }
 

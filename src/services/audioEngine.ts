@@ -44,7 +44,7 @@ class AudioEngine {
   
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
   private watchdogStartTime: number = 0;
-  private watchdogDurationMs: number = 15000;
+  private watchdogDurationMs: number = 6000;
   private progressSaveTimer: ReturnType<typeof setInterval> | null = null;
   
   private candidates: string[] = [];
@@ -468,8 +468,12 @@ class AudioEngine {
             this.hlsInstance = new Hls({
               enableWorker: true,
               lowLatencyMode: true,
-              manifestLoadingTimeOut: 10000,
+              manifestLoadingTimeOut: 5000,
               manifestLoadingMaxRetry: 1,
+              levelLoadingTimeOut: 5000,
+              levelLoadingMaxRetry: 1,
+              fragLoadingTimeOut: 5000,
+              fragLoadingMaxRetry: 1,
               maxBufferLength: 15,
               maxMaxBufferLength: 30,
               maxBufferSize: 30 * 1024 * 1024,
