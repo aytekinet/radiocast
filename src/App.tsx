@@ -34,6 +34,7 @@ import { PlaylistsView } from './components/PlaylistsView';
 import { CountriesView } from './components/CountriesView';
 import { SettingsView } from './components/SettingsView';
 import { SleepTimerModal } from './components/SleepTimerModal';
+import { LegalView, LegalPageType } from './components/LegalView';
 
 export default function App() {
   // Navigation & Settings
@@ -63,25 +64,26 @@ export default function App() {
 
   // Sync initial tab and listen to browser back/forward buttons (popstate)
   useEffect(() => {
-    const validTabs = ['discover', 'podcasts', 'favorites', 'playlists', 'countries', 'settings'];
+    const legalRoutes = ['copyright', 'dmca', 'takedown', 'counter-notice', 'privacy', 'terms', 'content-policy'];
+    const validTabs = ['discover', 'podcasts', 'favorites', 'playlists', 'countries', 'settings', ...legalRoutes];
 
-    // Ensure clean boot starts at discover (Anasayfa)
-    if (window.location.hash && window.location.hash !== '#discover') {
-      window.history.replaceState({ tab: 'discover' }, '', '#discover');
-    } else if (window.history && !window.history.state) {
-      window.history.replaceState({ tab: 'discover' }, '', '#discover');
-    }
+    const syncFromLocation = () => {
+      const pathname = window.location.pathname.replace(/^\//, '').toLowerCase();
+      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+      const target = pathname || hash;
+
+      if (validTabs.includes(target)) {
+        setActiveTab(target);
+      }
+    };
+
+    syncFromLocation();
 
     const handlePopState = (event: PopStateEvent) => {
       if (event.state && event.state.tab && validTabs.includes(event.state.tab)) {
         setActiveTab(event.state.tab);
       } else {
-        const hash = window.location.hash.replace('#', '');
-        if (validTabs.includes(hash)) {
-          setActiveTab(hash);
-        } else {
-          setActiveTab('discover');
-        }
+        syncFromLocation();
       }
     };
 
@@ -572,6 +574,11 @@ export default function App() {
         lowDataMode={settings.lowDataMode}
         setLowDataMode={(val) => updateSettings({ lowDataMode: val })}
         activeTab={activeTab}
+        onNavigateToDiscover={() => {
+          setSelectedCategory('');
+          setSearchQuery('');
+          changeTab('discover');
+        }}
       />
 
       {/* TuneIn & SoundCloud Sticky Top Player Bar */}
@@ -709,8 +716,18 @@ export default function App() {
               settings={settings}
               onUpdateSettings={updateSettings}
               onResetAllData={handleResetAllData}
+              onNavigate={changeTab}
             />
           </div>
+
+          {['copyright', 'dmca', 'takedown', 'counter-notice', 'privacy', 'terms', 'content-policy'].includes(activeTab) && (
+            <div className="block">
+              <LegalView
+                currentPage={activeTab as LegalPageType}
+                onNavigate={(tab) => changeTab(tab)}
+              />
+            </div>
+          )}
         </main>
       </div>
 

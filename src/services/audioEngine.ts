@@ -718,11 +718,23 @@ class AudioEngine {
       });
 
       if (this.currentItem.type !== 'radio') {
-        this.setMediaSessionHandler('seekbackward', () => this.seekRelative(-15));
-        this.setMediaSessionHandler('seekforward', () => this.seekRelative(30));
+        this.setMediaSessionHandler('seekbackward', (details: any) => {
+          const offset = details?.seekOffset || 15;
+          this.seekRelative(-offset);
+        });
+        this.setMediaSessionHandler('seekforward', (details: any) => {
+          const offset = details?.seekOffset || 30;
+          this.seekRelative(offset);
+        });
+        this.setMediaSessionHandler('seekto', (details: any) => {
+          if (details && typeof details.seekTime === 'number') {
+            this.seek(details.seekTime);
+          }
+        });
       } else {
         this.setMediaSessionHandler('seekbackward', null);
         this.setMediaSessionHandler('seekforward', null);
+        this.setMediaSessionHandler('seekto', null);
       }
     }
   }

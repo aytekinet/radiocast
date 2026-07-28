@@ -15,12 +15,14 @@ interface SettingsViewProps {
   settings: AppSettings;
   onUpdateSettings: (newSettings: Partial<AppSettings>) => void;
   onResetAllData: () => void;
+  onNavigate?: (tab: string) => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
   onUpdateSettings,
-  onResetAllData
+  onResetAllData,
+  onNavigate
 }) => {
   const handleResetWithConfirm = () => {
     const isConfirmed = window.confirm(
@@ -51,7 +53,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <span>Geliştirici, Destek & Telif Hakları İletişimi</span>
         </div>
         <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
-          RadioCast, dünya genelindeki açık radyo dizinlerini ve kamuya açık canlı yayın akışlarını derleyen bağımsız bir radyo dinleme platformudur. Telif hakkı bildirimleri, yayın kaldırma talepleri, iş birlikleri veya görüş ve önerileriniz için LinkedIn profilim üzerinden doğrudan iletişime geçebilirsiniz.
+          RadioCast, dünya genelindeki açık radyo dizinlerini ve kamuya açık canlı yayın akışlarını derleyen bağımsız bir radyo dinleme platformudur. Telif hakkı bildirimleri, yayın kaldırma talepleri, iş birlikleri veya görüş ve önerileriniz için e-posta (<strong>radiocastlive@proton.me</strong>) veya LinkedIn üzerinden doğrudan iletişime geçebilirsiniz.
         </p>
         <div className="flex flex-wrap items-center gap-3 pt-2">
           <a
@@ -64,6 +66,52 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <span>LinkedIn Profilim: Aytekin Tanrısever</span>
             <ExternalLink className="w-3.5 h-3.5 opacity-80" />
           </a>
+        </div>
+      </div>
+
+      {/* Yasal & Telif Hakları Politikaları */}
+      <div className="bg-white dark:bg-zinc-900/80 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-3 shadow-sm dark:shadow-md transition-colors">
+        <div className="flex items-center space-x-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+          <Settings className="w-4 h-4 text-amber-500" />
+          <span>Yasal Haklar, Telif & İçerik Politikaları</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+          <button
+            onClick={() => onNavigate?.('copyright')}
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-medium transition-colors text-left"
+          >
+            Telif Hakkı Politikası
+          </button>
+          <button
+            onClick={() => onNavigate?.('dmca')}
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-medium transition-colors text-left"
+          >
+            DMCA Bildirimi
+          </button>
+          <button
+            onClick={() => onNavigate?.('takedown')}
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-bold text-amber-600 dark:text-amber-400 transition-colors text-left"
+          >
+            İçerik Kaldırma Formu
+          </button>
+          <button
+            onClick={() => onNavigate?.('privacy')}
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-medium transition-colors text-left"
+          >
+            Gizlilik Politikası
+          </button>
+          <button
+            onClick={() => onNavigate?.('terms')}
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-medium transition-colors text-left"
+          >
+            Kullanım Şartları
+          </button>
+          <button
+            onClick={() => onNavigate?.('content-policy')}
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-medium transition-colors text-left"
+          >
+            İçerik Politikası
+          </button>
         </div>
       </div>
 

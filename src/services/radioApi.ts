@@ -1,6 +1,7 @@
 import { RadioStation, RadioCountry } from '../types';
 import { VERIFIED_TURKISH_STATIONS } from '../data/fallbackStations';
 import { GENRE_CATEGORIES, ALL_COUNTRIES, matchesCategory } from '../constants/categories';
+import { isStationBlocked } from './blacklist';
 
 const RADIO_BROWSER_MIRRORS = [
   'https://de1.api.radio-browser.info',
@@ -70,6 +71,7 @@ function deduplicateStationsByName(list: RadioStation[]): RadioStation[] {
 
   for (const item of list) {
     if (!item || !item.name) continue;
+    if (isStationBlocked(item)) continue;
     const key = normalizeName(item.name);
     if (seen.has(key)) continue;
     seen.add(key);

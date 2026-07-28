@@ -2,9 +2,75 @@ import express from 'express';
 import path from 'path';
 import http from 'http';
 import https from 'https';
+import fs from 'fs';
 import { URL } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { VERIFIED_TURKISH_STATIONS } from './src/data/fallbackStations';
+
+interface ServerBlacklistEntry {
+  id: string;
+  contentType: string;
+  stationId?: string;
+  podcastId?: string;
+  episodeGuid?: string;
+  streamUrls?: string[];
+  feedUrl?: string;
+  hostnames?: string[];
+  active?: boolean;
+}
+
+function getBlacklistServer(): ServerBlacklistEntry[] {
+  try {
+    const filePath = path.join(process.cwd(), 'data', 'content-blacklist.json');
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const json = JSON.parse(raw);
+      if (json && Array.isArray(json.entries)) {
+        return json.entries.filter((e: any) => e && e.active !== false);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function isStationBlockedServer(stationId?: string, url?: string): boolean {
+  const entries = getBlacklistServer();
+  if (entries.length === 0) return false;
+
+  for (const entry of entries) {
+    if (entry.stationId && stationId && entry.stationId.toLowerCase() === stationId.toLowerCase()) {
+      return true;
+    }
+    if (url && entry.streamUrls) {
+      for (const su of entry.streamUrls) {
+        if (url.toLowerCase().includes(su.toLowerCase())) return true;
+      }
+    }
+    if (url && entry.hostnames) {
+      for (const hn of entry.hostnames) {
+        if (url.toLowerCase().includes(hn.toLowerCase())) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function isPodcastBlockedServer(podcastId?: string, feedUrl?: string): boolean {
+  const entries = getBlacklistServer();
+  if (entries.length === 0) return false;
+
+  for (const entry of entries) {
+    if (entry.podcastId && podcastId && String(entry.podcastId).toLowerCase() === String(podcastId).toLowerCase()) {
+      return true;
+    }
+    if (feedUrl && entry.feedUrl && feedUrl.toLowerCase().includes(entry.feedUrl.toLowerCase())) {
+      return true;
+    }
+  }
+  return false;
+}
 
 // Default Radio Browser mirrors as fallback
 let ACTIVE_MIRRORS = [
@@ -196,6 +262,11 @@ function processStationList(rawList: any[]): ReturnType<typeof normalizeStation>
     });
 
     const bestStation = group[0];
+
+    // Skip blacklisted content
+    if (isStationBlockedServer(bestStation.id, bestStation.streamUrl)) {
+      continue;
+    }
 
     // Harvest all unique candidate URLs from all duplicate entries in group
     const allUrls: string[] = [];
@@ -719,6 +790,10 @@ async function startServer() {
 
     if (!stationId) return res.status(400).json({ error: 'Station ID required' });
 
+    if (isStationBlockedServer(stationId)) {
+      return res.status(404).json({ error: 'Station unavailable' });
+    }
+
     let entry = STATION_CATALOG.get(stationId);
 
     // If not found in catalog, check curated list
@@ -750,8 +825,8 @@ async function startServer() {
 
     const selectedTargetUrl = entry.candidateUrls[candidateIndex] || entry.candidateUrls[0];
 
-    if (!selectedTargetUrl || !isSafePublicUrl(selectedTargetUrl)) {
-      return res.status(400).json({ error: 'Station stream URL unavailable or forbidden' });
+    if (!selectedTargetUrl || !isSafePublicUrl(selectedTargetUrl) || isStationBlockedServer(stationId, selectedTargetUrl)) {
+      return res.status(404).json({ error: 'Station stream URL unavailable' });
     }
 
     if (process.env.NODE_ENV !== 'production') {
@@ -759,6 +834,82 @@ async function startServer() {
     }
 
     proxyAudioStream(selectedTargetUrl, req, res, 0);
+  });
+
+  // Blacklist Data Endpoint
+  app.get('/api/blacklist', (req, res) => {
+    res.json(getBlacklistServer());
+  });
+
+  // Takedown Form Receiver
+  app.post('/api/takedown', async (req, res) => {
+    const { claimantName, organization, email, phone, contentType, stationName, podcastName, complaintDescription } = req.body || {};
+    if (!claimantName || !email || !complaintDescription) {
+      return res.status(400).json({ error: 'Gerekli alanlar eksik' });
+    }
+
+    // Log internally for operations review
+    console.log(`[TAKEDOWN_RECEIVED] claimant=${claimantName} email=${email} type=${contentType} target=${stationName || podcastName}`);
+
+    const targetName = stationName || podcastName || 'Belirtilmedi';
+    let emailSent = false;
+    let emailConfigured = false;
+
+    // Check if SMTP or Resend is configured
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+
+    if (smtpHost && smtpUser && smtpPass) {
+      emailConfigured = true;
+      try {
+        const nodemailer = await import('nodemailer');
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: Number(process.env.SMTP_PORT) || 587,
+          secure: Number(process.env.SMTP_PORT) === 465,
+          auth: {
+            user: smtpUser,
+            pass: smtpPass,
+          },
+        });
+
+        const mailOptions = {
+          from: process.env.SMTP_FROM || smtpUser,
+          to: 'radiocastlive@proton.me',
+          subject: `[Telif Kaldırma Talebi] ${targetName} - ${claimantName}`,
+          text: `Yeni Telif / İçerik Kaldırma Talebi:
+
+Talep Eden: ${claimantName}
+Kurum: ${organization || 'Belirtilmedi'}
+E-posta: ${email}
+Telefon: ${phone || 'Belirtilmedi'}
+İçerik Türü: ${contentType}
+Hedef İçerik: ${targetName}
+
+Açıklama:
+${complaintDescription}
+
+Tarih: ${new Date().toISOString()}
+`,
+        };
+
+        await transporter.sendMail(mailOptions);
+        emailSent = true;
+      } catch (err) {
+        console.error('[TAKEDOWN_MAIL_ERROR]', err);
+      }
+    }
+
+    res.json({
+      success: true,
+      emailSent,
+      emailConfigured,
+      message: emailSent
+        ? 'Telif/içerik kaldırma talebiniz radiocastlive@proton.me adresine e-posta ile iletildi.'
+        : 'Talebiniz kaydedildi. Garantili iletim için e-posta istemcinizle de gönderebilirsiniz.',
+      contactEmail: 'radiocastlive@proton.me',
+    });
   });
 
   // Direct Audio Stream Proxy by target URL
