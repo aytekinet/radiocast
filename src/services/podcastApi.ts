@@ -209,7 +209,79 @@ async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise
       const res = await fetch(url, { headers: { 'Accept': 'application/xml, text/xml, */*' } });
       if (res.ok) {
         const text = await res.text();
-        if (text && (text.includes('<rss') || text.includes('<xml') || text.includes('<feed'))) {
+        if (text && (text.includes('<rss') || text.includes('<xml') || text.includes('<feed') || text.includes('<item'))) {
+          // First try fast regex extraction to avoid DOMParser namespace quirks
+          const cleanXml = text.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+          const regexItems: PodcastEpisode[] = [];
+          
+          let pos = 0;
+          let idx = 0;
+          while (true) {
+            const start = cleanXml.indexOf('<item', pos);
+            if (start === -1) break;
+            const end = cleanXml.indexOf('</item>', start);
+            if (end === -1) break;
+
+            const itemStr = cleanXml.substring(start, end + 7);
+            pos = end + 7;
+
+            let audioUrl = '';
+            const encMatch = itemStr.match(/<enclosure[^>]*\burl=["']([^"']+)["']/i);
+            if (encMatch && encMatch[1]) {
+              audioUrl = encMatch[1].trim();
+            } else {
+              const mediaMatch = itemStr.match(/<media:content[^>]*\burl=["']([^"']+)["']/i);
+              if (mediaMatch && mediaMatch[1]) {
+                audioUrl = mediaMatch[1].trim();
+              }
+            }
+
+            if (!audioUrl) continue;
+
+            const titleMatch = itemStr.match(/<title>(.*?)<\/title>/i);
+            const descMatch = itemStr.match(/<description>(.*?)<\/description>/i) || itemStr.match(/<itunes:summary>(.*?)<\/itunes:summary>/i);
+            const pubDateMatch = itemStr.match(/<pubDate>(.*?)<\/pubDate>/i);
+            const durationMatch = itemStr.match(/<itunes:duration>(.*?)<\/itunes:duration>/i);
+
+            const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : `Bölüm ${idx + 1}`;
+            const description = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : title;
+            const pubDate = pubDateMatch ? pubDateMatch[1].trim() : '';
+            const pubDateMillis = safeParseEpisodeDateMillis({ pubDate });
+
+            let durationSec = 1800;
+            if (durationMatch && durationMatch[1]) {
+              const durStr = durationMatch[1].trim();
+              if (durStr.includes(':')) {
+                const parts = durStr.split(':').map(Number);
+                if (parts.length === 3) durationSec = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                else if (parts.length === 2) durationSec = parts[0] * 60 + parts[1];
+              } else if (!isNaN(Number(durStr))) {
+                durationSec = Number(durStr);
+              }
+            }
+
+            regexItems.push({
+              id: `rss-ep-${show.id}-${idx}`,
+              showId: show.id,
+              showTitle: show.title,
+              title,
+              description: description || `${show.publisher} podcast yayını.`,
+              audioUrl,
+              durationSeconds: durationSec,
+              publishedDate: pubDate ? new Date(pubDateMillis || Date.now()).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Güncel',
+              pubDateMillis,
+              coverUrl: show.coverUrl,
+              category: show.category || 'Podcast'
+            });
+
+            idx++;
+          }
+
+          if (regexItems.length > 0) {
+            return regexItems;
+          }
+
+          // Fallback to DOMParser
           const parser = new DOMParser();
           const xml = parser.parseFromString(text, 'text/xml');
           const items = Array.from(xml.querySelectorAll('item'));
@@ -288,7 +360,7 @@ export async function getPodcastEpisodes(show: PodcastShow): Promise<PodcastEpis
       console.warn('Failed to load podcast feed via server API:', err);
     }
 
-    // 2. Client-side XML DOMParser fallback
+    // 2. Client-side XML parser fallback
     if (episodes.length === 0) {
       try {
         episodes = await fetchAndParseRssFeed(show.feedUrl, show);
@@ -298,8 +370,8 @@ export async function getPodcastEpisodes(show: PodcastShow): Promise<PodcastEpis
     }
   }
 
-  if (episodes.length === 0) {
-    episodes = show.episodes && show.episodes.length > 0 ? show.episodes : generateFallbackEpisodes(show);
+  if (episodes.length === 0 && show.episodes && show.episodes.length > 0) {
+    episodes = show.episodes;
   }
 
   return episodes
@@ -317,50 +389,6 @@ export async function getPodcastEpisodes(show: PodcastShow): Promise<PodcastEpis
       return a.originalIndex - b.originalIndex;
     })
     .map(item => item.ep);
-}
-
-function generateFallbackEpisodes(show: PodcastShow): PodcastEpisode[] {
-  return [
-    {
-      id: `${show.id}-ep1`,
-      showId: show.id,
-      showTitle: show.title,
-      title: `${show.title} - Bölüm 1: Güncel Analizler ve Sohbet`,
-      description: `${show.publisher} tarafından sunulan bu bölümde gündem, kültür ve yaşam üzerine derinlemesine değerlendirmeler.`,
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      durationSeconds: 372,
-      publishedDate: '22 Temmuz 2026',
-      pubDateMillis: new Date(2026, 6, 22).getTime(),
-      coverUrl: show.coverUrl,
-      category: show.category
-    },
-    {
-      id: `${show.id}-ep2`,
-      showId: show.id,
-      showTitle: show.title,
-      title: `${show.title} - Bölüm 2: Bilgi, Deneyim ve Yeni Yaklaşımlar`,
-      description: 'Geleceğe dair vizyoner değerlendirmeler ve samimi sohbetler.',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-      durationSeconds: 423,
-      publishedDate: '15 Temmuz 2026',
-      pubDateMillis: new Date(2026, 6, 15).getTime(),
-      coverUrl: show.coverUrl,
-      category: show.category
-    },
-    {
-      id: `${show.id}-ep3`,
-      showId: show.id,
-      showTitle: show.title,
-      title: `${show.title} - Bölüm 3: Soru-Cevap & Özel Söyleşi`,
-      description: 'Dinleyicilerden gelen soruların yanıtlandığı özel bölüm.',
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-      durationSeconds: 344,
-      publishedDate: '08 Temmuz 2026',
-      pubDateMillis: new Date(2026, 6, 8).getTime(),
-      coverUrl: show.coverUrl,
-      category: show.category
-    }
-  ];
 }
 
 const FALLBACK_PODCAST_SHOWS: PodcastShow[] = [

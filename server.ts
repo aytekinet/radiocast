@@ -5,6 +5,7 @@ import https from 'https';
 import fs from 'fs';
 import { URL } from 'url';
 import { createServer as createViteServer } from 'vite';
+import { XMLParser } from 'fast-xml-parser';
 import { VERIFIED_TURKISH_STATIONS } from './src/data/fallbackStations';
 import { processTakedownRequest } from './src/services/takedownHandler';
 
@@ -328,43 +329,208 @@ function isSafePublicUrl(urlStr: string): boolean {
   }
 }
 
-/**
- * Helper to parse RSS XML into channel metadata & episode items
- */
-function parseRssXml(xmlText: string) {
-  // Strip CDATA wrapper tags
-  const cleanXml = xmlText.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+const rssXmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@_',
+  trimValues: true,
+  parseAttributeValue: false
+});
 
-  // Channel title & description
+function extractXmlTextValue(val: any): string {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string') return val.trim();
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'object') {
+    if (val['#text'] !== undefined) return extractXmlTextValue(val['#text']);
+    if (val['#cdata'] !== undefined) return extractXmlTextValue(val['#cdata']);
+  }
+  return '';
+}
+
+function parseRssXml(xmlText: string) {
+  try {
+    const jsonObj = rssXmlParser.parse(xmlText);
+    const channel = jsonObj?.rss?.channel || jsonObj?.['rdf:RDF']?.channel || jsonObj?.channel || jsonObj?.feed;
+
+    if (!channel) {
+      return fallbackParseRssXml(xmlText);
+    }
+
+    const channelTitle = extractXmlTextValue(channel.title) || 'Podcast';
+    const rawDesc = extractXmlTextValue(channel.description) || extractXmlTextValue(channel['itunes:summary']) || '';
+    const channelDesc = rawDesc.replace(/<[^>]+>/g, '').trim();
+
+    let channelImage = '';
+    if (channel['itunes:image'] && channel['itunes:image']['@_href']) {
+      channelImage = channel['itunes:image']['@_href'];
+    } else if (channel.image && channel.image.url) {
+      channelImage = extractXmlTextValue(channel.image.url);
+    }
+
+    let rawItems = channel.item || channel.entry || [];
+    if (!Array.isArray(rawItems)) {
+      rawItems = [rawItems];
+    }
+
+    const items: any[] = [];
+    let idx = 0;
+
+    for (const item of rawItems) {
+      if (!item) continue;
+
+      let audioUrl = '';
+
+      // 1. Check enclosure tag
+      if (item.enclosure) {
+        if (Array.isArray(item.enclosure)) {
+          for (const enc of item.enclosure) {
+            const url = enc?.['@_url'];
+            const type = enc?.['@_type'] || '';
+            if (url && (type.includes('audio') || url.match(/\.(mp3|m4a|aac|ogg|wav|flac)($|\?)/i))) {
+              audioUrl = url;
+              break;
+            }
+          }
+          if (!audioUrl && item.enclosure[0]?.['@_url']) {
+            audioUrl = item.enclosure[0]['@_url'];
+          }
+        } else if (item.enclosure['@_url']) {
+          audioUrl = item.enclosure['@_url'];
+        }
+      }
+
+      // 2. Check media:content tag
+      if (!audioUrl && item['media:content']) {
+        const mc = Array.isArray(item['media:content']) ? item['media:content'][0] : item['media:content'];
+        if (mc && mc['@_url']) {
+          audioUrl = mc['@_url'];
+        }
+      }
+
+      // 3. Check link tag if ending with audio extension
+      if (!audioUrl) {
+        const link = extractXmlTextValue(item.link);
+        if (link && link.match(/\.(mp3|m4a|aac|ogg)($|\?)/i)) {
+          audioUrl = link;
+        }
+      }
+
+      if (!audioUrl) continue;
+
+      const title = extractXmlTextValue(item.title) || `Bölüm ${idx + 1}`;
+      const rawItemDesc = extractXmlTextValue(item.description) || extractXmlTextValue(item['itunes:summary']) || extractXmlTextValue(item['content:encoded']) || title;
+      const description = rawItemDesc.replace(/<[^>]+>/g, '').trim();
+
+      const pubDateStr = extractXmlTextValue(item.pubDate) || extractXmlTextValue(item.pubdate) || extractXmlTextValue(item['dc:date']) || extractXmlTextValue(item.published);
+
+      let pubDateMillis = 0;
+      let formattedDate = 'Güncel';
+      if (pubDateStr) {
+        try {
+          const d = new Date(pubDateStr);
+          if (!isNaN(d.getTime())) {
+            pubDateMillis = d.getTime();
+            formattedDate = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+          }
+        } catch {
+          formattedDate = pubDateStr;
+        }
+      }
+
+      const durVal = extractXmlTextValue(item['itunes:duration']);
+      let durationSeconds = 1800;
+      if (durVal) {
+        if (durVal.includes(':')) {
+          const parts = durVal.split(':').map(Number);
+          if (parts.length === 3) durationSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+          else if (parts.length === 2) durationSeconds = parts[0] * 60 + parts[1];
+        } else {
+          const sec = parseInt(durVal, 10);
+          if (!isNaN(sec) && sec > 0) durationSeconds = sec;
+        }
+      }
+
+      let epCover = channelImage;
+      if (item['itunes:image'] && item['itunes:image']['@_href']) {
+        epCover = item['itunes:image']['@_href'];
+      }
+
+      const rawGuid = extractXmlTextValue(item.guid) || audioUrl;
+      const episodeId = `ep-${idx}-${rawGuid.replace(/[^a-zA-Z0-9_-]/g, '').slice(-35)}`;
+
+      items.push({
+        id: episodeId,
+        showTitle: channelTitle,
+        title,
+        description: description || title,
+        audioUrl,
+        durationSeconds,
+        publishedDate: formattedDate,
+        pubDateMillis,
+        coverUrl: epCover
+      });
+
+      idx++;
+    }
+
+    items.sort((a, b) => (b.pubDateMillis || 0) - (a.pubDateMillis || 0));
+
+    if (items.length === 0) {
+      return fallbackParseRssXml(xmlText);
+    }
+
+    return {
+      title: channelTitle,
+      description: channelDesc,
+      coverUrl: channelImage,
+      episodes: items
+    };
+  } catch (err) {
+    return fallbackParseRssXml(xmlText);
+  }
+}
+
+function fallbackParseRssXml(xmlText: string) {
+  const cleanXml = xmlText.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+  
   const channelTitleMatch = cleanXml.match(/<channel>[\s\S]*?<title>(.*?)<\/title>/i);
   const channelDescMatch = cleanXml.match(/<channel>[\s\S]*?<description>(.*?)<\/description>/i);
   const channelImageMatch = cleanXml.match(/<itunes:image[^>]*href=["']([^"']+)["']/i) || cleanXml.match(/<image>[\s\S]*?<url>(.*?)<\/url>/i);
 
-  const channelTitle = channelTitleMatch ? channelTitleMatch[1].trim() : 'Podcast';
+  const channelTitle = channelTitleMatch ? channelTitleMatch[1].replace(/<[^>]+>/g, '').trim() : 'Podcast';
   const channelDesc = channelDescMatch ? channelDescMatch[1].replace(/<[^>]+>/g, '').trim() : '';
   const channelImage = channelImageMatch ? channelImageMatch[1].trim() : '';
 
-  // Episode items
   const items: any[] = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-  let match;
+  let pos = 0;
   let idx = 0;
 
-  while ((match = itemRegex.exec(cleanXml)) !== null) {
-    const itemContent = match[1];
+  while (true) {
+    const itemStart = cleanXml.indexOf('<item', pos);
+    if (itemStart === -1) break;
+    const itemEnd = cleanXml.indexOf('</item>', itemStart);
+    if (itemEnd === -1) break;
 
-    // Enclosure URL is mandatory for playable episode
-    const enclosureMatch = itemContent.match(/<enclosure[^>]*url=["']([^"']+)["'][^>]*>/i);
-    if (!enclosureMatch || !enclosureMatch[1]) continue;
+    const itemContent = cleanXml.substring(itemStart, itemEnd + 7);
+    pos = itemEnd + 7;
 
-    const audioUrl = enclosureMatch[1].trim();
+    let audioUrl = '';
+    const encMatch = itemContent.match(/<enclosure[^>]*\burl=["']([^"']+)["']/i);
+    if (encMatch && encMatch[1]) {
+      audioUrl = encMatch[1].trim();
+    } else {
+      const mediaMatch = itemContent.match(/<media:content[^>]*\burl=["']([^"']+)["']/i);
+      if (mediaMatch && mediaMatch[1]) {
+        audioUrl = mediaMatch[1].trim();
+      }
+    }
+
+    if (!audioUrl) continue;
 
     const titleMatch = itemContent.match(/<title>(.*?)<\/title>/i);
     const descMatch = itemContent.match(/<description>(.*?)<\/description>/i) || itemContent.match(/<itunes:summary>(.*?)<\/itunes:summary>/i);
     const pubDateMatch = itemContent.match(/<pubDate>(.*?)<\/pubDate>/i);
     const durationMatch = itemContent.match(/<itunes:duration>(.*?)<\/itunes:duration>/i);
-    const guidMatch = itemContent.match(/<guid[^>]*>(.*?)<\/guid>/i);
-    const imageMatch = itemContent.match(/<itunes:image[^>]*href=["']([^"']+)["']/i);
 
     const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : `Bölüm ${idx + 1}`;
     const description = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : title;
@@ -384,7 +550,6 @@ function parseRssXml(xmlText: string) {
       }
     }
 
-    // Parse duration string (e.g. "01:15:30" or "4520")
     let durationSeconds = 1800;
     if (durationMatch && durationMatch[1]) {
       const durStr = durationMatch[1].trim();
@@ -398,11 +563,8 @@ function parseRssXml(xmlText: string) {
       }
     }
 
-    const episodeId = guidMatch ? guidMatch[1].replace(/<[^>]+>/g, '').trim() : `ep-${idx}-${audioUrl}`;
-    const coverUrl = imageMatch ? imageMatch[1].trim() : channelImage;
-
     items.push({
-      id: episodeId,
+      id: `ep-${idx}-${audioUrl.slice(-30)}`,
       showTitle: channelTitle,
       title,
       description,
@@ -410,13 +572,12 @@ function parseRssXml(xmlText: string) {
       durationSeconds,
       publishedDate: formattedDate,
       pubDateMillis,
-      coverUrl
+      coverUrl: channelImage
     });
 
     idx++;
   }
 
-  // Sort episodes by publication date descending (newest first)
   items.sort((a, b) => (b.pubDateMillis || 0) - (a.pubDateMillis || 0));
 
   return {

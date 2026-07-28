@@ -326,7 +326,20 @@ class AudioEngine {
     this.updateMediaSession();
 
     this.setStatus('connecting');
-    this.candidates = [episode.audioUrl];
+
+    const cleanUrl = (episode.audioUrl || '').trim();
+    const rawCandidates: string[] = [];
+
+    if (cleanUrl) {
+      if (cleanUrl.startsWith('http://')) {
+        rawCandidates.push(cleanUrl.replace(/^http:\/\//i, 'https://'));
+      }
+      rawCandidates.push(cleanUrl);
+      rawCandidates.push(`/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`);
+      rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
+    }
+
+    this.candidates = rawCandidates.filter((u, idx, self) => u && self.indexOf(u) === idx);
     this.candidateIndex = 0;
 
     const savedTime = getPodcastProgress(episode.id);
@@ -355,7 +368,20 @@ class AudioEngine {
     this.updateMediaSession();
 
     this.setStatus('connecting');
-    this.candidates = [track.listenUrl];
+
+    const cleanUrl = (track.listenUrl || '').trim();
+    const rawCandidates: string[] = [];
+
+    if (cleanUrl) {
+      if (cleanUrl.startsWith('http://')) {
+        rawCandidates.push(cleanUrl.replace(/^http:\/\//i, 'https://'));
+      }
+      rawCandidates.push(cleanUrl);
+      rawCandidates.push(`/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`);
+      rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
+    }
+
+    this.candidates = rawCandidates.filter((u, idx, self) => u && self.indexOf(u) === idx);
     this.candidateIndex = 0;
 
     this.startPlaybackCurrentCandidate(sessionId);

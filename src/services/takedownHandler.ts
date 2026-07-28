@@ -294,6 +294,9 @@ BEYANLAR:
 </html>
 `;
 
+  // Always log takedown notice to server logs
+  console.info(`[TAKEDOWN_NOTICE_RECORDED] caseId=${caseId}\n${plainTextBody}`);
+
   try {
     const resend = new Resend(apiKey);
     const subject = `[RadioCast Live Takedown] ${caseId} - ${requestType}`;
@@ -309,11 +312,12 @@ BEYANLAR:
 
     if (resendError) {
       console.error(`[TAKEDOWN_RESEND_ERROR] caseId=${caseId} message=${resendError.message}`);
+      // Note: Notice is recorded in logs with caseId
       return {
         success: false,
         caseId,
-        message: 'Talep gönderilemedi. Lütfen radiocastlive@proton.me adresine e-posta gönderin.',
-        messageEn: 'The request could not be sent. Please email radiocastlive@proton.me.',
+        message: 'Talep sunucuda kayıt altına alındı ancak e-posta iletimi başarısız oldu. Lütfen radiocastlive@proton.me adresine e-posta ile de başvuru numaranızı bildiriniz.',
+        messageEn: 'Request recorded on server but email delivery failed. Please send your case number to radiocastlive@proton.me.',
         httpCode: 500,
       };
     }
