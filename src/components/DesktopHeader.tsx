@@ -26,6 +26,7 @@ interface DesktopHeaderProps {
   lowDataMode: boolean;
   setLowDataMode: (val: boolean) => void;
   activeTab: string;
+  onNavigateToDiscover?: () => void;
 }
 
 export const DesktopHeader: React.FC<DesktopHeaderProps> = React.memo(({
@@ -39,6 +40,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = React.memo(({
   setThemePalette,
   lowDataMode,
   setLowDataMode,
+  onNavigateToDiscover,
 }) => {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const paletteRef = useRef<HTMLDivElement>(null);
@@ -64,7 +66,11 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = React.memo(({
   return (
     <header className="flex flex-wrap items-center justify-between px-3 sm:px-4 py-2 border-b border-zinc-200 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-900/90 backdrop-blur-md select-none shrink-0 gap-2 z-40 transition-colors">
       {/* Title & App Branding */}
-      <div className="flex items-center space-x-2.5">
+      <div 
+        onClick={onNavigateToDiscover}
+        className="flex items-center space-x-2.5 cursor-pointer hover:opacity-90 transition-opacity"
+        title="Anasayfaya Git"
+      >
         <div className="p-1.5 rounded-xl bg-amber-500 text-zinc-950 font-bold shadow-md">
           <Radio className="w-5 h-5 animate-pulse text-zinc-950" />
         </div>

@@ -7,6 +7,9 @@ interface SleepTimerModalProps {
   activeTimerSeconds: number | null;
   onStartTimer: (minutes: number) => void;
   onCancelTimer: () => void;
+  isPodcast?: boolean;
+  sleepOnEpisodeEnd?: boolean;
+  onSetEndOfEpisodeTimer?: () => void;
 }
 
 export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
@@ -14,7 +17,10 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
   onClose,
   activeTimerSeconds,
   onStartTimer,
-  onCancelTimer
+  onCancelTimer,
+  isPodcast = false,
+  sleepOnEpisodeEnd = false,
+  onSetEndOfEpisodeTimer
 }) => {
   const [customMinutes, setCustomMinutes] = useState('20');
 
@@ -50,8 +56,23 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
           </button>
         </div>
 
-        {/* Active Timer Display */}
-        {activeTimerSeconds !== null && activeTimerSeconds > 0 ? (
+        {/* Active Timer Display or End of Episode Display */}
+        {sleepOnEpisodeEnd ? (
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center space-y-2">
+            <span className="text-xs text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider block">
+              Bölüm Sonu Zamanlayıcısı Aktif
+            </span>
+            <p className="text-xs text-zinc-700 dark:text-zinc-300 font-medium">
+              Çalmakta olan podcast bölümü bittiğinde yayın otomatik olarak durdurulacak.
+            </p>
+            <button
+              onClick={onCancelTimer}
+              className="mt-2 text-xs px-4 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 border border-rose-500/30 transition-colors font-medium"
+            >
+              Zamanlayıcıyı İptal Et
+            </button>
+          </div>
+        ) : activeTimerSeconds !== null && activeTimerSeconds > 0 ? (
           <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center space-y-2">
             <span className="text-xs text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider block">
               Geri Sayım Devam Ediyor
@@ -68,6 +89,27 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Podcast Special Option: Bölüm Sonu */}
+            {isPodcast && onSetEndOfEpisodeTimer && (
+              <div className="pb-3 border-b border-zinc-200 dark:border-zinc-800">
+                <button
+                  onClick={() => {
+                    onSetEndOfEpisodeTimer();
+                    onClose();
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold text-xs flex items-center justify-between shadow-md active:scale-98 transition-all cursor-pointer"
+                >
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-4 h-4" />
+                    <span>Bölüm Sonu (Bölüm bitince durdur)</span>
+                  </div>
+                  <span className="text-[10px] bg-zinc-950/20 px-2 py-0.5 rounded-md font-mono">
+                    PODCAST
+                  </span>
+                </button>
+              </div>
+            )}
+
             {/* Quick Preset Buttons */}
             <div>
               <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider block mb-2">

@@ -34,7 +34,7 @@ interface VirtualizedStationGridProps {
   onAddToPlaylist: (playlistId: string, stationUuid: string) => void;
 }
 
-const ROW_HEIGHT = 152;
+const ROW_HEIGHT = 168;
 const OVERSCAN_ROWS = 3;
 
 const VirtualizedStationGrid: React.FC<VirtualizedStationGridProps> = React.memo(({

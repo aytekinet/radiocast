@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { RadioStation, Playlist, AppSettings, ThemePalette, AppThemeMode, PodcastEpisode, PlayableItem } from './types';
 import { 
   getTopStationsByCountry, 
@@ -37,14 +37,7 @@ import { SleepTimerModal } from './components/SleepTimerModal';
 
 export default function App() {
   // Navigation & Settings
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window !== 'undefined' && window.location.hash) {
-      const hash = window.location.hash.replace('#', '');
-      const validTabs = ['discover', 'podcasts', 'favorites', 'playlists', 'countries', 'settings'];
-      if (validTabs.includes(hash)) return hash;
-    }
-    return 'discover';
-  });
+  const [activeTab, setActiveTab] = useState<string>('discover');
 
   const [settings, setSettings] = useState<AppSettings>(() => getStoredSettings());
   const [favorites, setFavorites] = useState<RadioStation[]>(() => getStoredFavorites());
@@ -52,22 +45,31 @@ export default function App() {
 
   // History & Tab Navigation
   const changeTab = useCallback((newTab: string, pushHistory = true) => {
+    if (mainRef.current) {
+      tabScrollPositions.current[activeTab] = mainRef.current.scrollTop;
+    }
     setActiveTab(newTab);
     if (pushHistory && typeof window !== 'undefined' && window.history) {
       if (window.location.hash !== `#${newTab}`) {
         window.history.pushState({ tab: newTab }, '', `#${newTab}`);
       }
     }
-  }, []);
+    setTimeout(() => {
+      if (mainRef.current && tabScrollPositions.current[newTab] !== undefined) {
+        mainRef.current.scrollTop = tabScrollPositions.current[newTab];
+      }
+    }, 10);
+  }, [activeTab]);
 
   // Sync initial tab and listen to browser back/forward buttons (popstate)
   useEffect(() => {
     const validTabs = ['discover', 'podcasts', 'favorites', 'playlists', 'countries', 'settings'];
-    const currentHash = window.location.hash.replace('#', '');
-    const initialTab = validTabs.includes(currentHash) ? currentHash : 'discover';
 
-    if (window.history && !window.history.state) {
-      window.history.replaceState({ tab: initialTab }, '', `#${initialTab}`);
+    // Ensure clean boot starts at discover (Anasayfa)
+    if (window.location.hash && window.location.hash !== '#discover') {
+      window.history.replaceState({ tab: 'discover' }, '', '#discover');
+    } else if (window.history && !window.history.state) {
+      window.history.replaceState({ tab: 'discover' }, '', '#discover');
     }
 
     const handlePopState = (event: PopStateEvent) => {
@@ -124,10 +126,19 @@ export default function App() {
   const [retryCount, setRetryCount] = useState(0);
   const [volume, setVolume] = useState(settings.volume);
   const [isMuted, setIsMuted] = useState(false);
+  const [podcastEpisodesList, setPodcastEpisodesList] = useState<PodcastEpisode[]>([]);
 
   // Sleep Timer
   const [sleepTimerSeconds, setSleepTimerSeconds] = useState<number | null>(null);
+  const [sleepOnEpisodeEnd, setSleepOnEpisodeEnd] = useState(false);
   const [isSleepModalOpen, setIsSleepModalOpen] = useState(false);
+
+  const sleepOnEpisodeEndRef = useRef(sleepOnEpisodeEnd);
+  sleepOnEpisodeEndRef.current = sleepOnEpisodeEnd;
+
+  // Scroll Position Preservation Container Ref
+  const mainRef = useRef<HTMLDivElement>(null);
+  const tabScrollPositions = useRef<Record<string, number>>({});
 
   // Notification Toast Message
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -150,11 +161,83 @@ export default function App() {
     root.setAttribute('data-theme-palette', settings.themePalette);
   }, [settings.themeMode, settings.themePalette]);
 
+  // Next / Previous Handlers
+  const handleNext = useCallback(() => {
+    if (currentItem?.type === 'podcast' && currentItem.podcastEpisode) {
+      if (podcastEpisodesList.length > 0) {
+        const idx = podcastEpisodesList.findIndex((ep) => ep.id === currentItem.podcastEpisode?.id);
+        if (idx !== -1 && idx < podcastEpisodesList.length - 1) {
+          audioEngine.playPodcastEpisode(podcastEpisodesList[idx + 1]);
+        } else if (idx !== -1 && idx === podcastEpisodesList.length - 1) {
+          audioEngine.playPodcastEpisode(podcastEpisodesList[0]);
+        }
+      }
+    } else if (currentItem?.type === 'radio') {
+      const currentStation = currentItem.radio;
+      if (!currentStation) return;
+      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : stations;
+      if (list.length > 0) {
+        const idx = list.findIndex((s) => (s.id || s.stationuuid) === (currentStation.id || currentStation.stationuuid));
+        if (idx !== -1 && idx < list.length - 1) {
+          audioEngine.playStation(list[idx + 1]);
+        } else if (idx !== -1) {
+          audioEngine.playStation(list[0]);
+        }
+      }
+    }
+  }, [currentItem, podcastEpisodesList, activeTab, favorites, stations]);
+
+  const handlePrevious = useCallback(() => {
+    if (currentItem?.type === 'podcast' && currentItem.podcastEpisode) {
+      if (podcastEpisodesList.length > 0) {
+        const idx = podcastEpisodesList.findIndex((ep) => ep.id === currentItem.podcastEpisode?.id);
+        if (idx > 0) {
+          audioEngine.playPodcastEpisode(podcastEpisodesList[idx - 1]);
+        } else if (idx === 0) {
+          audioEngine.playPodcastEpisode(podcastEpisodesList[podcastEpisodesList.length - 1]);
+        }
+      }
+    } else if (currentItem?.type === 'radio') {
+      const currentStation = currentItem.radio;
+      if (!currentStation) return;
+      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : stations;
+      if (list.length > 0) {
+        const idx = list.findIndex((s) => (s.id || s.stationuuid) === (currentStation.id || currentStation.stationuuid));
+        if (idx > 0) {
+          audioEngine.playStation(list[idx - 1]);
+        } else if (idx === 0) {
+          audioEngine.playStation(list[list.length - 1]);
+        }
+      }
+    }
+  }, [currentItem, podcastEpisodesList, activeTab, favorites, stations]);
+
+  const handleNextRef = useRef(handleNext);
+  handleNextRef.current = handleNext;
+
+  const handlePreviousRef = useRef(handlePrevious);
+  handlePreviousRef.current = handlePrevious;
+
   // Setup Audio Engine Callbacks
   useEffect(() => {
     audioEngine.setCallbacks({
       onStatusChange: (status) => setPlaybackStatus(status),
-      onItemChange: (item) => setCurrentItem(item)
+      onItemChange: (item) => setCurrentItem(item),
+      onEnded: () => {
+        if (sleepOnEpisodeEndRef.current) {
+          setSleepOnEpisodeEnd(false);
+          audioEngine.stop();
+          showToast('Bölüm bitti, uyku zamanlayıcısı durdurdu.');
+        } else {
+          handleNextRef.current();
+        }
+      },
+      onNext: () => {
+        handleNextRef.current();
+      },
+      onPrevious: () => {
+        handlePreviousRef.current();
+      }
     });
     audioEngine.setVolume(settings.volume);
   }, [settings.volume]);
@@ -220,10 +303,10 @@ export default function App() {
           countrycode: selectedCountry || undefined,
           page: pageNum
         });
-      } else if (selectedCountry && selectedCountry !== 'TR') {
-        list = await getTopStationsByCountry(selectedCountry, pageNum);
       } else if (selectedCategory && selectedCategory !== 'all') {
         list = await getStationsByTag(selectedCategory, selectedCountry || 'TR');
+      } else if (selectedCountry) {
+        list = await getTopStationsByCountry(selectedCountry, pageNum);
       } else {
         list = await getTopStationsByCountry('TR', pageNum);
       }
@@ -296,7 +379,10 @@ export default function App() {
   }, [currentItem, playbackStatus]);
 
   // Handle Play Podcast Episode
-  const handlePlayPodcastEpisode = useCallback((episode: PodcastEpisode) => {
+  const handlePlayPodcastEpisode = useCallback((episode: PodcastEpisode, episodes?: PodcastEpisode[]) => {
+    if (episodes && episodes.length > 0) {
+      setPodcastEpisodesList(episodes);
+    }
     if (currentItem?.type === 'podcast' && currentItem.podcastEpisode?.id === episode.id && playbackStatus === 'playing') {
       audioEngine.togglePlayPause();
     } else {
@@ -415,13 +501,21 @@ export default function App() {
 
   const handleStartSleepTimer = (minutes: number) => {
     setSleepTimerSeconds(minutes * 60);
+    setSleepOnEpisodeEnd(false);
     showToast(`Yayın ${minutes} dakika sonra durdurulacak.`);
   };
 
   const handleCancelSleepTimer = () => {
     setSleepTimerSeconds(null);
+    setSleepOnEpisodeEnd(false);
     showToast('Uyku zamanlayıcısı iptal edildi.');
   };
+
+  const handleSetEndOfEpisodeTimer = useCallback(() => {
+    setSleepOnEpisodeEnd(true);
+    setSleepTimerSeconds(null);
+    showToast('Uyku Zamanlayıcısı: Bölüm sonunda durdurulacak.');
+  }, []);
 
   // Reset All Storage Data
   const handleResetAllData = () => {
@@ -488,6 +582,8 @@ export default function App() {
         isMuted={isMuted}
         onPlayPause={handlePlayPause}
         onStop={handleStop}
+        onNext={handleNext}
+        onPrevious={handlePrevious}
         onVolumeChange={handleVolumeChange}
         onToggleMute={handleToggleMute}
         isFavorite={
@@ -528,8 +624,8 @@ export default function App() {
         />
 
         {/* Main Content Scrollable Workspace */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 pb-36 md:pb-24">
-          {activeTab === 'discover' && (
+        <main ref={mainRef} className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 pb-36 md:pb-24">
+          <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
             <DiscoverView
               stations={filteredStations}
               isLoading={isLoading}
@@ -555,17 +651,17 @@ export default function App() {
               onRefresh={() => fetchStationsData(1, false)}
               searchQuery={searchQuery}
             />
-          )}
+          </div>
 
-          {activeTab === 'podcasts' && (
+          <div className={activeTab === 'podcasts' ? 'block' : 'hidden'}>
             <PodcastView
               currentEpisodeId={currentItem?.type === 'podcast' ? (currentItem.podcastEpisode?.id || null) : null}
               isPlaying={playbackStatus === 'playing'}
               onPlayEpisode={handlePlayPodcastEpisode}
             />
-          )}
+          </div>
 
-          {activeTab === 'favorites' && (
+          <div className={activeTab === 'favorites' ? 'block' : 'hidden'}>
             <FavoritesView
               favorites={favorites}
               currentStation={currentStation}
@@ -577,9 +673,9 @@ export default function App() {
               onAddToPlaylist={handleAddToPlaylist}
               onClearAllFavorites={handleClearAllFavorites}
             />
-          )}
+          </div>
 
-          {activeTab === 'playlists' && (
+          <div className={activeTab === 'playlists' ? 'block' : 'hidden'}>
             <PlaylistsView
               playlists={playlists}
               allStations={stations}
@@ -594,9 +690,9 @@ export default function App() {
               onRemoveFromPlaylist={handleRemoveFromPlaylist}
               onAddToPlaylist={handleAddToPlaylist}
             />
-          )}
+          </div>
 
-          {activeTab === 'countries' && (
+          <div className={activeTab === 'countries' ? 'block' : 'hidden'}>
             <CountriesView
               onSelectCountry={(countryCode) => {
                 setSelectedCountry(countryCode);
@@ -605,15 +701,15 @@ export default function App() {
                 changeTab('discover');
               }}
             />
-          )}
+          </div>
 
-          {activeTab === 'settings' && (
+          <div className={activeTab === 'settings' ? 'block' : 'hidden'}>
             <SettingsView
               settings={settings}
               onUpdateSettings={updateSettings}
               onResetAllData={handleResetAllData}
             />
-          )}
+          </div>
         </main>
       </div>
 
@@ -642,6 +738,9 @@ export default function App() {
         activeTimerSeconds={sleepTimerSeconds}
         onStartTimer={handleStartSleepTimer}
         onCancelTimer={handleCancelSleepTimer}
+        isPodcast={currentItem?.type === 'podcast'}
+        sleepOnEpisodeEnd={sleepOnEpisodeEnd}
+        onSetEndOfEpisodeTimer={handleSetEndOfEpisodeTimer}
       />
     </div>
   );
