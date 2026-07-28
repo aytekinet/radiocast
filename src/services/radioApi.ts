@@ -52,20 +52,16 @@ function formatRawStation(s: any): RadioStation {
 
 function normalizeName(name: string): string {
   if (!name) return '';
-  const cleaned = name
+  return name
     .toLowerCase()
-    .replace(/[\(\)\[\]\{\}\-_,.\/\\|]/g, ' ')
+    .trim()
     .replace(/ç/g, 'c')
     .replace(/ğ/g, 'g')
     .replace(/ı/g, 'i')
     .replace(/ö/g, 'o')
     .replace(/ş/g, 's')
     .replace(/ü/g, 'u')
-    .replace(/\b(fm|am|radio|radyo|stream|live|canli|official|online|hd|hq|hq1|mp3|aac|tr|turkey|turkiye)\b/g, '')
-    .replace(/\s+/g, '')
-    .trim();
-
-  return cleaned.length >= 2 ? cleaned : name.toLowerCase().replace(/\s+/g, '').trim();
+    .replace(/[^a-z0-9]/g, '');
 }
 
 function deduplicateStationsByName(list: RadioStation[]): RadioStation[] {

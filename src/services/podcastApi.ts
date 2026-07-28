@@ -92,17 +92,74 @@ export function safeParseEpisodeDateMillis(ep: any): number {
   return 0;
 }
 
+export async function fetchITunesPodcastsDirect(query: string, country = 'TR', limit = 100): Promise<PodcastShow[]> {
+  try {
+    const res = await fetch(`https://itunes.apple.com/search?media=podcast&entity=podcast&country=${encodeURIComponent(country)}&limit=${limit}&term=${encodeURIComponent(query)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.results)) {
+        return data.results
+          .filter((item: any) => item.feedUrl && item.collectionName)
+          .map((item: any) => ({
+            id: String(item.collectionId || Math.random()),
+            title: item.collectionName.trim(),
+            publisher: (item.artistName || 'Yayıncı').trim(),
+            coverUrl: item.artworkUrl600 || item.artworkUrl100 || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=400&q=80',
+            category: item.primaryGenreName || 'Podcast',
+            description: `${item.artistName || 'Yayıncı'} - ${item.primaryGenreName || 'Türkçe'} podcast serisi.`,
+            feedUrl: item.feedUrl,
+            releaseDateMillis: item.releaseDate ? new Date(item.releaseDate).getTime() : 0,
+            episodes: []
+          }));
+      }
+    }
+  } catch (err) {
+    console.warn('Direct iTunes fetch error:', err);
+  }
+  return [];
+}
+
 export async function getPopularPodcasts(country = 'TR', page = 1): Promise<PodcastShow[]> {
+  // 1. Try local Express API route
   try {
     const res = await fetch(`/api/podcasts/search?q=podcast&country=${encodeURIComponent(country)}&page=${page}`);
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data) && data.length >= 8) {
         return data.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
       }
     }
   } catch (err) {
-    console.warn('Popular podcasts fetch warning:', err);
+    console.warn('Popular podcasts backend fetch warning:', err);
+  }
+
+  // 2. Direct client-side iTunes queries (Crucial for Vercel static hosting!)
+  try {
+    const keywords = ['podcast', 'türkçe', 'sohbet', 'teknoloji', 'felsefe', 'psikoloji', 'tarih', 'haber', 'mizah', 'ekonomi', 'sanat', 'spor', 'müzik', 'sinema'];
+    const results = await Promise.allSettled(
+      keywords.map(kw => fetchITunesPodcastsDirect(kw, country, 30))
+    );
+
+    const allShows: PodcastShow[] = [];
+    const seenIds = new Set<string>();
+
+    for (const res of results) {
+      if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+        for (const show of res.value) {
+          const key = (show.feedUrl || show.title).toLowerCase().trim();
+          if (!seenIds.has(key)) {
+            seenIds.add(key);
+            allShows.push(show);
+          }
+        }
+      }
+    }
+
+    if (allShows.length > 0) {
+      return allShows.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
+    }
+  } catch (directErr) {
+    console.warn('Direct client-side podcast fetch failed:', directErr);
   }
 
   return FALLBACK_PODCAST_SHOWS;
@@ -111,16 +168,27 @@ export async function getPopularPodcasts(country = 'TR', page = 1): Promise<Podc
 export async function searchPodcasts(query: string, country = 'TR', page = 1): Promise<PodcastShow[]> {
   if (!query.trim()) return getPopularPodcasts(country, page);
 
+  // 1. Try local Express API route
   try {
     const res = await fetch(`/api/podcasts/search?q=${encodeURIComponent(query)}&country=${encodeURIComponent(country)}&page=${page}`);
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         return data.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
       }
     }
   } catch (err) {
     console.warn('Podcast search error:', err);
+  }
+
+  // 2. Direct client-side iTunes search
+  try {
+    const directResults = await fetchITunesPodcastsDirect(query, country, 100);
+    if (directResults.length > 0) {
+      return directResults.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
+    }
+  } catch (e) {
+    console.warn('Direct iTunes podcast search failed:', e);
   }
 
   return FALLBACK_PODCAST_SHOWS.filter(p =>
@@ -129,10 +197,70 @@ export async function searchPodcasts(query: string, country = 'TR', page = 1): P
   );
 }
 
+async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise<PodcastEpisode[]> {
+  const tryUrls = [
+    feedUrl,
+    `https://corsproxy.io/?url=${encodeURIComponent(feedUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`
+  ];
+
+  for (const url of tryUrls) {
+    try {
+      const res = await fetch(url, { headers: { 'Accept': 'application/xml, text/xml, */*' } });
+      if (res.ok) {
+        const text = await res.text();
+        if (text && (text.includes('<rss') || text.includes('<xml') || text.includes('<feed'))) {
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(text, 'text/xml');
+          const items = Array.from(xml.querySelectorAll('item'));
+          if (items.length > 0) {
+            return items.map((item, idx) => {
+              const title = item.querySelector('title')?.textContent?.trim() || `Bölüm ${idx + 1}`;
+              const rawDesc = item.querySelector('description')?.textContent || item.querySelector('summary')?.textContent || '';
+              const description = rawDesc.replace(/<[^>]*>/g, '').trim();
+              const enclosure = item.querySelector('enclosure');
+              const audioUrl = enclosure?.getAttribute('url') || '';
+              const pubDate = item.querySelector('pubDate')?.textContent?.trim() || '';
+              const pubDateMillis = safeParseEpisodeDateMillis({ pubDate });
+              const duration = item.querySelector('duration')?.textContent?.trim() || '1800';
+              let durationSec = 1800;
+              if (duration.includes(':')) {
+                const parts = duration.split(':').map(Number);
+                if (parts.length === 3) durationSec = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                else if (parts.length === 2) durationSec = parts[0] * 60 + parts[1];
+              } else if (!isNaN(Number(duration))) {
+                durationSec = Number(duration);
+              }
+
+              return {
+                id: `rss-ep-${show.id}-${idx}`,
+                showId: show.id,
+                showTitle: show.title,
+                title,
+                description: description || `${show.publisher} podcast yayını.`,
+                audioUrl,
+                durationSeconds: durationSec,
+                publishedDate: pubDate ? new Date(pubDateMillis || Date.now()).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Güncel',
+                pubDateMillis,
+                coverUrl: show.coverUrl,
+                category: show.category || 'Podcast'
+              };
+            }).filter(e => e.audioUrl.length > 0);
+          }
+        }
+      }
+    } catch {
+      // try next
+    }
+  }
+  return [];
+}
+
 export async function getPodcastEpisodes(show: PodcastShow): Promise<PodcastEpisode[]> {
   let episodes: PodcastEpisode[] = [];
 
   if (show.feedUrl) {
+    // 1. Try server API
     try {
       const res = await fetch(`/api/podcasts/feed?url=${encodeURIComponent(show.feedUrl)}`);
       if (res.ok) {
@@ -158,6 +286,15 @@ export async function getPodcastEpisodes(show: PodcastShow): Promise<PodcastEpis
       }
     } catch (err) {
       console.warn('Failed to load podcast feed via server API:', err);
+    }
+
+    // 2. Client-side XML DOMParser fallback
+    if (episodes.length === 0) {
+      try {
+        episodes = await fetchAndParseRssFeed(show.feedUrl, show);
+      } catch (xmlErr) {
+        console.warn('Client-side XML RSS parse failed:', xmlErr);
+      }
     }
   }
 

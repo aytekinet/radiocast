@@ -259,17 +259,23 @@ class AudioEngine {
 
     for (const url of baseCandidates) {
       if (!url) continue;
-      const isHls = url.includes('.m3u8') || Boolean(station.hls);
-      const proxyUrl = `/api/radio/proxy?url=${encodeURIComponent(url)}`;
+      const cleanUrl = url.trim();
+      const isHls = cleanUrl.toLowerCase().includes('.m3u8') || Boolean(station.hls);
+      const proxyUrl = `/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`;
 
       if (isHls) {
-        rawCandidates.push(url);
-      } else if (url.toLowerCase().startsWith('https://')) {
-        rawCandidates.push(url);
+        rawCandidates.push(cleanUrl);
+      } else if (cleanUrl.toLowerCase().startsWith('https://')) {
+        rawCandidates.push(cleanUrl);
         rawCandidates.push(proxyUrl);
+        rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
       } else {
+        // HTTP stream: try HTTPS upgrade first (crucial for HTTPS deployment like Vercel!)
+        const httpsUpgraded = cleanUrl.replace(/^http:\/\//i, 'https://');
+        rawCandidates.push(httpsUpgraded);
         rawCandidates.push(proxyUrl);
-        rawCandidates.push(url);
+        rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
+        rawCandidates.push(cleanUrl);
       }
     }
 
@@ -375,8 +381,10 @@ class AudioEngine {
       if (playableUrl.startsWith('/')) {
         playableUrl = window.location.origin + playableUrl;
       } else if (window.location.protocol === 'https:' && playableUrl.startsWith('http://') && !playableUrl.includes('/api/radio/stream/')) {
-        if (!playableUrl.match(/:\d{2,5}\//)) {
-          playableUrl = playableUrl.replace('http://', 'https://');
+        // Direct HTTP is blocked on HTTPS pages (Mixed Content)
+        // If not already proxied, try CORS proxy over HTTPS or HTTPS upgrade
+        if (!playableUrl.includes('corsproxy.io')) {
+          playableUrl = `https://corsproxy.io/?url=${encodeURIComponent(playableUrl)}`;
         }
       }
     }
