@@ -6,6 +6,7 @@ import fs from 'fs';
 import { URL } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { VERIFIED_TURKISH_STATIONS } from './src/data/fallbackStations';
+import { processTakedownRequest } from './src/services/takedownHandler';
 
 interface ServerBlacklistEntry {
   id: string;
@@ -843,73 +844,24 @@ async function startServer() {
 
   // Takedown Form Receiver
   app.post('/api/takedown', async (req, res) => {
-    const { claimantName, organization, email, phone, contentType, stationName, podcastName, complaintDescription } = req.body || {};
-    if (!claimantName || !email || !complaintDescription) {
-      return res.status(400).json({ error: 'Gerekli alanlar eksik' });
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
+    try {
+      const result = await processTakedownRequest(req.body || {}, clientIp);
+      return res.status(result.httpCode).json({
+        success: result.success,
+        caseId: result.caseId,
+        message: result.message,
+        messageEn: result.messageEn,
+        contactEmail: 'radiocastlive@proton.me',
+      });
+    } catch {
+      return res.status(500).json({
+        success: false,
+        error: 'Talep gönderilemedi. Lütfen radiocastlive@proton.me adresine e-posta gönderin.',
+        errorEn: 'The request could not be sent. Please email radiocastlive@proton.me.',
+        contactEmail: 'radiocastlive@proton.me',
+      });
     }
-
-    // Log internally for operations review
-    console.log(`[TAKEDOWN_RECEIVED] claimant=${claimantName} email=${email} type=${contentType} target=${stationName || podcastName}`);
-
-    const targetName = stationName || podcastName || 'Belirtilmedi';
-    let emailSent = false;
-    let emailConfigured = false;
-
-    // Check if SMTP or Resend is configured
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-
-    if (smtpHost && smtpUser && smtpPass) {
-      emailConfigured = true;
-      try {
-        const nodemailer = await import('nodemailer');
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: Number(process.env.SMTP_PORT) || 587,
-          secure: Number(process.env.SMTP_PORT) === 465,
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-        });
-
-        const mailOptions = {
-          from: process.env.SMTP_FROM || smtpUser,
-          to: 'radiocastlive@proton.me',
-          subject: `[Telif Kaldırma Talebi] ${targetName} - ${claimantName}`,
-          text: `Yeni Telif / İçerik Kaldırma Talebi:
-
-Talep Eden: ${claimantName}
-Kurum: ${organization || 'Belirtilmedi'}
-E-posta: ${email}
-Telefon: ${phone || 'Belirtilmedi'}
-İçerik Türü: ${contentType}
-Hedef İçerik: ${targetName}
-
-Açıklama:
-${complaintDescription}
-
-Tarih: ${new Date().toISOString()}
-`,
-        };
-
-        await transporter.sendMail(mailOptions);
-        emailSent = true;
-      } catch (err) {
-        console.error('[TAKEDOWN_MAIL_ERROR]', err);
-      }
-    }
-
-    res.json({
-      success: true,
-      emailSent,
-      emailConfigured,
-      message: emailSent
-        ? 'Telif/içerik kaldırma talebiniz radiocastlive@proton.me adresine e-posta ile iletildi.'
-        : 'Talebiniz kaydedildi. Garantili iletim için e-posta istemcinizle de gönderebilirsiniz.',
-      contactEmail: 'radiocastlive@proton.me',
-    });
   });
 
   // Direct Audio Stream Proxy by target URL
