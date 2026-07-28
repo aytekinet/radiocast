@@ -13,6 +13,8 @@ import {
   Newspaper, 
   Sun, 
   BoomBox,
+  Globe,
+  Wifi,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -241,6 +243,8 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
       case 'Sun': return <Sun className="w-3.5 h-3.5" />;
       case 'Zap': return <Zap className="w-3.5 h-3.5" />;
       case 'BoomBox': return <BoomBox className="w-3.5 h-3.5" />;
+      case 'Globe': return <Globe className="w-3.5 h-3.5" />;
+      case 'Wifi': return <Wifi className="w-3.5 h-3.5" />;
       default: return <Radio className="w-3.5 h-3.5" />;
     }
   };
