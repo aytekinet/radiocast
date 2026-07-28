@@ -9,6 +9,23 @@ export interface VerifiedStationInfo {
 
 export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
   {
+    stationuuid: 'v-kafa-radyo',
+    name: 'Kafa Radyo',
+    playUrl: 'https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8',
+    url: 'https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8',
+    url_resolved: 'https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8',
+    homepage: 'https://www.kafaradyo.com',
+    favicon: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=200&q=80',
+    tags: 'pop,rock,sohbet,kultur,turkce',
+    country: 'Turkey',
+    countrycode: 'TR',
+    state: 'Istanbul',
+    language: 'turkish',
+    votes: 35000,
+    codec: 'AAC',
+    bitrate: 128
+  },
+  {
     stationuuid: 'v-powerturk',
     name: 'PowerTürk',
     playUrl: 'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8',
@@ -22,23 +39,6 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
     state: 'Istanbul',
     language: 'turkish',
     votes: 30000,
-    codec: 'HLS',
-    bitrate: 128
-  },
-  {
-    stationuuid: 'v-kral-pop',
-    name: 'Kral Pop',
-    playUrl: 'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8',
-    url: 'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8',
-    url_resolved: 'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8',
-    homepage: 'https://www.kralmuzik.com.tr',
-    favicon: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&q=80',
-    tags: 'pop,turkce pop,top40',
-    country: 'Turkey',
-    countrycode: 'TR',
-    state: 'Istanbul',
-    language: 'turkish',
-    votes: 29500,
     codec: 'HLS',
     bitrate: 128
   },
@@ -162,6 +162,23 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
     bitrate: 128
   },
   {
+    stationuuid: 'v-kral-pop',
+    name: 'Kral Pop',
+    playUrl: 'https://ssldyg.radyotvonline.com/kralpop/kralpop.stream/playlist.m3u8',
+    url: 'https://ssldyg.radyotvonline.com/kralpop/kralpop.stream/playlist.m3u8',
+    url_resolved: 'https://ssldyg.radyotvonline.com/kralpop/kralpop.stream/playlist.m3u8',
+    homepage: 'https://www.kralmuzik.com.tr',
+    favicon: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&q=80',
+    tags: 'pop,turkce pop,top40',
+    country: 'Turkey',
+    countrycode: 'TR',
+    state: 'Istanbul',
+    language: 'turkish',
+    votes: 25800,
+    codec: 'HLS',
+    bitrate: 128
+  },
+  {
     stationuuid: 'v-istanbul-fm',
     name: 'İstanbul FM',
     playUrl: 'http://stream.istanbulfm.com.tr:8000/;',
@@ -210,23 +227,6 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
     language: 'turkish',
     votes: 24500,
     codec: 'HLS',
-    bitrate: 128
-  },
-  {
-    stationuuid: 'v-kafa-radyo',
-    name: 'Kafa Radyo',
-    playUrl: 'https://edge1.radyotvonline.net/shoutcast/play/kafaradyo',
-    url: 'https://edge1.radyotvonline.net/shoutcast/play/kafaradyo',
-    url_resolved: 'https://edge1.radyotvonline.net/shoutcast/play/kafaradyo',
-    homepage: 'https://www.kafaradyo.com',
-    favicon: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=200&q=80',
-    tags: 'pop,rock,sohbet,kultur,turkce',
-    country: 'Turkey',
-    countrycode: 'TR',
-    state: 'Istanbul',
-    language: 'turkish',
-    votes: 24000,
-    codec: 'AAC',
     bitrate: 128
   },
   {
@@ -794,7 +794,33 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
 
 // Fallback mirror map by station name / keyword
 export const STATION_MIRRORS_MAP: Record<string, string[]> = {
+  'kralpop': [
+    'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8',
+    'https://ssldyg.radyotvonline.com/kralpop/kralpop.stream/playlist.m3u8',
+    'https://live.kralmuzik.com.tr/kralpop/playlist.m3u8',
+    'https://showradyo.radyotvonline.net/kralpop'
+  ],
+  'kral pop': [
+    'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8',
+    'https://ssldyg.radyotvonline.com/kralpop/kralpop.stream/playlist.m3u8',
+    'https://live.kralmuzik.com.tr/kralpop/playlist.m3u8',
+    'https://showradyo.radyotvonline.net/kralpop'
+  ],
+  'kralfm': [
+    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8',
+    'https://ssldyg.radyotvonline.com/kralfm/kralfm.stream/playlist.m3u8',
+    'https://live.kralmuzik.com.tr/kralfm/playlist.m3u8'
+  ],
+  'kral fm': [
+    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8',
+    'https://ssldyg.radyotvonline.com/kralfm/kralfm.stream/playlist.m3u8',
+    'https://live.kralmuzik.com.tr/kralfm/playlist.m3u8'
+  ],
   'radyo voyage': [
+    'https://dygedge2.radyotvonline.net/radyovoyage/playlist.m3u8',
+    'https://ssldyg.radyotvonline.com/radyovoyage/radyovoyage.stream/playlist.m3u8'
+  ],
+  'voyage': [
     'https://dygedge2.radyotvonline.net/radyovoyage/playlist.m3u8',
     'https://ssldyg.radyotvonline.com/radyovoyage/radyovoyage.stream/playlist.m3u8'
   ],
@@ -803,77 +829,117 @@ export const STATION_MIRRORS_MAP: Record<string, string[]> = {
     'https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8',
     'https://listen.kafaradyo.com/stream'
   ],
+  'kafaradyo': [
+    'https://edge1.radyotvonline.net/shoutcast/play/kafaradyo',
+    'https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8'
+  ],
   'super fm': [
     'https://29103.live.streamtheworld.com/SUPER_FM_SC',
     'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC',
     'http://stream.super.fm:8000/superfm.mp3'
+  ],
+  'superfm': [
+    'https://29103.live.streamtheworld.com/SUPER_FM_SC',
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC'
   ],
   'alem fm': [
     'https://edge1.radyotvonline.net/shoutcast/play/alemfm',
     'https://turkmedya.radyotvonline.net/alemfmaac',
     'http://turkmedya.radyotvonline.com/turkmedya/alemfm.stream/playlist.m3u8'
   ],
+  'alemfm': [
+    'https://edge1.radyotvonline.net/shoutcast/play/alemfm',
+    'https://turkmedya.radyotvonline.net/alemfmaac'
+  ],
   'trt fm': [
     'https://rd-trtfm.medya.trt.com.tr/master_128.m3u8',
     'https://trt.radyotvonline.net/trtfm'
   ],
-  'kral fm': [
-    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8',
-    'https://live.radyositesihazir.com/8032/stream'
+  'trtfm': [
+    'https://rd-trtfm.medya.trt.com.tr/master_128.m3u8',
+    'https://trt.radyotvonline.net/trtfm'
   ],
   'virgin radio': [
-    'http://29103.live.streamtheworld.com/VIRGIN_RADIO_SC',
+    'https://29103.live.streamtheworld.com/VIRGIN_RADIO_SC',
     'https://playerservices.streamtheworld.com/api/livestream-redirect/VIRGIN_RADIO_SC'
-  ],
-  'dinamo sleep': [
-    'http://channels.dinamo.fm/sleep-mp3',
-    'http://channels.dinamo.fm/caffe-mp3',
-    'http://channels.dinamo.fm/deep-mp3'
-  ],
-  'dinamo fm': [
-    'http://channels.dinamo.fm/deep-mp3',
-    'http://channels.dinamo.fm/discotheque-mp3',
-    'http://channels.dinamo.fm/fluent-mp3'
   ],
   'power fm': [
     'https://live.powerapp.com.tr/powerfm/abr/powerfm/128/playlist.m3u8',
     'https://powerfm.listenpowerapp.com/powerfm/mpeg/icecast.audio'
   ],
+  'powerfm': [
+    'https://live.powerapp.com.tr/powerfm/abr/powerfm/128/playlist.m3u8'
+  ],
   'power turk': [
     'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8',
     'https://listen.powerapp.com.tr/powerturk/abr/playlist.m3u8'
   ],
+  'powerturk': [
+    'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8',
+    'https://listen.powerapp.com.tr/powerturk/abr/playlist.m3u8'
+  ],
   'slow turk': [
-    'https://radyo.duhnet.tv/ak_dtvh_slowturk'
+    'https://radyo.duhnet.tv/ak_dtvh_slowturk',
+    'https://kanald.radyotvonline.net/slowturk'
+  ],
+  'slowturk': [
+    'https://radyo.duhnet.tv/ak_dtvh_slowturk',
+    'https://kanald.radyotvonline.net/slowturk'
   ],
   'show radyo': [
     'https://showradyo.radyotvonline.net/showradyo',
     'http://showradyo.radyotvonline.net/showradyoaac/'
   ],
+  'showradyo': [
+    'https://showradyo.radyotvonline.net/showradyo'
+  ],
   'joy fm': [
-    'http://28993.live.streamtheworld.com:3690/JOY_FMAAC_SC',
+    'https://28993.live.streamtheworld.com/JOY_FMAAC_SC',
     'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_FMAAC_SC'
   ],
   'joy turk': [
     'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_SC',
     'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_ITUNES.mp3'
   ],
+  'joyturk': [
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_SC'
+  ],
   'metro fm': [
-    'http://28503.live.streamtheworld.com:3690/METRO_FMAAC_SC',
+    'https://28503.live.streamtheworld.com/METRO_FMAAC_SC',
     'https://playerservices.streamtheworld.com/api/livestream-redirect/METRO_FMAAC_SC'
   ],
+  'metrofm': [
+    'https://28503.live.streamtheworld.com/METRO_FMAAC_SC'
+  ],
   'radyo d': [
+    'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8',
+    'https://radyo.duhnet.tv/ak_dtvh_radyod'
+  ],
+  'radyod': [
     'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8'
   ],
   'best fm': [
     'https://ssldyg.radyotvonline.com/best/bestfm.stream/playlist.m3u8',
     'https://hepsibest.radyotvonline.net/bestslow'
   ],
+  'bestfm': [
+    'https://ssldyg.radyotvonline.com/best/bestfm.stream/playlist.m3u8'
+  ],
   'diyanet radyo': [
     'https://eustr73.mediatriple.net/videoonlylive/mtikoimxnztxlive/broadcast_5e3c1171d7d2a.smil/playlist.m3u8'
   ],
   'trt turku': [
     'https://rd-trtturku.medya.trt.com.tr/master_128.m3u8'
+  ],
+  'number1': [
+    'https://n10a-eu.superstream.com.tr/number1turk/playlist.m3u8',
+    'https://n10a-eu.superstream.com.tr/number1/playlist.m3u8'
+  ],
+  'pal fm': [
+    'https://shoutcast.palmedya.com.tr/palfm/stream'
+  ],
+  'pal station': [
+    'https://shoutcast.palmedya.com.tr/palstation/stream'
   ]
 };
 
@@ -883,10 +949,10 @@ export const STATION_MIRRORS_MAP: Record<string, string[]> = {
 export function getCandidateUrlsForStation(station: RadioStation): string[] {
   const candidates: string[] = [];
   const primary = station.url_resolved || station.url || station.playUrl || station.streamUrl;
-  if (primary) candidates.push(primary);
+  if (primary) candidates.push(primary.trim());
 
-  const normalizedName = station.name
-    .toLowerCase()
+  const rawName = (station.name || '').toLowerCase();
+  const normalizedName = rawName
     .replace(/ç/g, 'c')
     .replace(/ğ/g, 'g')
     .replace(/ı/g, 'i')
@@ -895,11 +961,26 @@ export function getCandidateUrlsForStation(station: RadioStation): string[] {
     .replace(/ü/g, 'u')
     .trim();
 
+  const cleanName = normalizedName.replace(/[^a-z0-9]/g, '');
+
   for (const [key, mirrors] of Object.entries(STATION_MIRRORS_MAP)) {
-    if (normalizedName.includes(key)) {
+    const cleanKey = key
+      .toLowerCase()
+      .replace(/ç/g, 'c')
+      .replace(/ğ/g, 'g')
+      .replace(/ı/g, 'i')
+      .replace(/ö/g, 'o')
+      .replace(/ş/g, 's')
+      .replace(/ü/g, 'u')
+      .replace(/[^a-z0-9]/g, '');
+
+    if (
+      normalizedName.includes(key) ||
+      (cleanKey.length >= 3 && cleanName.includes(cleanKey))
+    ) {
       for (const m of mirrors) {
-        if (!candidates.includes(m)) {
-          candidates.push(m);
+        if (m && !candidates.includes(m.trim())) {
+          candidates.push(m.trim());
         }
       }
     }
@@ -907,11 +988,12 @@ export function getCandidateUrlsForStation(station: RadioStation): string[] {
 
   // Also try backup URL if primary is http and can be https or vice versa
   if (primary) {
-    if (primary.startsWith('http://')) {
-      const httpsVersion = primary.replace('http://', 'https://');
+    const trimmedPrimary = primary.trim();
+    if (trimmedPrimary.startsWith('http://')) {
+      const httpsVersion = trimmedPrimary.replace(/^http:\/\//i, 'https://');
       if (!candidates.includes(httpsVersion)) candidates.push(httpsVersion);
-    } else if (primary.startsWith('https://')) {
-      const httpVersion = primary.replace('https://', 'http://');
+    } else if (trimmedPrimary.startsWith('https://')) {
+      const httpVersion = trimmedPrimary.replace(/^https:\/\//i, 'http://');
       if (!candidates.includes(httpVersion)) candidates.push(httpVersion);
     }
   }

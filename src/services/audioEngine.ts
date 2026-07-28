@@ -265,6 +265,8 @@ class AudioEngine {
 
       if (isHls) {
         rawCandidates.push(cleanUrl);
+        rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
+        rawCandidates.push(proxyUrl);
       } else if (cleanUrl.toLowerCase().startsWith('https://')) {
         rawCandidates.push(cleanUrl);
         rawCandidates.push(proxyUrl);

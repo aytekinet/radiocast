@@ -171,9 +171,7 @@ function processStationList(rawList: any[]): ReturnType<typeof normalizeStation>
   const nameGroupMap = new Map<string, ReturnType<typeof normalizeStation>[]>();
 
   for (const item of rawList) {
-    if (!item || !item.stationuuid || !item.name) continue;
-    // Skip only if explicitly marked as broken (0, "0", false)
-    if (item.lastcheckok === 0 || item.lastcheckok === '0' || item.lastcheckok === false) continue;
+    if (!item || !item.name) continue;
 
     const normalized = normalizeStation(item);
     if (!normalized.streamUrl) continue;

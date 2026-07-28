@@ -199,16 +199,11 @@ export const StationCard: React.FC<StationCardProps> = React.memo(({
         </div>
       </div>
 
-      {/* Footer: Bitrate Badge & Play Button */}
+      {/* Footer: Codec Badge & Play Button */}
       <div className="flex items-center justify-between pt-1.5 border-t border-zinc-200 dark:border-zinc-800/80 mt-auto shrink-0">
         <div className="flex items-center space-x-1 text-[10px] text-zinc-400 dark:text-zinc-500 font-mono shrink-0">
-          {station.bitrate > 0 && (
-            <span className="text-zinc-600 dark:text-zinc-300 font-medium">
-              {station.bitrate}k
-            </span>
-          )}
           {station.codec && (
-            <span className="uppercase text-zinc-400">
+            <span className="uppercase text-zinc-400 font-medium">
               {station.codec}
             </span>
           )}
