@@ -772,10 +772,42 @@ app.get('/api/radio/search', (req, res) => unifiedRadioSearch(req, res));
 app.get('/api/radio/countries', (req, res) => unifiedRadioCountries(req, res));
 app.get('/api/radio/tags', (req, res) => unifiedRadioTags(req, res));
 app.post('/api/radio/click', (req, res) => unifiedRadioClick(req, res));
+
+app.get('/api/radio/stream/:stationId', (req, res) => {
+  const { stationId } = req.params;
+  const urlParam = req.query.url as string;
+  let targetUrl = urlParam;
+
+  if (!targetUrl && stationId) {
+    const entry = STATION_CATALOG.get(stationId);
+    if (entry && entry.candidateUrls.length > 0) {
+      targetUrl = entry.candidateUrls[0];
+    }
+  }
+
+  if (!targetUrl) {
+    return res.status(400).json({ error: 'Stream URL or valid stationId required' });
+  }
+
+  proxyAudioStream(targetUrl, req, res);
+});
+
+app.get('/api/radio/stream', (req, res) => {
+  const urlParam = (req.query.url || req.query.streamUrl) as string;
+  if (!urlParam) {
+    return res.status(400).json({ error: 'url or streamUrl required' });
+  }
+  proxyAudioStream(urlParam, req, res);
+});
+
 app.get('/api/podcasts/search', (req, res) => unifiedPodcastSearch(req, res));
 app.get('/api/podcasts/catalog', (req, res) => handlePodcastCatalog(req, res));
 app.get('/api/podcasts/trending', (req, res) => handlePodcastTrending(req, res));
 app.get('/api/podcasts/recent', (req, res) => handlePodcastRecent(req, res));
+app.get('/api/podcasts/episodes/latest', (req, res) => handlePodcastRecent(req, res));
+app.get('/api/podcasts/health', (req, res) => {
+  res.json({ status: 'ok', service: 'podcast-catalog', timestamp: new Date().toISOString() });
+});
 app.get('/api/internal/podcasts/refresh', (req, res) => handlePodcastRefresh(req, res));
 app.get('/api/podcasts/feed', (req, res) => unifiedPodcastFeed(req, res));
 app.get('/api/podcast-feed', (req, res) => unifiedPodcastFeed(req, res));
