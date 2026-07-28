@@ -17,7 +17,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Playlist, RadioStation } from '../types';
-import { GENRE_CATEGORIES, POPULAR_COUNTRIES } from '../constants/categories';
+import { GENRE_CATEGORIES, POPULAR_COUNTRIES, COUNTRY_NAMES_TR } from '../constants/categories';
 import { StationCard } from './StationCard';
 import { PlaybackStatus } from '../services/audioEngine';
 
@@ -257,7 +257,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
               </span>
               <div>
                 <h3 className="text-xs font-bold text-zinc-900 dark:text-white">
-                  {POPULAR_COUNTRIES.find((c) => c.code === selectedCountry)?.name || selectedCountry} Radyoları
+                  {POPULAR_COUNTRIES.find((c) => c.code === selectedCountry)?.name || COUNTRY_NAMES_TR[selectedCountry] || selectedCountry} Radyoları
                 </h3>
                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                   Yabancı ülke seçiminde tüm popüler istasyonlar kategori sınırlaması olmaksızın listelenmektedir.

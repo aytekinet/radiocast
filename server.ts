@@ -176,7 +176,8 @@ function processStationList(rawList: any[]): ReturnType<typeof normalizeStation>
 
   for (const item of rawList) {
     if (!item || !item.stationuuid || !item.name) continue;
-    if (item.lastcheckok !== 1 && item.lastcheckok !== undefined) continue;
+    // Skip only if explicitly marked as broken (0, "0", false)
+    if (item.lastcheckok === 0 || item.lastcheckok === '0' || item.lastcheckok === false) continue;
 
     const normalized = normalizeStation(item);
     if (!normalized.streamUrl) continue;
@@ -585,8 +586,22 @@ async function startServer() {
     if (cached) return res.json(cached);
 
     try {
-      const endpoint = `/json/stations/search?countrycode=${encodeURIComponent(country)}&hidebroken=true&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`;
-      const data = await fetchRadioBrowser<any[]>(endpoint);
+      // 1. Try exact country code endpoint
+      let endpoint = `/json/stations/bycountrycodeexact/${encodeURIComponent(country)}?hidebroken=true&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`;
+      let data = await fetchRadioBrowser<any[]>(endpoint);
+
+      // 2. Fallback: search by countrycode parameter
+      if (!Array.isArray(data) || data.length === 0) {
+        endpoint = `/json/stations/search?countrycode=${encodeURIComponent(country)}&hidebroken=true&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`;
+        data = await fetchRadioBrowser<any[]>(endpoint);
+      }
+
+      // 3. Fallback: search without hidebroken restriction
+      if (!Array.isArray(data) || data.length === 0) {
+        endpoint = `/json/stations/search?countrycode=${encodeURIComponent(country)}&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`;
+        data = await fetchRadioBrowser<any[]>(endpoint);
+      }
+
       const processed = processStationList(data);
 
       setToCache(cacheKey, processed, 15 * 60 * 1000); // 15m cache
