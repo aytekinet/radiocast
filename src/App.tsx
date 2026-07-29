@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { RadioStation, Playlist, AppSettings, ThemePalette, AppThemeMode, PodcastEpisode, PlayableItem } from './types';
+import { RadioStation, Playlist, AppSettings, ThemePalette, AppThemeMode, PodcastShow, PodcastEpisode, PlayableItem } from './types';
 import { 
   getTopStationsByCountry, 
   getStationsByTag, 
@@ -20,7 +20,11 @@ import {
   savePlaylists, 
   getStoredSettings, 
   saveSettings, 
-  saveFavorites 
+  saveFavorites,
+  getStoredFavoritePodcasts,
+  toggleFavoritePodcastShow,
+  getStoredFavoriteEpisodes,
+  toggleFavoritePodcastEpisode
 } from './services/storage';
 
 import { DesktopHeader } from './components/DesktopHeader';
@@ -43,6 +47,8 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => getStoredSettings());
   const [favorites, setFavorites] = useState<RadioStation[]>(() => getStoredFavorites());
   const [playlists, setPlaylists] = useState<Playlist[]>(() => getStoredPlaylists());
+  const [favoritePodcasts, setFavoritePodcasts] = useState<PodcastShow[]>(() => getStoredFavoritePodcasts());
+  const [favoriteEpisodes, setFavoriteEpisodes] = useState<PodcastEpisode[]>(() => getStoredFavoriteEpisodes());
 
   // History & Tab Navigation
   const changeTab = useCallback((newTab: string, pushHistory = true) => {
@@ -430,6 +436,27 @@ export default function App() {
     setFavorites(updated);
   }, []);
 
+  const handleToggleFavoritePodcast = useCallback((show: PodcastShow) => {
+    const updated = toggleFavoritePodcastShow(show);
+    setFavoritePodcasts(updated);
+    const exists = updated.some(s => (s.id || s.feedUrl) === (show.id || show.feedUrl));
+    showToast(exists ? `"${show.title}" favori podcastlere eklendi.` : `"${show.title}" favorilerden çıkarıldı.`);
+  }, []);
+
+  const handleToggleFavoriteEpisode = useCallback((episode: PodcastEpisode) => {
+    const updated = toggleFavoritePodcastEpisode(episode);
+    setFavoriteEpisodes(updated);
+    const exists = updated.some(e => e.id === episode.id);
+    showToast(exists ? `"${episode.title}" favori bölümlere eklendi.` : `"${episode.title}" favorilerden çıkarıldı.`);
+  }, []);
+
+  const handleOpenPodcastShowFromFav = useCallback((show: PodcastShow) => {
+    if (typeof window !== 'undefined' && window.history) {
+      window.history.pushState({ tab: 'podcasts', podcastShow: show }, '', '#podcasts');
+    }
+    changeTab('podcasts');
+  }, [changeTab]);
+
   const handleClearAllFavorites = useCallback(() => {
     if (window.confirm('Tüm favori radyolarınızı silmek istediğinize emin misiniz?')) {
       saveFavorites([]);
@@ -680,20 +707,31 @@ export default function App() {
               currentEpisodeId={currentItem?.type === 'podcast' ? (currentItem.podcastEpisode?.id || null) : null}
               isPlaying={playbackStatus === 'playing'}
               onPlayEpisode={handlePlayPodcastEpisode}
+              favoritePodcasts={favoritePodcasts}
+              favoriteEpisodes={favoriteEpisodes}
+              onToggleFavoritePodcast={handleToggleFavoritePodcast}
+              onToggleFavoriteEpisode={handleToggleFavoriteEpisode}
             />
           </div>
 
           <div className={activeTab === 'favorites' ? 'block' : 'hidden'}>
             <FavoritesView
               favorites={favorites}
+              favoritePodcasts={favoritePodcasts}
+              favoriteEpisodes={favoriteEpisodes}
               currentStation={currentStation}
+              currentEpisodeId={currentItem?.type === 'podcast' ? (currentItem.podcastEpisode?.id || null) : null}
               isPlaying={playbackStatus === 'playing'}
               playbackStatus={playbackStatus}
               onPlayStation={handlePlayStation}
+              onPlayPodcastEpisode={handlePlayPodcastEpisode}
               onToggleFavorite={handleToggleFavorite}
+              onToggleFavoritePodcast={handleToggleFavoritePodcast}
+              onToggleFavoriteEpisode={handleToggleFavoriteEpisode}
               playlists={playlists}
               onAddToPlaylist={handleAddToPlaylist}
               onClearAllFavorites={handleClearAllFavorites}
+              onOpenPodcastShow={handleOpenPodcastShowFromFav}
             />
           </div>
 

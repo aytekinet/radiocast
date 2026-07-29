@@ -17,19 +17,28 @@ import {
   ArrowLeft,
   RefreshCw,
   CheckCircle2,
-  Trash2
+  Trash2,
+  Heart
 } from 'lucide-react';
 
 interface PodcastViewProps {
   currentEpisodeId: string | null;
   isPlaying: boolean;
   onPlayEpisode: (episode: PodcastEpisode, episodes?: PodcastEpisode[]) => void;
+  favoritePodcasts?: PodcastShow[];
+  favoriteEpisodes?: PodcastEpisode[];
+  onToggleFavoritePodcast?: (show: PodcastShow) => void;
+  onToggleFavoriteEpisode?: (episode: PodcastEpisode) => void;
 }
 
 export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   currentEpisodeId,
   isPlaying,
-  onPlayEpisode
+  onPlayEpisode,
+  favoritePodcasts = [],
+  favoriteEpisodes = [],
+  onToggleFavoritePodcast,
+  onToggleFavoriteEpisode
 }) => {
   const [podcasts, setPodcasts] = useState<PodcastShow[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -333,9 +342,9 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
               {selectedShow.description}
             </p>
 
-            {/* Direct Play Latest Episode Button */}
-            {showEpisodes.length > 0 && (
-              <div className="pt-1 flex flex-wrap items-center gap-3">
+            {/* Direct Play Latest Episode Button & Favorite Button */}
+            <div className="pt-1 flex flex-wrap items-center gap-3">
+              {showEpisodes.length > 0 && (
                 <button
                   onClick={() => onPlayEpisode(showEpisodes[0], showEpisodes)}
                   className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
@@ -343,8 +352,22 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                   <Play className="w-4 h-4 fill-current ml-0.5" />
                   <span>En Son Bölümü Dinle ({showEpisodes[0].publishedDate || 'Güncel'})</span>
                 </button>
-              </div>
-            )}
+              )}
+
+              {onToggleFavoritePodcast && (
+                <button
+                  onClick={() => onToggleFavoritePodcast(selectedShow)}
+                  className={`px-4 py-2.5 rounded-xl border text-xs md:text-sm font-bold flex items-center gap-2 transition-all active:scale-95 cursor-pointer ${
+                    favoritePodcasts.some(p => (p.id || p.feedUrl) === (selectedShow.id || selectedShow.feedUrl))
+                      ? 'bg-rose-500/15 border-rose-500/40 text-rose-500 hover:bg-rose-500/25 shadow-sm'
+                      : 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-rose-500'
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 ${favoritePodcasts.some(p => (p.id || p.feedUrl) === (selectedShow.id || selectedShow.feedUrl)) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  <span>{favoritePodcasts.some(p => (p.id || p.feedUrl) === (selectedShow.id || selectedShow.feedUrl)) ? 'Favorilerimde' : 'Favorilere Ekle'}</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -560,6 +583,24 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
+                      {/* Favorite Episode Toggle Button */}
+                      {onToggleFavoriteEpisode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavoriteEpisode(ep);
+                          }}
+                          title={favoriteEpisodes.some(e => e.id === ep.id) ? "Favorilerden Çıkar" : "Favorilere Ekle"}
+                          className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                            favoriteEpisodes.some(e => e.id === ep.id)
+                              ? 'bg-rose-500/15 text-rose-500 border-rose-500/40 hover:bg-rose-500/25'
+                              : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-400 hover:text-rose-500 border-zinc-200 dark:border-zinc-700'
+                          }`}
+                        >
+                          <Heart className={`w-4 h-4 ${favoriteEpisodes.some(e => e.id === ep.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                        </button>
+                      )}
+
                       {/* Manual Complete/Reset Toggle Button */}
                       <button
                         onClick={(e) => handleToggleCompleted(ep, e)}
@@ -761,6 +802,24 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                             <Play className="w-6 h-6 fill-current ml-0.5" />
                           </span>
                         </div>
+
+                        {/* Favorite button on cover */}
+                        {onToggleFavoritePodcast && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleFavoritePodcast(show);
+                            }}
+                            title={favoritePodcasts.some(p => (p.id || p.feedUrl) === (show.id || show.feedUrl)) ? "Favorilerden Çıkar" : "Favorilere Ekle"}
+                            className={`absolute top-2 left-2 p-2 rounded-xl backdrop-blur-md transition-all shadow-md z-10 cursor-pointer ${
+                              favoritePodcasts.some(p => (p.id || p.feedUrl) === (show.id || show.feedUrl))
+                                ? 'bg-rose-500 text-white shadow-rose-500/30'
+                                : 'bg-zinc-950/60 hover:bg-rose-500 text-white opacity-80 hover:opacity-100'
+                            }`}
+                          >
+                            <Heart className={`w-3.5 h-3.5 ${favoritePodcasts.some(p => (p.id || p.feedUrl) === (show.id || show.feedUrl)) ? 'fill-current' : ''}`} />
+                          </button>
+                        )}
 
                         {/* Listening indicator badge on cover */}
                         {completedInShow.length > 0 ? (

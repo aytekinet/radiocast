@@ -156,6 +156,76 @@ export function toggleFavoriteStation(station: RadioStation): RadioStation[] {
   return updated;
 }
 
+// Favorite Podcast Shows Storage
+const FAVORITE_PODCASTS_KEY = 'radyo_dunyasi_fav_podcasts_v1';
+const FAVORITE_EPISODES_KEY = 'radyo_dunyasi_fav_episodes_v1';
+
+export function getStoredFavoritePodcasts(): any[] {
+  try {
+    const raw = localStorage.getItem(FAVORITE_PODCASTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveFavoritePodcasts(podcasts: any[]): void {
+  try {
+    localStorage.setItem(FAVORITE_PODCASTS_KEY, JSON.stringify(podcasts));
+  } catch (err) {
+    console.error('Failed to save favorite podcasts', err);
+  }
+}
+
+export function toggleFavoritePodcastShow(show: any): any[] {
+  const favorites = getStoredFavoritePodcasts();
+  const showId = show.id || show.feedUrl;
+  const exists = favorites.some(s => (s.id || s.feedUrl) === showId);
+  
+  let updated: any[];
+  if (exists) {
+    updated = favorites.filter(s => (s.id || s.feedUrl) !== showId);
+  } else {
+    updated = [show, ...favorites];
+  }
+  
+  saveFavoritePodcasts(updated);
+  return updated;
+}
+
+// Favorite Podcast Episodes Storage
+export function getStoredFavoriteEpisodes(): any[] {
+  try {
+    const raw = localStorage.getItem(FAVORITE_EPISODES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveFavoriteEpisodes(episodes: any[]): void {
+  try {
+    localStorage.setItem(FAVORITE_EPISODES_KEY, JSON.stringify(episodes));
+  } catch (err) {
+    console.error('Failed to save favorite episodes', err);
+  }
+}
+
+export function toggleFavoritePodcastEpisode(episode: any): any[] {
+  const favorites = getStoredFavoriteEpisodes();
+  const exists = favorites.some(e => e.id === episode.id);
+  
+  let updated: any[];
+  if (exists) {
+    updated = favorites.filter(e => e.id !== episode.id);
+  } else {
+    updated = [episode, ...favorites];
+  }
+  
+  saveFavoriteEpisodes(updated);
+  return updated;
+}
+
 export function getRecentlyPlayed(): RecentlyPlayedItem[] {
   try {
     const raw = localStorage.getItem(RECENTLY_PLAYED_KEY);
