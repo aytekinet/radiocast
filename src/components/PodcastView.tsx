@@ -218,6 +218,8 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
           <img
             src={selectedShow.coverUrl}
             alt={selectedShow.title}
+            referrerPolicy="no-referrer"
+            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=600&q=80'; }}
             className="w-32 h-32 md:w-40 md:h-40 rounded-2xl object-cover shadow-lg shrink-0 border border-zinc-200 dark:border-zinc-800"
           />
           <div className="space-y-3 flex-1 min-w-0">
@@ -480,6 +482,8 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                           alt={show.title}
                           loading="lazy"
                           decoding="async"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=600&q=80'; }}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-zinc-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

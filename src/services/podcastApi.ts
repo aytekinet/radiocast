@@ -143,6 +143,85 @@ export interface PodcastCatalogResponse {
   hasMore: boolean;
 }
 
+let cachedMultiKeywordShows: PodcastShow[] | null = null;
+let lastFetchTime = 0;
+
+export async function fetchAllClientPodcasts(query = '', category = 'all'): Promise<PodcastShow[]> {
+  const normQuery = query.toLowerCase().trim();
+  const normCat = category.toLowerCase().trim();
+
+  // If specific search query provided
+  if (normQuery && normQuery !== 'podcast' && normQuery !== 'popular') {
+    const directResults = await fetchITunesPodcastsDirect(normQuery, 'TR', 200);
+    const localMatches = getLocalCuratedPodcasts().filter(p =>
+      p.title.toLowerCase().includes(normQuery) ||
+      p.publisher.toLowerCase().includes(normQuery) ||
+      p.description.toLowerCase().includes(normQuery) ||
+      p.category.toLowerCase().includes(normQuery)
+    );
+
+    const mergedMap = new Map<string, PodcastShow>();
+    for (const p of [...directResults, ...localMatches]) {
+      const key = (p.feedUrl || p.title).toLowerCase().trim();
+      if (!mergedMap.has(key)) mergedMap.set(key, p);
+    }
+    return Array.from(mergedMap.values());
+  }
+
+  // If specific category selected
+  if (normCat && normCat !== 'all') {
+    const catQuery = normQuery || normCat;
+    const directResults = await fetchITunesPodcastsDirect(catQuery, 'TR', 200);
+    const localMatches = getLocalCuratedPodcasts().filter(p =>
+      p.category.toLowerCase().includes(normCat) || p.title.toLowerCase().includes(normCat)
+    );
+
+    const mergedMap = new Map<string, PodcastShow>();
+    for (const p of [...directResults, ...localMatches]) {
+      const key = (p.feedUrl || p.title).toLowerCase().trim();
+      if (!mergedMap.has(key)) mergedMap.set(key, p);
+    }
+    return Array.from(mergedMap.values());
+  }
+
+  // Category 'all' (Tüm Podcastler): Return broad Turkish multi-keyword podcasts (1000+)
+  const NOW = Date.now();
+  if (cachedMultiKeywordShows && (NOW - lastFetchTime) < 15 * 60 * 1000) {
+    return cachedMultiKeywordShows;
+  }
+
+  const broadKeywords = [
+    'felsefe', 'haber', 'gündem', 'teknoloji', 'bilim', 'psikoloji',
+    'tarih', 'mizah', 'ekonomi', 'spor', 'sanat', 'edebiyat',
+    'müzik', 'bilişim', 'eğitim', 'finans', 'sohbet', 'podcast', 'türkçe'
+  ];
+
+  const results = await Promise.allSettled(
+    broadKeywords.map(kw => fetchITunesPodcastsDirect(kw, 'TR', 100))
+  );
+
+  const mergedMap = new Map<string, PodcastShow>();
+  for (const p of getLocalCuratedPodcasts()) {
+    const key = (p.feedUrl || p.title).toLowerCase().trim();
+    mergedMap.set(key, p);
+  }
+
+  for (const res of results) {
+    if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+      for (const p of res.value) {
+        const key = (p.feedUrl || p.title).toLowerCase().trim();
+        if (!mergedMap.has(key)) {
+          mergedMap.set(key, p);
+        }
+      }
+    }
+  }
+
+  cachedMultiKeywordShows = Array.from(mergedMap.values());
+  lastFetchTime = NOW;
+  return cachedMultiKeywordShows;
+}
+
 export async function fetchPodcastCatalog(params: {
   limit?: number;
   offset?: number;
@@ -165,7 +244,7 @@ export async function fetchPodcastCatalog(params: {
 
     if (res.ok) {
       const data = await res.json();
-      if (data && data.success && Array.isArray(data.items) && data.items.length > 0) {
+      if (data && data.success && Array.isArray(data.items) && data.items.length >= 30) {
         const shows: PodcastShow[] = data.items.map((item: any) => ({
           id: item.id,
           title: item.title,
@@ -189,27 +268,13 @@ export async function fetchPodcastCatalog(params: {
       }
     }
   } catch (err) {
-    console.warn('Backend catalog API unavailable or timed out, using local catalog fallback:', err);
+    console.warn('Backend catalog API unavailable or timed out, using dynamic client catalog:', err);
   }
 
-  // 2. Direct local curated Turkish podcasts catalog (Instant & guaranteed for Vercel static environment)
-  let allShows = getLocalCuratedPodcasts();
-
-  if (category && category !== 'all') {
-    const catLower = category.toLowerCase();
-    allShows = allShows.filter(p => p.category.toLowerCase().includes(catLower) || p.title.toLowerCase().includes(catLower));
-  }
-
-  if (query) {
-    allShows = allShows.filter(p =>
-      p.title.toLowerCase().includes(query) ||
-      p.publisher.toLowerCase().includes(query) ||
-      p.description.toLowerCase().includes(query) ||
-      p.category.toLowerCase().includes(query)
-    );
-  }
-
+  // 2. Dynamic multi-keyword Turkish podcasts client catalog (1000+ items live guaranteed on Vercel)
+  const allShows = await fetchAllClientPodcasts(query, category);
   const paged = allShows.slice(offset, offset + limit);
+
   return {
     items: paged,
     count: paged.length,
@@ -428,9 +493,33 @@ async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise
   return { episodes: [], success: false, errorCode: 'FEED_FETCH_FAILED' };
 }
 
+async function resolveFeedUrlFromApple(id: string): Promise<string | null> {
+  const numericId = id.replace(/\D/g, '');
+  if (!numericId) return null;
+  try {
+    const res = await fetch(`https://itunes.apple.com/lookup?id=${numericId}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.results) && data.results[0]?.feedUrl) {
+        return data.results[0].feedUrl.trim();
+      }
+    }
+  } catch {}
+  return null;
+}
+
 export async function getPodcastEpisodesResult(show: PodcastShow): Promise<{ episodes: PodcastEpisode[]; success: boolean; errorCode?: string }> {
-  if (show.feedUrl) {
-    const res = await fetchAndParseRssFeed(show.feedUrl, show);
+  let feedUrlToUse = show.feedUrl;
+
+  if (!feedUrlToUse || feedUrlToUse.includes('podcasts.apple.com')) {
+    const resolved = await resolveFeedUrlFromApple(show.id);
+    if (resolved) {
+      feedUrlToUse = resolved;
+    }
+  }
+
+  if (feedUrlToUse) {
+    const res = await fetchAndParseRssFeed(feedUrlToUse, show);
     if (res.success || res.episodes.length > 0) {
       const sorted = res.episodes
         .map((ep, originalIndex) => ({ ep, originalIndex }))
@@ -450,6 +539,18 @@ export async function getPodcastEpisodesResult(show: PodcastShow): Promise<{ epi
 
       return { episodes: sorted, success: true };
     }
+
+    // If initial feed URL failed, try resolving via Apple lookup as last resort
+    if (show.id && !show.feedUrl?.includes('itunes')) {
+      const resolved = await resolveFeedUrlFromApple(show.id);
+      if (resolved && resolved !== feedUrlToUse) {
+        const retryRes = await fetchAndParseRssFeed(resolved, show);
+        if (retryRes.success && retryRes.episodes.length > 0) {
+          return retryRes;
+        }
+      }
+    }
+
     return { episodes: [], success: false, errorCode: res.errorCode || 'FEED_FETCH_FAILED' };
   }
 

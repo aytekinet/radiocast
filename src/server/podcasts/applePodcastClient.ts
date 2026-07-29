@@ -66,16 +66,21 @@ export async function fetchApplePodcastsByKeyword(keyword: string, country = 'TR
 export async function fetchMultiKeywordApplePodcasts(keywords: string[] = TURKISH_SEARCH_KEYWORDS, country = 'TR'): Promise<ApplePodcastItem[]> {
   const itemsMap = new Map<string, ApplePodcastItem>();
 
-  const results = await Promise.allSettled(
-    keywords.map(kw => fetchApplePodcastsByKeyword(kw, country, 100))
-  );
+  // Process in batches of 6 to prevent overwhelming network sockets or hitting serverless timeouts
+  const BATCH_SIZE = 6;
+  for (let i = 0; i < keywords.length; i += BATCH_SIZE) {
+    const batch = keywords.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(kw => fetchApplePodcastsByKeyword(kw, country, 100))
+    );
 
-  for (const res of results) {
-    if (res.status === 'fulfilled' && Array.isArray(res.value)) {
-      for (const item of res.value) {
-        const normFeed = item.feedUrl.toLowerCase().trim();
-        if (!itemsMap.has(normFeed)) {
-          itemsMap.set(normFeed, item);
+    for (const res of results) {
+      if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+        for (const item of res.value) {
+          const normFeed = item.feedUrl.toLowerCase().trim();
+          if (!itemsMap.has(normFeed)) {
+            itemsMap.set(normFeed, item);
+          }
         }
       }
     }
