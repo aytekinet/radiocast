@@ -5,6 +5,9 @@ import { isStationBlocked } from './blacklist';
 
 const RADIO_BROWSER_MIRRORS = [
   'https://de1.api.radio-browser.info',
+  'https://all.api.radio-browser.info',
+  'https://fr1.api.radio-browser.info',
+  'https://fi1.api.radio-browser.info',
   'https://nl1.api.radio-browser.info',
   'https://at1.api.radio-browser.info'
 ];
@@ -12,12 +15,41 @@ const RADIO_BROWSER_MIRRORS = [
 async function fetchFromRadioBrowserDirect(path: string): Promise<any[]> {
   for (const mirror of RADIO_BROWSER_MIRRORS) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
       const res = await fetch(`${mirror}${path}`, {
         headers: {
-          'User-Agent': 'TurkRadyoWeb/1.0',
           'Accept': 'application/json'
-        }
+        },
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            return data;
+          }
+        }
+      }
+    } catch (e) {
+      // try next mirror
+    }
+  }
+
+  // CORS proxy fallback for static hosting
+  const corsProxies = [
+    `https://corsproxy.io/?${encodeURIComponent('https://de1.api.radio-browser.info' + path)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent('https://de1.api.radio-browser.info' + path)}`
+  ];
+
+  for (const proxyUrl of corsProxies) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(proxyUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -25,9 +57,10 @@ async function fetchFromRadioBrowserDirect(path: string): Promise<any[]> {
         }
       }
     } catch (e) {
-      // try next mirror
+      // ignore
     }
   }
+
   return [];
 }
 
@@ -128,40 +161,57 @@ function mergeVerifiedAndApiStations(verified: RadioStation[], apiStations: Radi
 }
 
 export async function getStationsByCountry(countryCode = 'TR', page = 1): Promise<RadioStation[]> {
-  // 1. Try local Express API route
+  const codeUpper = (countryCode || 'TR').toUpperCase().trim();
+
+  // 1. Try local Express API route (if running full-stack)
   try {
-    const res = await fetch(`/api/radio/stations?country=${encodeURIComponent(countryCode)}&page=${page}`);
+    const res = await fetch(`/api/radio/stations?country=${encodeURIComponent(codeUpper)}&page=${page}`);
     if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        if (countryCode === 'TR' && page === 1) {
-          return mergeVerifiedAndApiStations(ALL_TURKISH_STATIONS, data);
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          if (codeUpper === 'TR' && page === 1) {
+            return mergeVerifiedAndApiStations(ALL_TURKISH_STATIONS, data);
+          }
+          return deduplicateStationsByName(data);
         }
-        return deduplicateStationsByName(data);
       }
     }
   } catch (err) {
     console.warn('Backend API unavailable, falling back to direct Radio Browser API query:', err);
   }
 
-  // 2. Direct client-side fetch from Radio-Browser API mirrors (Crucial for Vercel / GitHub Pages static hosting!)
+  // 2. Direct client-side fetch from Radio-Browser API mirrors (Crucial for Vercel / static hosting!)
   try {
-    const limit = countryCode === 'TR' ? 600 : 300;
+    const limit = codeUpper === 'TR' ? 600 : 300;
     const offset = (page - 1) * limit;
 
     let rawList = await fetchFromRadioBrowserDirect(
-      `/json/stations/bycountrycodeexact/${encodeURIComponent(countryCode)}?hidebroken=true&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`
+      `/json/stations/bycountrycodeexact/${encodeURIComponent(codeUpper)}?hidebroken=true&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`
     );
 
     if (!rawList || rawList.length === 0) {
       rawList = await fetchFromRadioBrowserDirect(
-        `/json/stations/search?countrycode=${encodeURIComponent(countryCode)}&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`
+        `/json/stations/bycountry/${encodeURIComponent(codeUpper)}?hidebroken=true&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`
+      );
+    }
+
+    if (!rawList || rawList.length === 0) {
+      rawList = await fetchFromRadioBrowserDirect(
+        `/json/stations/search?countrycode=${encodeURIComponent(codeUpper)}&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`
+      );
+    }
+
+    if (!rawList || rawList.length === 0) {
+      rawList = await fetchFromRadioBrowserDirect(
+        `/json/stations/search?country=${encodeURIComponent(codeUpper)}&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`
       );
     }
 
     if (rawList && rawList.length > 0) {
       const formatted = rawList.map(formatRawStation);
-      if (countryCode === 'TR' && page === 1) {
+      if (codeUpper === 'TR' && page === 1) {
         return mergeVerifiedAndApiStations(ALL_TURKISH_STATIONS, formatted);
       }
       return deduplicateStationsByName(formatted);
@@ -171,7 +221,7 @@ export async function getStationsByCountry(countryCode = 'TR', page = 1): Promis
   }
 
   // 3. Last fallback: local catalog
-  if (countryCode === 'TR' && page === 1) {
+  if (codeUpper === 'TR' && page === 1) {
     return deduplicateStationsByName(ALL_TURKISH_STATIONS);
   }
   return [];
@@ -204,8 +254,11 @@ export async function searchStations(params: {
 
     const res = await fetch(`/api/radio/search?${queryParams.toString()}`);
     if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) return deduplicateStationsByName(data);
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) return deduplicateStationsByName(data);
+      }
     }
   } catch (err) {
     console.warn('Backend search API failed, falling back to direct mirror search:', err);
@@ -285,14 +338,31 @@ export async function getCountries(): Promise<RadioCountry[]> {
   try {
     const res = await fetch('/api/radio/countries');
     if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data;
+        }
       }
     }
   } catch (err) {
-    console.warn('Failed to fetch countries:', err);
+    console.warn('Failed to fetch countries backend:', err);
   }
+
+  // Direct fetch fallback for static hosting
+  try {
+    const data = await fetchFromRadioBrowserDirect('/json/countries?hidebroken=true&order=stationcount&reverse=true');
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map((c: any) => ({
+        name: c.name,
+        code: c.iso_3166_1 || c.code || '',
+        iso_3166_1: c.iso_3166_1 || c.code || '',
+        stationCount: c.stationcount || 0,
+        stationcount: c.stationcount || 0
+      }));
+    }
+  } catch (e) {}
 
   return ALL_COUNTRIES.map(c => ({
     code: c.code,
