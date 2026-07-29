@@ -416,11 +416,11 @@ export async function fetchAndParsePodcastRss(feedUrl: string): Promise<PodcastF
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12_000);
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
     const response = await fetch(trimmedUrl, {
       headers: {
-        'User-Agent': 'RadioCastLive/1.0 (+https://radiocastlive.vercel.app)',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
         'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.7'
       },
@@ -457,7 +457,7 @@ export async function fetchAndParsePodcastRss(feedUrl: string): Promise<PodcastF
 
     const contentType = (response.headers.get('content-type') || '').toLowerCase();
     const parseStartTime = Date.now();
-    const xmlText = await response.text();
+    let xmlText = await response.text();
 
     if (!xmlText || xmlText.trim().length === 0) {
       return {
@@ -475,6 +475,14 @@ export async function fetchAndParsePodcastRss(feedUrl: string): Promise<PodcastF
           finalUrl
         }
       };
+    }
+
+    // Truncate huge feeds (>1.2MB) to speed up serverless response to <300ms
+    if (xmlText.length > 1_200_000) {
+      const cutIdx = xmlText.lastIndexOf('</item>', 1_200_000);
+      if (cutIdx > 0) {
+        xmlText = xmlText.slice(0, cutIdx + 7) + '\n</channel></rss>';
+      }
     }
 
     // Check if returned HTML instead of XML/RSS
