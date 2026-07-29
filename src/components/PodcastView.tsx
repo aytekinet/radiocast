@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PodcastShow, PodcastEpisode } from '../types';
 import { searchPodcasts, getPopularPodcasts, fetchPodcastCatalog, getPodcastEpisodesResult, safeParseEpisodeDateMillis } from '../services/podcastApi';
-import { getAllPodcastProgress } from '../services/storage';
+import { getAllPodcastProgress, markPodcastEpisodeCompleted, clearPodcastProgress, PodcastProgressEntry } from '../services/storage';
 import { 
   Mic, 
   Play, 
@@ -15,7 +15,9 @@ import {
   Calendar,
   Layers,
   ArrowLeft,
-  RefreshCw
+  RefreshCw,
+  CheckCircle2,
+  Trash2
 } from 'lucide-react';
 
 interface PodcastViewProps {
@@ -36,7 +38,8 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   const [showEpisodes, setShowEpisodes] = useState<PodcastEpisode[]>([]);
   const [loadingEpisodes, setLoadingEpisodes] = useState<boolean>(false);
   const [episodeStatus, setEpisodeStatus] = useState<'idle' | 'loading' | 'success' | 'empty' | 'failed'>('idle');
-  const [progressMap, setProgressMap] = useState<Record<string, number>>({});
+  const [progressMap, setProgressMap] = useState<Record<string, PodcastProgressEntry>>({});
+  const [episodeFilter, setEpisodeFilter] = useState<'all' | 'in-progress' | 'unplayed' | 'completed'>('all');
   const requestIdRef = React.useRef<number>(0);
 
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -60,9 +63,15 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
 
   useEffect(() => {
     loadPodcasts();
-    setProgressMap(getAllPodcastProgress());
 
-    // Check if initial state has podcast show
+    const syncProgress = () => {
+      setProgressMap(getAllPodcastProgress());
+    };
+    syncProgress();
+
+    window.addEventListener('podcastProgressChanged', syncProgress);
+    window.addEventListener('storage', syncProgress);
+
     if (typeof window !== 'undefined' && window.history?.state?.podcastShow) {
       const show = window.history.state.podcastShow;
       setSelectedShow(show);
@@ -79,7 +88,11 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     };
 
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('podcastProgressChanged', syncProgress);
+      window.removeEventListener('storage', syncProgress);
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, []);
 
   const loadEpisodesForShow = async (show: PodcastShow) => {
@@ -168,6 +181,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
 
   const handleOpenShow = async (show: PodcastShow) => {
     setSelectedShow(show);
+    setEpisodeFilter('all');
     if (typeof window !== 'undefined' && window.history) {
       window.history.pushState(
         { tab: 'podcasts', podcastShow: show },
@@ -198,20 +212,105 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     return `${h} sa ${remM} dk`;
   };
 
+  const getEpisodeState = (ep: PodcastEpisode) => {
+    const entry = progressMap[ep.id];
+    const savedSecs = entry?.timeSeconds || 0;
+    const dur = ep.durationSeconds || entry?.durationSeconds || 0;
+    const isCompleted = Boolean(entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
+    const hasProgress = !isCompleted && savedSecs > 10;
+    const isUnplayed = !isCompleted && savedSecs <= 10;
+    const pct = isCompleted ? 100 : (dur > 0 && savedSecs > 0 ? Math.min(99, Math.round((savedSecs / dur) * 100)) : 0);
+
+    return {
+      entry,
+      savedSecs,
+      dur,
+      isCompleted,
+      hasProgress,
+      isUnplayed,
+      pct
+    };
+  };
+
+  const handleToggleCompleted = (ep: PodcastEpisode, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const state = getEpisodeState(ep);
+    if (state.isCompleted) {
+      clearPodcastProgress(ep.id);
+    } else {
+      markPodcastEpisodeCompleted(ep.id, true, ep.durationSeconds);
+    }
+    setProgressMap(getAllPodcastProgress());
+  };
+
+  const handleClearAllHistory = () => {
+    if (window.confirm('Tüm podcast dinleme geçmişinizi sıfırlamak istediğinize emin misiniz?')) {
+      clearPodcastProgress();
+      setProgressMap({});
+    }
+  };
+
   // -------------------------------------------------------------
   // SINGLE SHOW EPISODES DETAIL VIEW
   // -------------------------------------------------------------
   if (selectedShow) {
+    const inProgressCount = showEpisodes.filter(ep => getEpisodeState(ep).hasProgress).length;
+    const completedCount = showEpisodes.filter(ep => getEpisodeState(ep).isCompleted).length;
+    const unplayedCount = showEpisodes.filter(ep => getEpisodeState(ep).isUnplayed).length;
+
+    const filteredEpisodes = showEpisodes.filter(ep => {
+      const state = getEpisodeState(ep);
+      if (episodeFilter === 'in-progress') return state.hasProgress;
+      if (episodeFilter === 'completed') return state.isCompleted;
+      if (episodeFilter === 'unplayed') return state.isUnplayed;
+      return true;
+    });
+
+    // Smart banner logic
+    const inProgressEpisodes = showEpisodes.filter(ep => getEpisodeState(ep).hasProgress);
+    const activeResumeEp = inProgressEpisodes.length > 0
+      ? inProgressEpisodes.sort((a, b) => (progressMap[b.id]?.updatedAt || 0) - (progressMap[a.id]?.updatedAt || 0))[0]
+      : null;
+
+    let recommendedNextEp: PodcastEpisode | null = null;
+    if (!activeResumeEp && showEpisodes.length > 0) {
+      for (let i = showEpisodes.length - 1; i >= 0; i--) {
+        const epState = getEpisodeState(showEpisodes[i]);
+        if (epState.isCompleted && i > 0) {
+          const newerEp = showEpisodes[i - 1];
+          if (getEpisodeState(newerEp).isUnplayed) {
+            recommendedNextEp = newerEp;
+            break;
+          }
+        }
+      }
+    }
+
     return (
       <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto pb-24">
-        {/* Back Button */}
-        <button
-          onClick={handleBackToShows}
-          className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:text-amber-500 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4 text-amber-500" />
-          <span>Tüm Podcast Serilerine Dön</span>
-        </button>
+        {/* Back Button & General Stats */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={handleBackToShows}
+            className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:text-amber-500 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4 text-amber-500" />
+            <span>Tüm Podcast Serilerine Dön</span>
+          </button>
+
+          {(completedCount > 0 || inProgressCount > 0) && (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-bold text-emerald-500 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> {completedCount} Tamamlandı
+              </span>
+              {inProgressCount > 0 && (
+                <span className="font-bold text-amber-500 flex items-center gap-1">
+                  • <Clock className="w-3.5 h-3.5" /> {inProgressCount} Devam Ediyor
+                </span>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Show Banner Info */}
         <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 shadow-md flex flex-col md:flex-row items-start md:items-center gap-6">
@@ -236,7 +335,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
 
             {/* Direct Play Latest Episode Button */}
             {showEpisodes.length > 0 && (
-              <div className="pt-1">
+              <div className="pt-1 flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => onPlayEpisode(showEpisodes[0], showEpisodes)}
                   className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
@@ -249,21 +348,117 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
           </div>
         </div>
 
+        {/* Smart Banner: Active Resume or Next Recommended Episode */}
+        {activeResumeEp && (
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/40 shadow-sm space-y-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1 flex-1 min-w-0">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-500 text-zinc-950 font-extrabold text-[10px] uppercase tracking-wider shadow-sm">
+                  <Clock className="w-3 h-3 fill-current" /> Kaldığın Yerden Devam Et
+                </span>
+                <h3 className="text-sm md:text-base font-black text-zinc-900 dark:text-zinc-100 line-clamp-1">
+                  {activeResumeEp.title}
+                </h3>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                  Kaldığın yer: <strong className="text-amber-500">{formatDuration(progressMap[activeResumeEp.id]?.timeSeconds || 0)}</strong> / {formatDuration(activeResumeEp.durationSeconds)} (%{getEpisodeState(activeResumeEp).pct} tamamlandı)
+                </p>
+              </div>
+              <button
+                onClick={() => onPlayEpisode(activeResumeEp, showEpisodes)}
+                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all active:scale-95 shrink-0 cursor-pointer"
+              >
+                <Play className="w-4 h-4 fill-current ml-0.5" />
+                <span>Kaldığın Yerden Devam Et ({formatDuration(progressMap[activeResumeEp.id]?.timeSeconds || 0)})</span>
+              </button>
+            </div>
+            <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div className="h-full bg-amber-500 rounded-full transition-all duration-300" style={{ width: `${getEpisodeState(activeResumeEp).pct}%` }} />
+            </div>
+          </div>
+        )}
+
+        {!activeResumeEp && recommendedNextEp && (
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/40 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1 flex-1 min-w-0">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-500 text-zinc-950 font-extrabold text-[10px] uppercase tracking-wider shadow-sm">
+                <CheckCircle2 className="w-3 h-3 fill-current" /> Sıradaki Bölüm Önerisi
+              </span>
+              <h3 className="text-sm md:text-base font-black text-zinc-900 dark:text-zinc-100 line-clamp-1">
+                {recommendedNextEp.title}
+              </h3>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                Önceki bölümü başarıyla tamamladınız. Bir sonraki bölüme doğrudan geçebilirsiniz!
+              </p>
+            </div>
+            <button
+              onClick={() => onPlayEpisode(recommendedNextEp!, showEpisodes)}
+              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-95 shrink-0 cursor-pointer"
+            >
+              <Play className="w-4 h-4 fill-current ml-0.5" />
+              <span>Sonraki Bölümü Başlat</span>
+            </button>
+          </div>
+        )}
+
         {/* Episodes List Section */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-800/80">
-            <h2 className="text-base md:text-lg font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-              <Headphones className="w-5 h-5 text-amber-500" /> Podcast Bölümleri
-            </h2>
-            {loadingEpisodes ? (
-              <span className="text-xs text-amber-500 flex items-center gap-2 font-medium animate-pulse">
-                <RefreshCw className="w-4 h-4 animate-spin text-amber-500" /> Bölümler yükleniyor...
-              </span>
-            ) : (
-              <span className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                {showEpisodes.length} bölüm mevcut
-              </span>
-            )}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-zinc-200 dark:border-zinc-800/80">
+            <div className="flex items-center gap-2">
+              <Headphones className="w-5 h-5 text-amber-500" />
+              <h2 className="text-base md:text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                Podcast Bölümleri
+              </h2>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 text-xs">
+              <button
+                onClick={() => setEpisodeFilter('all')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  episodeFilter === 'all'
+                    ? 'bg-amber-500 text-zinc-950 shadow-sm'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                }`}
+              >
+                Tümü ({showEpisodes.length})
+              </button>
+              {inProgressCount > 0 && (
+                <button
+                  onClick={() => setEpisodeFilter('in-progress')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    episodeFilter === 'in-progress'
+                      ? 'bg-amber-500 text-zinc-950 shadow-sm'
+                      : 'text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                  }`}
+                >
+                  <Clock className="w-3 h-3" /> Yarıda Kalan ({inProgressCount})
+                </button>
+              )}
+              {completedCount > 0 && (
+                <button
+                  onClick={() => setEpisodeFilter('completed')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    episodeFilter === 'completed'
+                      ? 'bg-emerald-500 text-zinc-950 shadow-sm'
+                      : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3 h-3" /> Tamamlanan ({completedCount})
+                </button>
+              )}
+              {unplayedCount > 0 && (
+                <button
+                  onClick={() => setEpisodeFilter('unplayed')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    episodeFilter === 'unplayed'
+                      ? 'bg-amber-500 text-zinc-950 shadow-sm'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  Dinlenmedi ({unplayedCount})
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -294,11 +489,22 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
               </div>
             )}
 
-            {episodeStatus === 'success' && showEpisodes.map((ep, idx) => {
+            {episodeStatus === 'success' && filteredEpisodes.length === 0 && (
+              <div className="p-10 text-center bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-2">
+                <p className="font-bold text-zinc-800 dark:text-zinc-200 text-sm">Bu filtreye uygun bölüm bulunamadı.</p>
+                <button
+                  onClick={() => setEpisodeFilter('all')}
+                  className="px-4 py-2 rounded-xl bg-amber-500 text-zinc-950 font-bold text-xs cursor-pointer"
+                >
+                  Tüm Bölümleri Göster
+                </button>
+              </div>
+            )}
+
+            {episodeStatus === 'success' && filteredEpisodes.map((ep) => {
+              const idxInFullList = showEpisodes.findIndex(e => e.id === ep.id);
               const isThisPlaying = currentEpisodeId === ep.id && isPlaying;
-              const savedSecs = progressMap[ep.id] || 0;
-              const hasProgress = savedSecs > 0;
-              const pct = hasProgress ? Math.min(100, Math.round((savedSecs / ep.durationSeconds) * 100)) : 0;
+              const epState = getEpisodeState(ep);
 
               return (
                 <div
@@ -306,25 +512,46 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                   className={`p-4 rounded-2xl border transition-all ${
                     isThisPlaying
                       ? 'bg-amber-500/10 border-amber-500 shadow-md shadow-amber-500/10'
-                      : 'bg-white dark:bg-zinc-900/70 border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/60'
+                      : epState.isCompleted
+                      ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/30'
+                      : epState.hasProgress
+                      ? 'bg-amber-500/5 dark:bg-amber-950/20 border-amber-500/30'
+                      : 'bg-white dark:bg-zinc-900/70 border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700'
                   }`}
                 >
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="space-y-1.5 flex-1">
+                    <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
-                        {idx === 0 ? (
+                        {idxInFullList === 0 ? (
                           <span className="font-bold text-[10px] px-2 py-0.5 rounded-md bg-amber-500 text-zinc-950 flex items-center gap-1 shadow-sm">
                             <Sparkles className="w-3 h-3 fill-current" /> En Son Bölüm (Güncel)
                           </span>
                         ) : (
-                          <span className="font-bold text-amber-500">Bölüm {showEpisodes.length - idx}</span>
+                          <span className="font-bold text-amber-500">Bölüm {showEpisodes.length - idxInFullList}</span>
                         )}
+
+                        {/* Status Badges */}
+                        {epState.isCompleted ? (
+                          <span className="font-bold text-[10px] px-2.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Tamamlandı
+                          </span>
+                        ) : epState.hasProgress ? (
+                          <span className="font-bold text-[10px] px-2.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-amber-500" /> Kaldığın Yer: {formatDuration(epState.savedSecs)} (%{epState.pct})
+                          </span>
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+                            Dinlenmedi
+                          </span>
+                        )}
+
                         <span>•</span>
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-zinc-400" /> {ep.publishedDate}</span>
                         <span>•</span>
                         <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-zinc-400" /> {formatDuration(ep.durationSeconds)}</span>
                       </div>
-                      <h3 className={`text-sm md:text-base font-bold ${isThisPlaying ? 'text-amber-500' : 'text-zinc-900 dark:text-zinc-100'}`}>
+
+                      <h3 className={`text-sm md:text-base font-bold ${isThisPlaying ? 'text-amber-500' : epState.isCompleted ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-900 dark:text-zinc-100'}`}>
                         {ep.title}
                       </h3>
                       <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed line-clamp-2">
@@ -332,39 +559,76 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => onPlayEpisode(ep, showEpisodes)}
-                      className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shrink-0 active:scale-95 shadow-md ${
-                        isThisPlaying
-                          ? 'bg-amber-500 text-zinc-950 shadow-amber-500/30'
-                          : 'bg-zinc-100 dark:bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700'
-                      }`}
-                    >
-                      {isThisPlaying ? (
-                        <>
-                          <Pause className="w-4 h-4 fill-current" /> Duraklat
-                        </>
-                      ) : hasProgress ? (
-                        <>
-                          <RotateCcw className="w-4 h-4" /> Devam Et ({formatDuration(savedSecs)})
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-4 h-4 fill-current ml-0.5" /> Bölümü Dinle
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Manual Complete/Reset Toggle Button */}
+                      <button
+                        onClick={(e) => handleToggleCompleted(ep, e)}
+                        title={epState.isCompleted ? "Tamamlandı olarak işaretlendi (Tıkla ve sıfırla)" : "Tamamlandı olarak işaretle"}
+                        className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                          epState.isCompleted
+                            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30'
+                            : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-400 hover:text-emerald-500 border-zinc-200 dark:border-zinc-700'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+
+                      {/* Main Play/Resume Button */}
+                      <button
+                        onClick={() => onPlayEpisode(ep, showEpisodes)}
+                        className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shrink-0 active:scale-95 shadow-md cursor-pointer ${
+                          isThisPlaying
+                            ? 'bg-amber-500 text-zinc-950 shadow-amber-500/30'
+                            : epState.hasProgress
+                            ? 'bg-amber-500 text-zinc-950 hover:bg-amber-400 shadow-amber-500/20'
+                            : epState.isCompleted
+                            ? 'bg-zinc-100 dark:bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700'
+                            : 'bg-zinc-100 dark:bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700'
+                        }`}
+                      >
+                        {isThisPlaying ? (
+                          <>
+                            <Pause className="w-4 h-4 fill-current" /> Duraklat
+                          </>
+                        ) : epState.hasProgress ? (
+                          <>
+                            <RotateCcw className="w-4 h-4" /> Devam Et ({formatDuration(epState.savedSecs)})
+                          </>
+                        ) : epState.isCompleted ? (
+                          <>
+                            <RotateCcw className="w-4 h-4" /> Yeniden Dinle
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-4 h-4 fill-current ml-0.5" /> Bölümü Dinle
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Progress bar under episode */}
-                  {hasProgress && (
+                  {(epState.hasProgress || epState.isCompleted) && (
                     <div className="mt-3 pt-2 border-t border-zinc-200 dark:border-zinc-800/60 space-y-1">
-                      <div className="flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
-                        <span className="text-amber-500 font-medium">Kaldığın Yer: {formatDuration(savedSecs)}</span>
-                        <span>%{pct} tamamlandı</span>
+                      <div className="flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
+                        {epState.isCompleted ? (
+                          <span className="text-emerald-500 font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> Tüm bölüm dinlendi (%100)
+                          </span>
+                        ) : (
+                          <span className="text-amber-500 font-bold flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Kaldığın Yer: {formatDuration(epState.savedSecs)}
+                          </span>
+                        )}
+                        <span>%{epState.pct}</span>
                       </div>
                       <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            epState.isCompleted ? 'bg-emerald-500' : 'bg-amber-500'
+                          }`}
+                          style={{ width: `${epState.pct}%` }}
+                        />
                       </div>
                     </div>
                   )}
@@ -380,6 +644,8 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   // -------------------------------------------------------------
   // MAIN PODCAST SHOWS CATALOG VIEW
   // -------------------------------------------------------------
+  const allSavedEpisodeIds = Object.keys(progressMap);
+
   return (
     <div className="p-4 md:p-6 space-y-8 max-w-7xl mx-auto pb-24">
       {/* Header Banner */}
@@ -392,7 +658,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
             Türkiye Podcast Yayınları
           </h1>
           <p className="text-zinc-600 dark:text-zinc-300 text-xs md:text-sm leading-relaxed">
-            Popüler Türkçe podcast serilerini ve güncel bölümlerini doğrudan dinleyin. İleri-geri sarma ve kaldığın yerden otomatik devam etme özelliğinin tadını çıkarın.
+            Popüler Türkçe podcast serilerini ve güncel bölümlerini doğrudan dinleyin. İleri-geri sarma, bölüm takip durumu ve otomatik kaldığın yerden devam etme özelliğinin tadını çıkarın.
           </p>
 
           {/* Search Box */}
@@ -469,11 +735,15 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {podcasts.map((show) => {
+                const showEpIds = show.episodes ? show.episodes.map(e => e.id) : [];
+                const listenedInShow = showEpIds.filter(id => progressMap[id]);
+                const completedInShow = showEpIds.filter(id => progressMap[id]?.completed);
+
                 return (
                   <div
                     key={show.id}
                     onClick={() => handleOpenShow(show)}
-                    className="group bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800 hover:border-amber-500/50 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg cursor-pointer flex flex-col justify-between"
+                    className="group bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800 hover:border-amber-500/50 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg cursor-pointer flex flex-col justify-between relative overflow-hidden"
                   >
                     <div className="space-y-3">
                       <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-950">
@@ -491,6 +761,17 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                             <Play className="w-6 h-6 fill-current ml-0.5" />
                           </span>
                         </div>
+
+                        {/* Listening indicator badge on cover */}
+                        {completedInShow.length > 0 ? (
+                          <div className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-emerald-500 text-zinc-950 font-black text-[10px] shadow-md flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> {completedInShow.length} Dinlendi
+                          </div>
+                        ) : listenedInShow.length > 0 ? (
+                          <div className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-amber-500 text-zinc-950 font-black text-[10px] shadow-md flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Devam Ediyor
+                          </div>
+                        ) : null}
                       </div>
 
                       <div>
@@ -523,7 +804,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                 <button
                   onClick={loadMorePodcasts}
                   disabled={loadingMore}
-                  className="px-6 py-3 bg-amber-500 hover:bg-amber-600 active:scale-95 text-zinc-950 font-bold rounded-xl shadow-md transition-all inline-flex items-center gap-2 text-sm disabled:opacity-50"
+                  className="px-6 py-3 bg-amber-500 hover:bg-amber-600 active:scale-95 text-zinc-950 font-bold rounded-xl shadow-md transition-all inline-flex items-center gap-2 text-sm disabled:opacity-50 cursor-pointer"
                 >
                   {loadingMore ? (
                     <>
@@ -543,34 +824,54 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
 
           {/* Quick Resume Carousel / List if user has saved episode progress */}
           <section className="space-y-4 pt-4 border-t border-zinc-200 dark:border-zinc-800/60">
-            <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-500" />
-              Kaldığın Yerden Devam Et
-            </h2>
-            
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                <Clock className="w-5 h-5 text-amber-500" />
+                Podcast Dinleme Geçmişi ve Kaldığın Yerler
+              </h2>
+              {allSavedEpisodeIds.length > 0 && (
+                <button
+                  onClick={handleClearAllHistory}
+                  className="px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-red-500/10 dark:bg-zinc-800 dark:hover:bg-red-500/20 text-zinc-600 dark:text-zinc-400 hover:text-red-500 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Geçmişi Temizle</span>
+                </button>
+              )}
+            </div>
+
             <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4 shadow-sm">
-              {Object.keys(progressMap).length === 0 ? (
+              {allSavedEpisodeIds.length === 0 ? (
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 italic">
-                  Henüz dinlenmiş podcast bölümünüz bulunmuyor. Bir bölüm başlattığınızda süreniz otomatik olarak kaydedilir.
+                  Henüz dinlenmiş podcast bölümünüz bulunmuyor. Bir bölüm dinlediğinizde süreniz ve tamamlanma durumunuz otomatik olarak burada görünür.
                 </p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {podcasts.flatMap(s => s.episodes || []).filter(e => (progressMap[e.id] || 0) > 0).map(ep => {
-                    const savedSecs = progressMap[ep.id] || 0;
-                    const pct = Math.min(100, Math.round((savedSecs / ep.durationSeconds) * 100));
+                  {podcasts.flatMap(s => s.episodes || []).filter(e => progressMap[e.id]).map(ep => {
+                    const entry = progressMap[ep.id];
+                    const savedSecs = entry?.timeSeconds || 0;
+                    const dur = ep.durationSeconds || entry?.durationSeconds || 0;
+                    const isCompleted = Boolean(entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
+                    const pct = isCompleted ? 100 : (dur > 0 && savedSecs > 0 ? Math.min(99, Math.round((savedSecs / dur) * 100)) : 0);
                     const isThisPlaying = currentEpisodeId === ep.id && isPlaying;
 
                     return (
                       <div
                         key={ep.id}
                         onClick={() => onPlayEpisode(ep)}
-                        className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-950/80 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800 rounded-xl cursor-pointer transition-all group"
+                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all group ${
+                          isCompleted
+                            ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/30'
+                            : 'bg-zinc-50 dark:bg-zinc-950/80 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 border-zinc-200 dark:border-zinc-800'
+                        }`}
                       >
                         <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
                           <img src={ep.coverUrl} alt={ep.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-zinc-950/40 flex items-center justify-center">
                             {isThisPlaying ? (
                               <Pause className="w-5 h-5 text-amber-400 fill-current" />
+                            ) : isCompleted ? (
+                              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                             ) : (
                               <Play className="w-5 h-5 text-white fill-current ml-0.5" />
                             )}
@@ -584,11 +885,22 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                           <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1">{ep.showTitle}</p>
                           <div className="space-y-1">
                             <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                              <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+                              <div
+                                className={`h-full rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                                style={{ width: `${pct}%` }}
+                              />
                             </div>
-                            <div className="flex justify-between text-[9px] text-amber-500 font-medium">
-                              <span>{formatDuration(savedSecs)} dinlendi</span>
-                              <span>%{pct}</span>
+                            <div className="flex justify-between text-[9px] font-medium">
+                              {isCompleted ? (
+                                <span className="text-emerald-500 font-bold flex items-center gap-1">
+                                  <CheckCircle2 className="w-2.5 h-2.5" /> Tamamlandı
+                                </span>
+                              ) : (
+                                <span className="text-amber-500 font-bold">
+                                  {formatDuration(savedSecs)} dinlendi
+                                </span>
+                              )}
+                              <span className={isCompleted ? 'text-emerald-500' : 'text-amber-500'}>%{pct}</span>
                             </div>
                           </div>
                         </div>
@@ -604,4 +916,3 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     </div>
   );
 });
-

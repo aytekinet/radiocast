@@ -1,6 +1,6 @@
 import { RadioStation, PodcastEpisode, PlayableItem, Audiobook, AudiobookTrack } from '../types';
 import { registerStationClick } from './radioApi';
-import { getPodcastProgress, savePodcastProgress, addRecentlyPlayed } from './storage';
+import { getPodcastProgress, savePodcastProgress, getPodcastProgressEntry, addRecentlyPlayed } from './storage';
 import { getCandidateUrlsForStation } from '../data/fallbackStations';
 
 export type PlaybackStatus = 'idle' | 'connecting' | 'playing' | 'paused' | 'buffering' | 'error';
@@ -174,7 +174,9 @@ class AudioEngine {
     this.audio.addEventListener('ended', () => {
       this.setStatus('paused');
       if (this.currentItem?.type === 'podcast' && this.currentItem.podcastEpisode) {
-        savePodcastProgress(this.currentItem.podcastEpisode.id, 0);
+        const ep = this.currentItem.podcastEpisode;
+        const dur = Math.floor(ep.durationSeconds || this.audio.duration || 0);
+        savePodcastProgress(ep.id, dur > 0 ? dur : 99999, dur, true);
       }
       if (this.callbacks.onEnded) {
         this.callbacks.onEnded();
@@ -242,10 +244,12 @@ class AudioEngine {
 
   private saveCurrentProgress() {
     if (this.currentItem?.type === 'podcast' && this.currentItem.podcastEpisode) {
-      const epId = this.currentItem.podcastEpisode.id;
+      const ep = this.currentItem.podcastEpisode;
       const currTime = Math.floor(this.audio.currentTime);
+      const dur = Math.floor(ep.durationSeconds || this.audio.duration || 0);
       if (currTime > 2) {
-        savePodcastProgress(epId, currTime);
+        const isCompleted = dur > 0 && currTime >= dur - 15;
+        savePodcastProgress(ep.id, currTime, dur, isCompleted);
       }
     }
   }
@@ -358,7 +362,9 @@ class AudioEngine {
     this.candidates = rawCandidates.filter((u, idx, self) => u && self.indexOf(u) === idx);
     this.candidateIndex = 0;
 
-    const savedTime = getPodcastProgress(episode.id);
+    const entry = getPodcastProgressEntry(episode.id);
+    const isCompleted = entry?.completed || (entry?.durationSeconds && entry.timeSeconds >= entry.durationSeconds - 10);
+    const savedTime = isCompleted ? 0 : (entry?.timeSeconds || 0);
     this.startPlaybackCurrentCandidate(sessionId, savedTime);
   }
 

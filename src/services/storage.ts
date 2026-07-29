@@ -4,37 +4,113 @@ const FAVORITES_KEY = 'radyo_dunyasi_favorites_v1';
 const RECENTLY_PLAYED_KEY = 'radyo_dunyasi_recent_v1';
 const PLAYLISTS_KEY = 'radyo_dunyasi_playlists_v1';
 const SETTINGS_KEY = 'radyo_dunyasi_settings_v1';
+export interface PodcastProgressEntry {
+  timeSeconds: number;
+  durationSeconds?: number;
+  completed?: boolean;
+  updatedAt?: number;
+}
+
 const PODCAST_PROGRESS_KEY = 'radyo_dunyasi_podcast_progress_v1';
 const LAST_ITEM_KEY = 'radyo_dunyasi_last_item_v1';
 
-export function getPodcastProgress(episodeId: string): number {
+export function getAllPodcastProgress(): Record<string, PodcastProgressEntry> {
   try {
     const raw = localStorage.getItem(PODCAST_PROGRESS_KEY);
-    if (!raw) return 0;
-    const progressMap = JSON.parse(raw);
-    return progressMap[episodeId] || 0;
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    const result: Record<string, PodcastProgressEntry> = {};
+    for (const id in parsed) {
+      const val = parsed[id];
+      if (typeof val === 'number') {
+        result[id] = { timeSeconds: val, completed: false };
+      } else if (val && typeof val === 'object') {
+        result[id] = {
+          timeSeconds: Number(val.timeSeconds || val.time || 0),
+          durationSeconds: val.durationSeconds ? Number(val.durationSeconds) : undefined,
+          completed: Boolean(val.completed),
+          updatedAt: val.updatedAt ? Number(val.updatedAt) : undefined
+        };
+      }
+    }
+    return result;
   } catch {
-    return 0;
+    return {};
   }
 }
 
-export function savePodcastProgress(episodeId: string, timeSeconds: number): void {
+export function getPodcastProgress(episodeId: string): number {
+  const all = getAllPodcastProgress();
+  return all[episodeId]?.timeSeconds || 0;
+}
+
+export function getPodcastProgressEntry(episodeId: string): PodcastProgressEntry | null {
+  const all = getAllPodcastProgress();
+  return all[episodeId] || null;
+}
+
+export function savePodcastProgress(
+  episodeId: string,
+  timeSeconds: number,
+  durationSeconds?: number,
+  completed?: boolean
+): void {
   try {
-    const raw = localStorage.getItem(PODCAST_PROGRESS_KEY);
-    const progressMap = raw ? JSON.parse(raw) : {};
-    progressMap[episodeId] = timeSeconds;
-    localStorage.setItem(PODCAST_PROGRESS_KEY, JSON.stringify(progressMap));
+    const all = getAllPodcastProgress();
+    const existing = all[episodeId] || { timeSeconds: 0 };
+    const dur = durationSeconds && durationSeconds > 0 ? durationSeconds : existing.durationSeconds;
+
+    // Auto mark completed if passed or played >= 92% of duration
+    const isCompleted = completed !== undefined
+      ? completed
+      : (dur && dur > 0 ? timeSeconds >= dur * 0.92 : false);
+
+    all[episodeId] = {
+      timeSeconds: Math.max(0, timeSeconds),
+      durationSeconds: dur,
+      completed: isCompleted,
+      updatedAt: Date.now()
+    };
+
+    localStorage.setItem(PODCAST_PROGRESS_KEY, JSON.stringify(all));
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('podcastProgressChanged', {
+        detail: { episodeId, entry: all[episodeId] }
+      }));
+    }
   } catch (err) {
     console.error('Failed to save podcast progress', err);
   }
 }
 
-export function getAllPodcastProgress(): Record<string, number> {
+export function markPodcastEpisodeCompleted(episodeId: string, completed: boolean, durationSeconds?: number): void {
+  const all = getAllPodcastProgress();
+  const existing = all[episodeId] || { timeSeconds: 0 };
+  const dur = durationSeconds || existing.durationSeconds || 0;
+
+  savePodcastProgress(
+    episodeId,
+    completed ? (dur > 0 ? dur : 99999) : 0,
+    dur,
+    completed
+  );
+}
+
+export function clearPodcastProgress(episodeId?: string): void {
   try {
-    const raw = localStorage.getItem(PODCAST_PROGRESS_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
+    if (episodeId) {
+      const all = getAllPodcastProgress();
+      delete all[episodeId];
+      localStorage.setItem(PODCAST_PROGRESS_KEY, JSON.stringify(all));
+    } else {
+      localStorage.removeItem(PODCAST_PROGRESS_KEY);
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('podcastProgressChanged', { detail: {} }));
+    }
+  } catch (err) {
+    console.error('Failed to clear podcast progress', err);
   }
 }
 
