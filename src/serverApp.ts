@@ -800,17 +800,16 @@ app.get('/api/radio/stream', (req, res) => {
   proxyAudioStream(urlParam, req, res);
 });
 
-app.get('/api/podcasts/search', (req, res) => unifiedPodcastSearch(req, res));
-app.get('/api/podcasts/catalog', (req, res) => handlePodcastCatalog(req, res));
-app.get('/api/podcasts/trending', (req, res) => handlePodcastTrending(req, res));
-app.get('/api/podcasts/recent', (req, res) => handlePodcastRecent(req, res));
-app.get('/api/podcasts/episodes/latest', (req, res) => handlePodcastRecent(req, res));
-app.get('/api/podcasts/health', (req, res) => {
+app.get(['/api/podcasts/search', '/podcasts/search'], (req, res) => unifiedPodcastSearch(req, res));
+app.get(['/api/podcasts/catalog', '/podcasts/catalog'], (req, res) => handlePodcastCatalog(req, res));
+app.get(['/api/podcasts/trending', '/podcasts/trending'], (req, res) => handlePodcastTrending(req, res));
+app.get(['/api/podcasts/recent', '/podcasts/recent'], (req, res) => handlePodcastRecent(req, res));
+app.get(['/api/podcasts/episodes/latest', '/podcasts/episodes/latest'], (req, res) => handlePodcastRecent(req, res));
+app.get(['/api/podcasts/health', '/podcasts/health'], (req, res) => {
   res.json({ status: 'ok', service: 'podcast-catalog', timestamp: new Date().toISOString() });
 });
-app.get('/api/internal/podcasts/refresh', (req, res) => handlePodcastRefresh(req, res));
-app.get('/api/podcasts/feed', (req, res) => unifiedPodcastFeed(req, res));
-app.get('/api/podcast-feed', (req, res) => unifiedPodcastFeed(req, res));
+app.get(['/api/internal/podcasts/refresh', '/internal/podcasts/refresh'], (req, res) => handlePodcastRefresh(req, res));
+app.get(['/api/podcasts/feed', '/podcasts/feed', '/api/podcast-feed', '/podcast-feed', '/api/rss-proxy', '/rss-proxy'], (req, res) => unifiedPodcastFeed(req, res));
 
 // Audiobooks Endpoints
 app.get('/api/audiobooks', async (req, res) => {

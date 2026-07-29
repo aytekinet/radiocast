@@ -23,13 +23,18 @@ export const TURKISH_SEARCH_KEYWORDS = [
 
 export async function fetchApplePodcastsByKeyword(keyword: string, country = 'TR', limit = 100): Promise<ApplePodcastItem[]> {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2500);
+
     const url = `https://itunes.apple.com/search?media=podcast&entity=podcast&country=${encodeURIComponent(country)}&limit=${limit}&term=${encodeURIComponent(keyword)}`;
     const res = await fetch(url, {
       headers: {
         'User-Agent': 'RadioCastLive/1.0 (+https://radiocastlive.vercel.app)',
         'Accept': 'application/json'
-      }
+      },
+      signal: controller.signal
     });
+    clearTimeout(timeout);
 
     if (res.ok) {
       const data = await res.json();
@@ -53,7 +58,7 @@ export async function fetchApplePodcastsByKeyword(keyword: string, country = 'TR
       }
     }
   } catch (err) {
-    console.warn('[apple-podcast:error] Keyword fetch failed:', keyword, err);
+    // Timeout or network error, silently continue
   }
   return [];
 }

@@ -249,11 +249,131 @@ export async function searchPodcasts(query: string, country = 'TR', page = 1): P
   );
 }
 
+function parseXmlClientSide(xmlText: string, show: PodcastShow): PodcastEpisode[] {
+  if (!xmlText || typeof window === 'undefined') return [];
+  try {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+    const items = Array.from(xmlDoc.querySelectorAll('item, entry'));
+    const episodes: PodcastEpisode[] = [];
+
+    let idx = 0;
+    for (const item of items) {
+      let audioUrl = '';
+
+      // Check enclosure
+      const enclosure = item.querySelector('enclosure');
+      if (enclosure) {
+        const url = enclosure.getAttribute('url');
+        if (url) audioUrl = url.trim();
+      }
+
+      // Check media content
+      if (!audioUrl) {
+        const mediaContent = item.querySelector('content, media\\:content');
+        if (mediaContent) {
+          const url = mediaContent.getAttribute('url');
+          if (url) audioUrl = url.trim();
+        }
+      }
+
+      // Check links
+      if (!audioUrl) {
+        const links = Array.from(item.querySelectorAll('link'));
+        for (const l of links) {
+          const href = l.getAttribute('href') || l.textContent || '';
+          const rel = l.getAttribute('rel') || '';
+          const type = l.getAttribute('type') || '';
+          if ((rel === 'enclosure' || type.includes('audio') || href.match(/\.(mp3|m4a|aac|ogg)($|\?)/i)) && href) {
+            audioUrl = href.trim();
+            break;
+          }
+        }
+      }
+
+      // Check GUID
+      if (!audioUrl) {
+        const guid = item.querySelector('guid');
+        if (guid && guid.textContent && guid.textContent.match(/^https?:\/\/.*\.(mp3|m4a|aac|ogg)($|\?)/i)) {
+          audioUrl = guid.textContent.trim();
+        }
+      }
+
+      if (!audioUrl || !audioUrl.startsWith('http')) continue;
+
+      const titleEl = item.querySelector('title');
+      const title = titleEl && titleEl.textContent ? titleEl.textContent.trim() : `Bölüm ${idx + 1}`;
+
+      const descEl = item.querySelector('description, summary, itunes\\:summary, content\\:encoded');
+      const rawDesc = descEl && descEl.textContent ? descEl.textContent.trim() : title;
+      const description = rawDesc.replace(/<[^>]+>/g, '').trim() || title;
+
+      const pubDateEl = item.querySelector('pubDate, published, updated, dc\\:date');
+      const pubDateStr = pubDateEl && pubDateEl.textContent ? pubDateEl.textContent.trim() : '';
+
+      let pubMillis = 0;
+      let formattedDate = 'Güncel';
+      if (pubDateStr) {
+        try {
+          const d = new Date(pubDateStr);
+          if (!isNaN(d.getTime())) {
+            pubMillis = d.getTime();
+            formattedDate = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+          }
+        } catch {}
+      }
+
+      const durEl = item.querySelector('itunes\\:duration');
+      let durSecs = 1800;
+      if (durEl && durEl.textContent) {
+        const dStr = durEl.textContent.trim();
+        if (dStr.includes(':')) {
+          const p = dStr.split(':').map(Number);
+          if (p.length === 3) durSecs = p[0] * 3600 + p[1] * 60 + p[2];
+          else if (p.length === 2) durSecs = p[0] * 60 + p[1];
+        } else {
+          const s = parseInt(dStr, 10);
+          if (!isNaN(s) && s > 0) durSecs = s;
+        }
+      }
+
+      let epCover = show.coverUrl;
+      const itunesImg = item.querySelector('itunes\\:image');
+      if (itunesImg) {
+        const href = itunesImg.getAttribute('href');
+        if (href) epCover = href;
+      }
+
+      episodes.push({
+        id: `client-ep-${idx}-${audioUrl.slice(-30)}`,
+        showId: show.id,
+        showTitle: show.title,
+        title,
+        description,
+        audioUrl,
+        durationSeconds: durSecs,
+        publishedDate: formattedDate,
+        pubDateMillis: pubMillis,
+        coverUrl: epCover,
+        category: show.category || 'Podcast'
+      });
+
+      idx++;
+    }
+
+    return episodes;
+  } catch {
+    return [];
+  }
+}
+
 async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise<{ episodes: PodcastEpisode[]; success: boolean; errorCode?: string }> {
+  // 1. First try backend feed proxy
   try {
     const url = `/api/podcasts/feed?url=${encodeURIComponent(feedUrl)}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     const res = await fetch(url, {
       headers: { 'Accept': 'application/json' },
@@ -263,7 +383,7 @@ async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise
 
     if (res.ok) {
       const data = await res.json();
-      if (data && data.success && Array.isArray(data.episodes)) {
+      if (data && data.success && Array.isArray(data.episodes) && data.episodes.length > 0) {
         const episodes = data.episodes.map((ep: any, idx: number) => {
           const pubMillis = safeParseEpisodeDateMillis(ep);
           return {
@@ -282,12 +402,49 @@ async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise
         });
         return { episodes, success: true };
       }
-      return { episodes: [], success: data.success ?? false, errorCode: data.errorCode || 'FEED_PARSE_FAILED' };
     }
-    return { episodes: [], success: false, errorCode: 'FEED_FETCH_FAILED' };
-  } catch {
-    return { episodes: [], success: false, errorCode: 'FEED_FETCH_FAILED' };
+  } catch {}
+
+  // 2. Client-side direct RSS fetch fallback
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const directRes = await fetch(feedUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (directRes.ok) {
+      const xmlText = await directRes.text();
+      const episodes = parseXmlClientSide(xmlText, show);
+      if (episodes.length > 0) {
+        return { episodes, success: true };
+      }
+    }
+  } catch {}
+
+  // 3. Client-side CORS Proxy Fallback
+  const corsProxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(feedUrl)}`
+  ];
+
+  for (const proxyUrl of corsProxies) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const proxyRes = await fetch(proxyUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (proxyRes.ok) {
+        const xmlText = await proxyRes.text();
+        const episodes = parseXmlClientSide(xmlText, show);
+        if (episodes.length > 0) {
+          return { episodes, success: true };
+        }
+      }
+    } catch {}
   }
+
+  return { episodes: [], success: false, errorCode: 'FEED_FETCH_FAILED' };
 }
 
 export async function getPodcastEpisodesResult(show: PodcastShow): Promise<{ episodes: PodcastEpisode[]; success: boolean; errorCode?: string }> {
