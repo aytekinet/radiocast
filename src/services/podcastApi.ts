@@ -1,4 +1,19 @@
 import { PodcastShow, PodcastEpisode } from '../types';
+import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
+
+export function getLocalCuratedPodcasts(): PodcastShow[] {
+  return CURATED_TURKISH_PODCASTS.map(p => ({
+    id: p.id,
+    title: p.title,
+    publisher: p.publisher,
+    coverUrl: p.coverUrl,
+    category: p.category,
+    description: p.description,
+    feedUrl: p.feedUrl,
+    releaseDateMillis: 0,
+    episodes: []
+  }));
+}
 
 export function parseTurkishDateToMillis(dateStr?: string): number {
   if (!dateStr) return 0;
@@ -137,14 +152,20 @@ export async function fetchPodcastCatalog(params: {
   const limit = params.limit || 50;
   const offset = params.offset || 0;
   const category = params.category || 'all';
-  const query = params.query || '';
+  const query = params.query ? params.query.toLowerCase().trim() : '';
 
+  // 1. Try server API backend first with a fast timeout (3.5s)
   try {
-    const url = `/api/podcasts/catalog?limit=${limit}&offset=${offset}&category=${encodeURIComponent(category)}&q=${encodeURIComponent(query)}`;
-    const res = await fetch(url);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3500);
+
+    const url = `/api/podcasts/catalog?limit=${limit}&offset=${offset}&category=${encodeURIComponent(category)}&q=${encodeURIComponent(params.query || '')}`;
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+
     if (res.ok) {
       const data = await res.json();
-      if (data && data.success && Array.isArray(data.items)) {
+      if (data && data.success && Array.isArray(data.items) && data.items.length > 0) {
         const shows: PodcastShow[] = data.items.map((item: any) => ({
           id: item.id,
           title: item.title,
@@ -168,85 +189,45 @@ export async function fetchPodcastCatalog(params: {
       }
     }
   } catch (err) {
-    console.warn('Podcast catalog fetch failed, using fallback:', err);
+    console.warn('Backend catalog API unavailable or timed out, using local catalog fallback:', err);
   }
 
-  // Fallback to iTunes search
-  const fallbackShows = await getPopularPodcasts();
-  const paged = fallbackShows.slice(offset, offset + limit);
+  // 2. Direct local curated Turkish podcasts catalog (Instant & guaranteed for Vercel static environment)
+  let allShows = getLocalCuratedPodcasts();
+
+  if (category && category !== 'all') {
+    const catLower = category.toLowerCase();
+    allShows = allShows.filter(p => p.category.toLowerCase().includes(catLower) || p.title.toLowerCase().includes(catLower));
+  }
+
+  if (query) {
+    allShows = allShows.filter(p =>
+      p.title.toLowerCase().includes(query) ||
+      p.publisher.toLowerCase().includes(query) ||
+      p.description.toLowerCase().includes(query) ||
+      p.category.toLowerCase().includes(query)
+    );
+  }
+
+  const paged = allShows.slice(offset, offset + limit);
   return {
     items: paged,
     count: paged.length,
-    total: fallbackShows.length,
+    total: allShows.length,
     limit,
     offset,
-    hasMore: (offset + limit) < fallbackShows.length
+    hasMore: (offset + limit) < allShows.length
   };
 }
 
 export async function getPopularPodcasts(_country = 'TR', _page = 1): Promise<PodcastShow[]> {
-  try {
-    const res = await fetchPodcastCatalog({ limit: 50, offset: 0 });
-    if (res.items.length > 0) return res.items;
-  } catch (err) {
-    console.warn('Popular podcasts backend fetch warning:', err);
-  }
-
-  // Direct client-side iTunes queries
-  try {
-    const keywords = ['felsefe', 'haber', 'gündem', 'teknoloji', 'bilim', 'psikoloji', 'tarih', 'mizah', 'ekonomi', 'spor', 'sanat', 'edebiyat', 'müzik', 'bilişim', 'eğitim', 'finans', 'girişimcilik', 'sinema', 'dizi', 'sağlık', 'yaşam', 'kişisel gelişim', 'oyun', 'çocuk', 'ebeveyn', 'futbol', 'türkçe', 'türkiye', 'kripto'];
-    const results = await Promise.allSettled(
-      keywords.map(kw => fetchITunesPodcastsDirect(kw, 'TR', 50))
-    );
-
-    const allShows: PodcastShow[] = [];
-    const seenIds = new Set<string>();
-
-    for (const res of results) {
-      if (res.status === 'fulfilled' && Array.isArray(res.value)) {
-        for (const show of res.value) {
-          const key = (show.feedUrl || show.title).toLowerCase().trim();
-          if (!seenIds.has(key)) {
-            seenIds.add(key);
-            allShows.push(show);
-          }
-        }
-      }
-    }
-
-    if (allShows.length > 0) {
-      return allShows.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
-    }
-  } catch (directErr) {
-    console.warn('Direct client-side podcast fetch failed:', directErr);
-  }
-
-  return FALLBACK_PODCAST_SHOWS;
+  const res = await fetchPodcastCatalog({ limit: 50, offset: 0 });
+  return res.items;
 }
 
-export async function searchPodcasts(query: string, country = 'TR', page = 1): Promise<PodcastShow[]> {
-  if (!query.trim()) return getPopularPodcasts(country, page);
-
-  try {
-    const res = await fetchPodcastCatalog({ limit: 50, offset: 0, query });
-    if (res.items.length > 0) return res.items;
-  } catch (err) {
-    console.warn('Podcast search error:', err);
-  }
-
-  try {
-    const directResults = await fetchITunesPodcastsDirect(query, country, 100);
-    if (directResults.length > 0) {
-      return directResults.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
-    }
-  } catch (e) {
-    console.warn('Direct iTunes podcast search failed:', e);
-  }
-
-  return FALLBACK_PODCAST_SHOWS.filter(p =>
-    p.title.toLowerCase().includes(query.toLowerCase()) ||
-    p.publisher.toLowerCase().includes(query.toLowerCase())
-  );
+export async function searchPodcasts(query: string, _country = 'TR', _page = 1): Promise<PodcastShow[]> {
+  const res = await fetchPodcastCatalog({ limit: 50, offset: 0, query });
+  return res.items;
 }
 
 function parseXmlClientSide(xmlText: string, show: PodcastShow): PodcastEpisode[] {
