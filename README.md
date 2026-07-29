@@ -14,9 +14,6 @@ A free, open-source, and ad-free web platform for listening to thousands of radi
 *   **Customizable UI:** Dark and light mode support with various theme options.
 *   **Low Data Mode:** Saves bandwidth for mobile or metered connections.
 
-## 🚀 Tech Stack
-*(Buraya projede kullandığın teknolojileri yazabilirsin. Örnek: React, Next.js, TailwindCSS vs.)*
-
 ## 🇹🇷 Türkçe (Turkish)
 
 RadioCast Live, reklamsız ve tamamen ücretsiz, açık kaynaklı bir radyo ve podcast dinleme platformudur. Dünyanın her yerinden binlerce radyo ve podcast'i içinde barındırır. Favorilere ekleme, çalma listesi oluşturma, podcast'lere kaldığın yerden devam etme, uyku zamanlayıcısı, düşük veri modu ve gece/gündüz temaları gibi özelliklerle kesintisiz bir deneyim sunar.
