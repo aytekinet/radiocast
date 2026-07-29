@@ -19,7 +19,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Playlist, RadioStation } from '../types';
-import { GENRE_CATEGORIES, ALL_COUNTRIES, POPULAR_COUNTRIES, COUNTRY_NAMES_TR } from '../constants/categories';
+import { GENRE_CATEGORIES, RADIO_GROUPS, ALL_COUNTRIES, POPULAR_COUNTRIES, COUNTRY_NAMES_TR } from '../constants/categories';
 import { StationCard } from './StationCard';
 import { PlaybackStatus } from '../services/audioEngine';
 
@@ -178,6 +178,8 @@ interface DiscoverViewProps {
   onLoadMore?: () => void;
   selectedCategory: string;
   setSelectedCategory: (catId: string) => void;
+  selectedGroup: string;
+  setSelectedGroup: (groupId: string) => void;
   selectedCountry: string;
   setSelectedCountry: (country: string) => void;
   currentStation: RadioStation | null;
@@ -200,6 +202,8 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
   onLoadMore,
   selectedCategory,
   setSelectedCategory,
+  selectedGroup,
+  setSelectedGroup,
   selectedCountry,
   setSelectedCountry,
   currentStation,
@@ -215,6 +219,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
 }) => {
   const favoriteSet = React.useMemo(() => new Set(favorites.map((f) => f.stationuuid)), [favorites]);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const groupScrollRef = useRef<HTMLDivElement>(null);
 
   const scrollCategory = (direction: 'left' | 'right') => {
     if (categoryScrollRef.current) {
@@ -318,7 +323,10 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
                   return (
                     <button
                       key={cat.id}
-                      onClick={() => setSelectedCategory(cat.id)}
+                      onClick={() => {
+                        setSelectedCategory(cat.id);
+                        setSelectedGroup('all_groups');
+                      }}
                       className={`px-3.5 py-2 rounded-xl text-xs font-medium shrink-0 flex items-center space-x-2 border transition-all ${
                         isSelected
                           ? 'bg-amber-500 text-zinc-950 font-bold border-amber-500 shadow-md shadow-amber-500/20 scale-[1.02]'
@@ -341,6 +349,64 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Radio Broadcasting Groups (Radyo Grupları) */}
+            <div className="pt-2 space-y-2">
+              <div className="flex items-center space-x-2">
+                <Radio className="w-3.5 h-3.5 text-amber-500" />
+                <h3 className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                  Radyo Grupları & Medya Ağları
+                </h3>
+              </div>
+
+              <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-amber-500/20 scrollbar-track-transparent">
+                <button
+                  onClick={() => {
+                    setSelectedGroup('all_groups');
+                    setSelectedCategory('all');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold shrink-0 transition-all border ${
+                    selectedGroup === 'all_groups' || !selectedGroup
+                      ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 border-zinc-900 dark:border-zinc-100 shadow-sm'
+                      : 'bg-white dark:bg-zinc-900/60 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  Tüm Gruplar
+                </button>
+                {RADIO_GROUPS.map((grp) => {
+                  const isGrpSelected = selectedGroup === grp.id;
+                  return (
+                    <button
+                      key={grp.id}
+                      onClick={() => {
+                        setSelectedGroup(grp.id);
+                        setSelectedCategory('all');
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold shrink-0 transition-all border ${
+                        isGrpSelected
+                          ? 'bg-amber-500 text-zinc-950 border-amber-500 font-bold shadow-sm scale-[1.02]'
+                          : 'bg-white dark:bg-zinc-900/60 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                      }`}
+                    >
+                      {grp.name}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => {
+                    setSelectedGroup('diger_grup');
+                    setSelectedCategory('all');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold shrink-0 transition-all border ${
+                    selectedGroup === 'diger_grup'
+                      ? 'bg-amber-500 text-zinc-950 border-amber-500 font-bold shadow-sm scale-[1.02]'
+                      : 'bg-white dark:bg-zinc-900/60 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  Diğer Gruplar
+                </button>
+              </div>
+            </div>
           </>
         )}
       </div>
@@ -352,6 +418,10 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
             <span>
               {searchQuery
                 ? `Arama Sonuçları: "${searchQuery}"`
+                : selectedGroup && selectedGroup !== 'all_groups'
+                ? `${RADIO_GROUPS.find((g) => g.id === selectedGroup)?.name || (selectedGroup === 'diger_grup' ? 'Diğer Gruplar' : 'Medya Grubu')} Radyoları`
+                : selectedCategory && selectedCategory !== 'all'
+                ? `${GENRE_CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Kategori'} Radyoları`
                 : selectedCountry
                 ? `${ALL_COUNTRIES.find((c) => c.code === selectedCountry)?.name || COUNTRY_NAMES_TR[selectedCountry] || selectedCountry} Radyoları`
                 : 'En Çok Dinlenen Radyolar'}
@@ -416,28 +486,32 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
             onAddToPlaylist={onAddToPlaylist}
           />
 
-          {/* Load More Button */}
-          {hasMore !== false && onLoadMore && (
-            <div className="pt-4 pb-2 text-center">
-              <button
-                onClick={onLoadMore}
-                disabled={isLoadingMore}
-                className="px-6 py-3 rounded-2xl bg-white dark:bg-zinc-900/90 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs font-bold transition-all shadow-md hover:scale-[1.02] disabled:opacity-50 flex items-center justify-center space-x-2 mx-auto"
-              >
-                {isLoadingMore ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
-                    <span>Daha Fazla İstasyon Yükleniyor...</span>
-                  </>
-                ) : (
-                  <>
-                    <Radio className="w-4 h-4 text-amber-500" />
-                    <span>Daha Fazla Radyo Yükle ({stations.length}+ Gösteriliyor)</span>
-                  </>
-                )}
-              </button>
-            </div>
-          )}
+          {/* Load More Button - Only show when no group/category filter is active and API has more results */}
+          {hasMore !== false && onLoadMore && !selectedGroup || selectedGroup === 'all_groups' ? (
+            selectedCategory === 'all' || !selectedCategory ? (
+              !searchQuery ? (
+                <div className="pt-4 pb-2 text-center">
+                  <button
+                    onClick={onLoadMore}
+                    disabled={isLoadingMore}
+                    className="px-6 py-3 rounded-2xl bg-white dark:bg-zinc-900/90 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs font-bold transition-all shadow-md hover:scale-[1.02] disabled:opacity-50 flex items-center justify-center space-x-2 mx-auto"
+                  >
+                    {isLoadingMore ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
+                        <span>Daha Fazla İstasyon Yükleniyor...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Radio className="w-4 h-4 text-amber-500" />
+                        <span>Daha Fazla Radyo Yükle ({stations.length} İstasyon Gösteriliyor)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : null
+            ) : null
+          ) : null}
         </div>
       ) : (
         <div className="py-16 text-center space-y-3 bg-white dark:bg-zinc-900/40 rounded-2xl border border-zinc-200 dark:border-zinc-800/60 p-8 shadow-sm">
@@ -451,6 +525,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
           <button
             onClick={() => {
               setSelectedCategory('all');
+              setSelectedGroup('all_groups');
               setSelectedCountry('TR');
             }}
             className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold rounded-xl transition-colors shadow-md"

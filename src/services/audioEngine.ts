@@ -44,7 +44,7 @@ class AudioEngine {
   
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
   private watchdogStartTime: number = 0;
-  private watchdogDurationMs: number = 6000;
+  private watchdogDurationMs: number = 4000;
   private progressSaveTimer: ReturnType<typeof setInterval> | null = null;
   
   private candidates: string[] = [];
@@ -287,19 +287,19 @@ class AudioEngine {
 
       if (isHls) {
         rawCandidates.push(cleanUrl);
-        rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
         rawCandidates.push(proxyUrl);
+        rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
       } else if (cleanUrl.toLowerCase().startsWith('https://')) {
         rawCandidates.push(cleanUrl);
         rawCandidates.push(proxyUrl);
         rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
       } else {
-        // HTTP stream: try HTTPS upgrade first (crucial for HTTPS deployment like Vercel!)
+        // HTTP stream: try HTTPS upgrade first, then local proxy, then raw HTTP
         const httpsUpgraded = cleanUrl.replace(/^http:\/\//i, 'https://');
         rawCandidates.push(httpsUpgraded);
         rawCandidates.push(proxyUrl);
-        rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
         rawCandidates.push(cleanUrl);
+        rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
       }
     }
 

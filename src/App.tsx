@@ -10,7 +10,7 @@ import {
   getStationsByTag, 
   searchStations 
 } from './services/radioApi';
-import { matchesCategory } from './constants/categories';
+import { matchesCategory, matchesGroup } from './constants/categories';
 import { VERIFIED_TURKISH_STATIONS, ALL_TURKISH_STATIONS } from './data/fallbackStations';
 import { audioEngine, PlaybackStatus } from './services/audioEngine';
 import { 
@@ -94,6 +94,7 @@ export default function App() {
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedGroup, setSelectedGroup] = useState('all_groups');
   const [selectedCountry, setSelectedCountry] = useState('TR');
   const [quickFilter, setQuickFilter] = useState<'all' | 'popular' | 'aac'>('all');
 
@@ -108,9 +109,20 @@ export default function App() {
   const filteredStations = useMemo(() => {
     let result = stations;
 
-    // Do NOT filter by selected category if user entered a search query (search should be general across selected country)
+    // Filter by selected category if no search query is active
     if (!searchQuery.trim() && selectedCategory && selectedCategory !== 'all') {
-      result = result.filter((s) => matchesCategory(s, selectedCategory));
+      const catMatches = result.filter((s) => matchesCategory(s, selectedCategory));
+      if (catMatches.length > 0) {
+        result = catMatches;
+      } else {
+        const fallbackCat = ALL_TURKISH_STATIONS.filter((s) => matchesCategory(s, selectedCategory));
+        if (fallbackCat.length > 0) result = fallbackCat;
+      }
+    }
+
+    // Filter by selected radio group if no search query is active
+    if (!searchQuery.trim() && selectedGroup && selectedGroup !== 'all_groups') {
+      result = result.filter((s) => matchesGroup(s, selectedGroup));
     }
 
     if (quickFilter === 'popular') {
@@ -121,7 +133,7 @@ export default function App() {
     }
 
     return result;
-  }, [stations, selectedCategory, quickFilter, searchQuery]);
+  }, [stations, selectedCategory, selectedGroup, quickFilter, searchQuery]);
 
   // Audio Playback Engine State
   const [currentItem, setCurrentItem] = useState<PlayableItem | null>(null);
@@ -306,12 +318,8 @@ export default function App() {
           countrycode: selectedCountry || undefined,
           page: pageNum
         });
-      } else if (selectedCategory && selectedCategory !== 'all') {
-        list = await getStationsByTag(selectedCategory, selectedCountry || 'TR');
-      } else if (selectedCountry) {
-        list = await getTopStationsByCountry(selectedCountry, pageNum);
       } else {
-        list = await getTopStationsByCountry('TR', pageNum);
+        list = await getTopStationsByCountry(selectedCountry || 'TR', pageNum);
       }
 
       if (list.length < 15) {
@@ -336,7 +344,7 @@ export default function App() {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  }, [searchQuery, selectedCategory, selectedCountry]);
+  }, [searchQuery, selectedCountry]);
 
   // Reset pagination and reload on search/filter change
   useEffect(() => {
@@ -632,7 +640,7 @@ export default function App() {
         />
 
         {/* Main Content Scrollable Workspace */}
-        <main ref={mainRef} className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 pb-36 md:pb-24">
+        <main ref={mainRef} className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 pb-64 md:pb-48">
           <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
             <DiscoverView
               stations={filteredStations}
@@ -643,6 +651,12 @@ export default function App() {
               selectedCategory={selectedCategory}
               setSelectedCategory={(catId) => {
                 setSelectedCategory(catId);
+                setQuickFilter('all');
+                setSearchQuery('');
+              }}
+              selectedGroup={selectedGroup}
+              setSelectedGroup={(groupId) => {
+                setSelectedGroup(groupId);
                 setQuickFilter('all');
                 setSearchQuery('');
               }}

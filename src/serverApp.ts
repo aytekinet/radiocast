@@ -655,10 +655,11 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
     path: parsed.pathname + parsed.search,
     method: 'GET',
     headers: {
-      'User-Agent': 'TuneKureWeb/1.0',
-      'Accept': 'audio/*,*/*'
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'Accept': 'audio/*, */*',
+      'Icy-MetaData': '1'
     },
-    timeout: 12000
+    timeout: 10000
   };
 
   const proxyReq = client.request(options, (upstreamRes) => {
@@ -773,9 +774,9 @@ app.get('/api/radio/countries', (req, res) => unifiedRadioCountries(req, res));
 app.get('/api/radio/tags', (req, res) => unifiedRadioTags(req, res));
 app.post('/api/radio/click', (req, res) => unifiedRadioClick(req, res));
 
-app.get('/api/radio/stream/:stationId', (req, res) => {
+app.get(['/api/radio/stream/:stationId', '/api/radio/stream', '/api/radio/proxy'], (req, res) => {
   const { stationId } = req.params;
-  const urlParam = req.query.url as string;
+  const urlParam = (req.query.url || req.query.streamUrl) as string;
   let targetUrl = urlParam;
 
   if (!targetUrl && stationId) {
@@ -790,14 +791,6 @@ app.get('/api/radio/stream/:stationId', (req, res) => {
   }
 
   proxyAudioStream(targetUrl, req, res);
-});
-
-app.get('/api/radio/stream', (req, res) => {
-  const urlParam = (req.query.url || req.query.streamUrl) as string;
-  if (!urlParam) {
-    return res.status(400).json({ error: 'url or streamUrl required' });
-  }
-  proxyAudioStream(urlParam, req, res);
 });
 
 app.get(['/api/podcasts/search', '/podcasts/search'], (req, res) => unifiedPodcastSearch(req, res));
