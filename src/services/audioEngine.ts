@@ -102,6 +102,13 @@ class AudioEngine {
       }
     });
 
+    const handleActivePlaybackState = () => {
+      if (!this.audio.paused && (this.status === 'connecting' || this.status === 'buffering')) {
+        this.clearWatchdogTimer();
+        this.setStatus('playing');
+      }
+    };
+
     this.audio.addEventListener('waiting', () => {
       if (this.status === 'playing') {
         this.setStatus('buffering');
@@ -115,9 +122,17 @@ class AudioEngine {
     });
 
     this.audio.addEventListener('canplay', () => {
-      if (this.status === 'connecting' || this.status === 'buffering') {
-        this.clearWatchdogTimer();
-      }
+      this.clearWatchdogTimer();
+      handleActivePlaybackState();
+    });
+
+    this.audio.addEventListener('canplaythrough', () => {
+      this.clearWatchdogTimer();
+      handleActivePlaybackState();
+    });
+
+    this.audio.addEventListener('progress', () => {
+      handleActivePlaybackState();
     });
 
     this.audio.addEventListener('playing', () => {
@@ -145,6 +160,7 @@ class AudioEngine {
     });
 
     this.audio.addEventListener('timeupdate', () => {
+      handleActivePlaybackState();
       const curr = this.audio.currentTime || 0;
       const dur = this.audio.duration || 0;
       if (this.callbacks.onTimeUpdate && this.currentItem?.type !== 'radio') {

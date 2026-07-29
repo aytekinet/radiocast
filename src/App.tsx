@@ -11,7 +11,7 @@ import {
   searchStations 
 } from './services/radioApi';
 import { matchesCategory } from './constants/categories';
-import { VERIFIED_TURKISH_STATIONS } from './data/fallbackStations';
+import { VERIFIED_TURKISH_STATIONS, ALL_TURKISH_STATIONS } from './data/fallbackStations';
 import { audioEngine, PlaybackStatus } from './services/audioEngine';
 import { 
   getStoredFavorites, 
@@ -98,7 +98,7 @@ export default function App() {
   const [quickFilter, setQuickFilter] = useState<'all' | 'popular' | 'aac'>('all');
 
   // Stations Data & Pagination
-  const [stations, setStations] = useState<RadioStation[]>(() => VERIFIED_TURKISH_STATIONS);
+  const [stations, setStations] = useState<RadioStation[]>(() => ALL_TURKISH_STATIONS);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [page, setPage] = useState(1);

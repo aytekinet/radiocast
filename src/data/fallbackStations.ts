@@ -1,4 +1,7 @@
 import { RadioStation } from '../types';
+import allTurkishStationsJson from './allTurkishStations.json';
+
+export const ALL_TURKISH_STATIONS: RadioStation[] = allTurkishStationsJson as RadioStation[];
 
 export interface VerifiedStationInfo {
   name: string;

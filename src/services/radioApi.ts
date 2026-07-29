@@ -1,5 +1,5 @@
 import { RadioStation, RadioCountry } from '../types';
-import { VERIFIED_TURKISH_STATIONS } from '../data/fallbackStations';
+import { VERIFIED_TURKISH_STATIONS, ALL_TURKISH_STATIONS } from '../data/fallbackStations';
 import { GENRE_CATEGORIES, ALL_COUNTRIES, matchesCategory } from '../constants/categories';
 import { isStationBlocked } from './blacklist';
 
@@ -135,7 +135,7 @@ export async function getStationsByCountry(countryCode = 'TR', page = 1): Promis
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
         if (countryCode === 'TR' && page === 1) {
-          return mergeVerifiedAndApiStations(VERIFIED_TURKISH_STATIONS, data);
+          return mergeVerifiedAndApiStations(ALL_TURKISH_STATIONS, data);
         }
         return deduplicateStationsByName(data);
       }
@@ -162,7 +162,7 @@ export async function getStationsByCountry(countryCode = 'TR', page = 1): Promis
     if (rawList && rawList.length > 0) {
       const formatted = rawList.map(formatRawStation);
       if (countryCode === 'TR' && page === 1) {
-        return mergeVerifiedAndApiStations(VERIFIED_TURKISH_STATIONS, formatted);
+        return mergeVerifiedAndApiStations(ALL_TURKISH_STATIONS, formatted);
       }
       return deduplicateStationsByName(formatted);
     }
@@ -170,9 +170,9 @@ export async function getStationsByCountry(countryCode = 'TR', page = 1): Promis
     console.warn('Direct radio browser fetch failed:', directErr);
   }
 
-  // 3. Last fallback: local verified stations
+  // 3. Last fallback: local catalog
   if (countryCode === 'TR' && page === 1) {
-    return deduplicateStationsByName(VERIFIED_TURKISH_STATIONS);
+    return deduplicateStationsByName(ALL_TURKISH_STATIONS);
   }
   return [];
 }
