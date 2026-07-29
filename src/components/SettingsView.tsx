@@ -7,6 +7,7 @@ import {
   Wifi, 
   Trash2, 
   Linkedin,
+  Github,
   ExternalLink
 } from 'lucide-react';
 import { AppSettings } from '../types';
@@ -42,38 +43,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <span>Uygulama Ayarları</span>
         </h1>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-          Görünüm, ses akış kalitesi ve geliştirici bilgilerini yapılandırın
+          Görünüm, ses akış kalitesi ve bağlantılar
         </p>
-      </div>
-
-      {/* Support & Copyright Contact Card (LinkedIn Profile) */}
-      <div className="bg-white dark:bg-zinc-900/80 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-3 shadow-sm dark:shadow-lg transition-colors">
-        <div className="flex items-center space-x-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-          <Linkedin className="w-4 h-4 text-blue-500" />
-          <span>Geliştirici, Destek & Telif Hakları İletişimi</span>
-        </div>
-        <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
-          RadioCast, dünya genelindeki açık radyo dizinlerini ve kamuya açık canlı yayın akışlarını derleyen bağımsız bir radyo dinleme platformudur. Telif hakkı bildirimleri, yayın kaldırma talepleri, iş birlikleri veya görüş ve önerileriniz için e-posta (<strong>radiocastlive@proton.me</strong>) veya LinkedIn üzerinden doğrudan iletişime geçebilirsiniz.
-        </p>
-        <div className="flex flex-wrap items-center gap-3 pt-2">
-          <a
-            href="https://www.linkedin.com/in/aytekin-tanrisever/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center space-x-2.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all shadow-md active:scale-95 text-xs shrink-0"
-          >
-            <Linkedin className="w-4 h-4 text-white fill-current" />
-            <span>LinkedIn Profilim: Aytekin Tanrısever</span>
-            <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-          </a>
-        </div>
       </div>
 
       {/* Yasal & Telif Hakları Politikaları */}
       <div className="bg-white dark:bg-zinc-900/80 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-3 shadow-sm dark:shadow-md transition-colors">
         <div className="flex items-center space-x-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
           <Settings className="w-4 h-4 text-amber-500" />
-          <span>Yasal Haklar, Telif & İçerik Politikaları</span>
+          <span>Yasal Haklar & Politikalar</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
           <button
@@ -266,6 +244,31 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         >
           Tüm Hafızayı ve Favorileri Sıfırla
         </button>
+      </div>
+
+      {/* Social & Project Links Footer */}
+      <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="https://github.com/aytekinet/radiocast/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white text-xs font-semibold transition-all shadow-md active:scale-95"
+        >
+          <Github className="w-4 h-4 text-white" />
+          <span>GitHub</span>
+          <ExternalLink className="w-3.5 h-3.5 opacity-75" />
+        </a>
+
+        <a
+          href="https://www.linkedin.com/in/aytekin-tanrisever/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-all shadow-md active:scale-95"
+        >
+          <Linkedin className="w-4 h-4 text-white fill-current" />
+          <span>LinkedIn</span>
+          <ExternalLink className="w-3.5 h-3.5 opacity-75" />
+        </a>
       </div>
     </div>
   );
