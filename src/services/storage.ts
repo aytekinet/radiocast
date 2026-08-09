@@ -1,4 +1,4 @@
-import { AppSettings, Playlist, RadioStation, RecentlyPlayedItem, PlayableItem } from '../types';
+import { AppSettings, Playlist, RadioStation, RecentlyPlayedItem, PlayableItem, PodcastEpisode } from '../types';
 
 const FAVORITES_KEY = 'radyo_dunyasi_favorites_v1';
 const RECENTLY_PLAYED_KEY = 'radyo_dunyasi_recent_v1';
@@ -364,3 +364,59 @@ export function saveSettings(settings: AppSettings): void {
     console.error('Failed to save settings', err);
   }
 }
+
+export interface UserBackupData {
+  version: number;
+  exportedAt: string;
+  favorites: RadioStation[];
+  favoritePodcasts: any[];
+  favoriteEpisodes: any[];
+  playlists: Playlist[];
+  settings: AppSettings;
+  podcastProgress: Record<string, PodcastProgressEntry>;
+  recentlyPlayed: RecentlyPlayedItem[];
+}
+
+export function exportUserData(): string {
+  const data: UserBackupData = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    favorites: getStoredFavorites(),
+    favoritePodcasts: getStoredFavoritePodcasts(),
+    favoriteEpisodes: getStoredFavoriteEpisodes(),
+    playlists: getStoredPlaylists(),
+    settings: getStoredSettings(),
+    podcastProgress: getAllPodcastProgress(),
+    recentlyPlayed: getRecentlyPlayed()
+  };
+  return JSON.stringify(data, null, 2);
+}
+
+export function importUserData(jsonStr: string): boolean {
+  try {
+    const data = JSON.parse(jsonStr) as Partial<UserBackupData>;
+    if (!data || typeof data !== 'object') return false;
+
+    if (Array.isArray(data.favorites)) saveFavorites(data.favorites);
+    if (Array.isArray(data.favoritePodcasts)) saveFavoritePodcasts(data.favoritePodcasts);
+    if (Array.isArray(data.favoriteEpisodes)) saveFavoriteEpisodes(data.favoriteEpisodes);
+    if (Array.isArray(data.playlists)) savePlaylists(data.playlists);
+    if (data.settings && typeof data.settings === 'object') saveSettings({ ...DEFAULT_SETTINGS, ...data.settings });
+    if (data.podcastProgress && typeof data.podcastProgress === 'object') {
+      localStorage.setItem(PODCAST_PROGRESS_KEY, JSON.stringify(data.podcastProgress));
+    }
+    if (Array.isArray(data.recentlyPlayed)) {
+      localStorage.setItem(RECENTLY_PLAYED_KEY, JSON.stringify(data.recentlyPlayed));
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('podcastProgressChanged', { detail: {} }));
+    }
+    return true;
+  } catch (err) {
+    console.error('Failed to import user data:', err);
+    return false;
+  }
+}
+

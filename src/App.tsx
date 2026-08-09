@@ -40,10 +40,12 @@ import { CountriesView } from './components/CountriesView';
 import { SettingsView } from './components/SettingsView';
 import { SleepTimerModal } from './components/SleepTimerModal';
 import { LegalView, LegalPageType } from './components/LegalView';
+import { GlobalSearchModal } from './components/GlobalSearchModal';
 
 export default function App() {
   // Navigation & Settings
   const [activeTab, setActiveTab] = useState<string>('discover');
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   const [settings, setSettings] = useState<AppSettings>(() => getStoredSettings());
   const [favorites, setFavorites] = useState<RadioStation[]>(() => getStoredFavorites());
@@ -182,6 +184,33 @@ export default function App() {
     }
     root.setAttribute('data-theme-palette', settings.themePalette);
   }, [settings.themeMode, settings.themePalette]);
+
+  // Global Keyboard Shortcuts (Cmd+K / Ctrl+K, Space)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsSearchModalOpen((prev) => !prev);
+        return;
+      }
+
+      const target = e.target as HTMLElement;
+      const isInput =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+
+      if (!isInput && e.code === 'Space' && currentItem) {
+        e.preventDefault();
+        handlePlayPause();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentItem]);
 
   // Next / Previous Handlers
   const handleNext = useCallback(() => {
@@ -653,6 +682,7 @@ export default function App() {
           setSearchQuery('');
           changeTab('discover');
         }}
+        onOpenSearch={() => setIsSearchModalOpen(true)}
       />
 
       {/* TuneIn & SoundCloud Sticky Top Player Bar */}
@@ -851,6 +881,20 @@ export default function App() {
         isPodcast={currentItem?.type === 'podcast'}
         sleepOnEpisodeEnd={sleepOnEpisodeEnd}
         onSetEndOfEpisodeTimer={handleSetEndOfEpisodeTimer}
+      />
+
+      {/* Global Search Modal (Cmd+K) */}
+      <GlobalSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        onPlayStation={handlePlayStation}
+        onPlayPodcastEpisode={handlePlayPodcastEpisode}
+        onSelectCountry={(countryCode) => {
+          setSelectedCountry(countryCode);
+          setSelectedCategory('');
+          setSearchQuery('');
+          changeTab('discover');
+        }}
       />
     </div>
   );

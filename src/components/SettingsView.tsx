@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Settings, 
   Palette, 
@@ -8,9 +8,13 @@ import {
   Trash2, 
   Linkedin,
   Github,
-  ExternalLink
+  ExternalLink,
+  Download,
+  Upload,
+  Check
 } from 'lucide-react';
 import { AppSettings } from '../types';
+import { exportUserData, importUserData } from '../services/storage';
 
 interface SettingsViewProps {
   settings: AppSettings;
@@ -25,6 +29,42 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onResetAllData,
   onNavigate
 }) => {
+  const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExport = () => {
+    const jsonStr = exportUserData();
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `RadioCast_Yedek_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      const success = importUserData(content);
+      if (success) {
+        setImportStatus('success');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1200);
+      } else {
+        setImportStatus('error');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const handleResetWithConfirm = () => {
     const isConfirmed = window.confirm(
       "Tüm favoriler, çalma listeleri ve uygulama ayarlarınız sıfırlanacaktır. Bu işlemi onaylıyor musunuz?"
@@ -33,6 +73,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       onResetAllData();
     }
   };
+
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -226,6 +267,54 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               }`}
             />
           </button>
+        </div>
+      </div>
+
+      {/* Backup & Restore Data */}
+      <div className="bg-white dark:bg-zinc-900/80 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-3 shadow-sm dark:shadow-md transition-colors">
+        <div className="flex items-center space-x-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+          <Download className="w-4 h-4 text-amber-500" />
+          <span>Veri Yedekleme & Geri Yükleme</span>
+        </div>
+        <p className="text-zinc-600 dark:text-zinc-400 text-xs">
+          Favorilerinizi, podcast dinleme geçmişinizi ve çalma listelerinizi JSON formatında cihazınıza indirebilir veya başka bir cihazdan yükleyebilirsiniz.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <button
+            onClick={handleExport}
+            className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>Yedeği İndir (.json)</span>
+          </button>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportFile}
+            accept=".json"
+            className="hidden"
+          />
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-4 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer"
+          >
+            <Upload className="w-4 h-4" />
+            <span>Yedekten Geri Yükle</span>
+          </button>
+
+          {importStatus === 'success' && (
+            <span className="text-xs font-bold text-emerald-500 flex items-center gap-1">
+              <Check className="w-4 h-4" /> Yükleme başarılı, yenileniyor...
+            </span>
+          )}
+          {importStatus === 'error' && (
+            <span className="text-xs font-bold text-red-500">
+              Yedek dosyası okunamadı veya geçersiz.
+            </span>
+          )}
         </div>
       </div>
 

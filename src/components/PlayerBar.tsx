@@ -15,9 +15,10 @@ import {
   ListPlus,
   Check,
   SkipBack,
-  SkipForward
+  SkipForward,
+  Share2
 } from 'lucide-react';
-import { RadioStation, PlayableItem, ThemePalette, Playlist } from '../types';
+import { RadioStation, PlayableItem, ThemePalette, Playlist, PodcastEpisode } from '../types';
 import { PlaybackStatus, audioEngine } from '../services/audioEngine';
 import { AudioVisualizer } from './AudioVisualizer';
 
@@ -100,7 +101,27 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
   const [isDragging, setIsDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [shareNotice, setShareNotice] = useState(false);
   const playlistRef = useRef<HTMLDivElement>(null);
+
+  const handleShare = () => {
+    if (!currentItem) return;
+    const title = currentItem.type === 'podcast' ? (currentItem.podcastEpisode?.title || 'Podcast Episode') : (currentItem.radio?.name || 'Radyo');
+    const shareUrl = window.location.href;
+
+    if (navigator.share) {
+      navigator.share({
+        title: `RadioCast - ${title}`,
+        text: `${title} dinliyorum! RadioCast ile kesintisiz radyo ve podcast dinle:`,
+        url: shareUrl
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        setShareNotice(true);
+        setTimeout(() => setShareNotice(false), 3000);
+      });
+    }
+  };
 
   useEffect(() => {
     setImgError(false);
@@ -544,6 +565,22 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
               className="w-20 accent-amber-500 cursor-pointer h-1.5 rounded-lg bg-zinc-200 dark:bg-zinc-800"
             />
           </div>
+
+          {/* Share Button */}
+          {currentItem && (
+            <button
+              onClick={handleShare}
+              className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-amber-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all cursor-pointer relative"
+              title="Paylaş"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              {shareNotice && (
+                <span className="absolute -top-8 right-0 bg-amber-500 text-zinc-950 text-[10px] font-bold px-2 py-0.5 rounded shadow-lg whitespace-nowrap animate-in fade-in duration-150">
+                  Bağlantı kopyalandı!
+                </span>
+              )}
+            </button>
+          )}
 
           {/* Sleep Timer Button */}
           <button

@@ -27,6 +27,7 @@ interface DesktopHeaderProps {
   setLowDataMode: (val: boolean) => void;
   activeTab: string;
   onNavigateToDiscover?: () => void;
+  onOpenSearch?: () => void;
 }
 
 export const DesktopHeader: React.FC<DesktopHeaderProps> = React.memo(({
@@ -41,6 +42,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = React.memo(({
   lowDataMode,
   setLowDataMode,
   onNavigateToDiscover,
+  onOpenSearch
 }) => {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const paletteRef = useRef<HTMLDivElement>(null);
@@ -95,15 +97,26 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = React.memo(({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Radyo ara..."
-            className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-zinc-100 dark:bg-zinc-800/90 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 border border-zinc-200 dark:border-zinc-700/70 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-inner"
+            onFocus={() => {
+              if (onOpenSearch) onOpenSearch();
+            }}
+            placeholder="Radyo veya podcast ara..."
+            className="w-full pl-9 pr-14 py-1.5 text-xs rounded-xl bg-zinc-100 dark:bg-zinc-800/90 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 border border-zinc-200 dark:border-zinc-700/70 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all shadow-inner cursor-pointer"
           />
-          {searchQuery && (
+          {searchQuery ? (
             <button
               onClick={() => setSearchQuery('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
             >
               <X className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <button
+              onClick={onOpenSearch}
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:bg-amber-500 hover:text-zinc-950 transition-colors"
+              title="Anında Arama (Cmd+K)"
+            >
+              ⌘K
             </button>
           )}
         </div>

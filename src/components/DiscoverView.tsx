@@ -16,12 +16,16 @@ import {
   Globe,
   Wifi,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Clock,
+  Play,
+  Pause
 } from 'lucide-react';
 import { Playlist, RadioStation } from '../types';
 import { GENRE_CATEGORIES, RADIO_GROUPS, ALL_COUNTRIES, POPULAR_COUNTRIES, COUNTRY_NAMES_TR } from '../constants/categories';
 import { StationCard } from './StationCard';
 import { PlaybackStatus } from '../services/audioEngine';
+import { getRecentlyPlayed } from '../services/storage';
 
 interface VirtualizedStationGridProps {
   stations: RadioStation[];
@@ -221,6 +225,14 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const groupScrollRef = useRef<HTMLDivElement>(null);
 
+  const recentRadioStations = React.useMemo(() => {
+    const list = getRecentlyPlayed();
+    return list
+      .filter((item) => item.type === 'radio' && item.radioStation)
+      .map((item) => item.radioStation!)
+      .slice(0, 10);
+  }, [currentStation, isPlaying]);
+
   const scrollCategory = (direction: 'left' | 'right') => {
     if (categoryScrollRef.current) {
       const scrollAmount = direction === 'left' ? -280 : 280;
@@ -349,6 +361,57 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Son Dinlenen Radyolar Widget */}
+            {recentRadioStations.length > 0 && !searchQuery && (
+              <div className="pt-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                    <h3 className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                      Son Dinlenen Radyolar
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3 overflow-x-auto pb-2 scrollbar-none">
+                  {recentRadioStations.map((st) => {
+                    const isThisPlaying = (currentStation?.id || currentStation?.stationuuid) === (st.id || st.stationuuid) && isPlaying;
+                    return (
+                      <div
+                        key={st.id || st.stationuuid}
+                        onClick={() => onPlayStation(st)}
+                        className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl border shrink-0 cursor-pointer transition-all ${
+                          isThisPlaying
+                            ? 'bg-amber-500/15 border-amber-500/60 shadow-sm'
+                            : 'bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 border-zinc-200 dark:border-zinc-800'
+                        }`}
+                      >
+                        <img
+                          src={st.favicon || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100&q=80'}
+                          alt={st.name}
+                          className="w-7 h-7 rounded-lg object-cover bg-zinc-800"
+                          onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100&q=80'; }}
+                        />
+                        <div className="min-w-0 pr-1">
+                          <span className="text-xs font-bold text-zinc-900 dark:text-white truncate block max-w-[120px]">
+                            {st.name}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate block max-w-[120px]">
+                            {st.tags ? st.tags.split(',')[0] : 'Radyo'}
+                          </span>
+                        </div>
+                        {isThisPlaying ? (
+                          <Pause className="w-3.5 h-3.5 text-amber-500 fill-current shrink-0" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5 text-zinc-400 fill-current shrink-0" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Radio Broadcasting Groups (Radyo Grupları) */}
             <div className="pt-2 space-y-2">
