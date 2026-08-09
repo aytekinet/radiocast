@@ -1,6 +1,7 @@
 import { RadioStation, PodcastEpisode, PlayableItem, Audiobook, AudiobookTrack } from '../types';
 import { registerStationClick } from './radioApi';
 import { getPodcastProgress, savePodcastProgress, getPodcastProgressEntry, addRecentlyPlayed } from './storage';
+import { getOfflineAudioUrl } from './offlineStorage';
 import { getCandidateUrlsForStation } from '../data/fallbackStations';
 
 export type PlaybackStatus = 'idle' | 'connecting' | 'playing' | 'paused' | 'buffering' | 'error';
@@ -345,8 +346,13 @@ class AudioEngine {
 
     this.setStatus('connecting');
 
+    const offlineBlobUrl = await getOfflineAudioUrl(episode.id);
     const cleanUrl = (episode.audioUrl || '').trim();
     const rawCandidates: string[] = [];
+
+    if (offlineBlobUrl) {
+      rawCandidates.push(offlineBlobUrl);
+    }
 
     if (cleanUrl) {
       if (cleanUrl.startsWith('http://')) {

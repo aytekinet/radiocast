@@ -4,6 +4,15 @@ import { searchPodcasts, getPopularPodcasts, fetchPodcastCatalog, getPodcastEpis
 import { getAllPodcastProgress, markPodcastEpisodeCompleted, clearPodcastProgress, PodcastProgressEntry, getRecentlyPlayed } from '../services/storage';
 import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
 import { 
+  downloadPodcastEpisode, 
+  isEpisodeDownloaded, 
+  deleteDownloadedEpisode, 
+  getActiveDownloadsMap, 
+  ActiveDownloadState,
+  getAllDownloadedEpisodes
+} from '../services/offlineStorage';
+import { ListeningWrappedModal } from './ListeningWrappedModal';
+import { 
   Mic, 
   Play, 
   Pause, 
@@ -24,7 +33,11 @@ import {
   X,
   LayoutGrid,
   List,
-  PlayCircle
+  PlayCircle,
+  DownloadCloud,
+  FolderDown,
+  BarChart2,
+  Loader2
 } from 'lucide-react';
 
 interface PodcastViewProps {
@@ -58,7 +71,51 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   const [historyFilter, setHistoryFilter] = useState<'in-progress' | 'completed' | 'all'>('in-progress');
   const [historyLayout, setHistoryLayout] = useState<'carousel' | 'grid'>('carousel');
   const [isHistoryExpanded, setIsHistoryExpanded] = useState<boolean>(false);
+  const [isWrappedOpen, setIsWrappedOpen] = useState<boolean>(false);
+  const [downloadedSet, setDownloadedSet] = useState<Set<string>>(new Set());
+  const [activeDownloadsState, setActiveDownloadsState] = useState<Map<string, ActiveDownloadState>>(new Map());
   const historyCarouselRef = React.useRef<HTMLDivElement>(null);
+
+  const syncDownloadedSet = React.useCallback(async () => {
+    try {
+      const items = await getAllDownloadedEpisodes();
+      setDownloadedSet(new Set(items.map(i => i.episode.id)));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    syncDownloadedSet();
+
+    const handleOfflineChange = () => syncDownloadedSet();
+    const handleProgressChange = () => {
+      setActiveDownloadsState(new Map(getActiveDownloadsMap()));
+      syncDownloadedSet();
+    };
+
+    window.addEventListener('offlineEpisodesChanged', handleOfflineChange);
+    window.addEventListener('downloadProgressChanged', handleProgressChange);
+
+    return () => {
+      window.removeEventListener('offlineEpisodesChanged', handleOfflineChange);
+      window.removeEventListener('downloadProgressChanged', handleProgressChange);
+    };
+  }, [syncDownloadedSet]);
+
+  const handleDownloadToggle = async (ep: PodcastEpisode, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const isDownloaded = downloadedSet.has(ep.id);
+    if (isDownloaded) {
+      if (confirm(`"${ep.title}" bölümünü yerel hafızadan silmek istiyor musunuz?`)) {
+        await deleteDownloadedEpisode(ep.id);
+        await syncDownloadedSet();
+      }
+    } else {
+      await downloadPodcastEpisode(ep);
+      await syncDownloadedSet();
+    }
+  };
 
   const scrollHistoryCarousel = (direction: 'left' | 'right') => {
     if (historyCarouselRef.current) {
@@ -833,6 +890,39 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
+                      {/* Offline Download Button */}
+                      {(() => {
+                        const isDownloaded = downloadedSet.has(ep.id);
+                        const activeDl = activeDownloadsState.get(ep.id);
+
+                        if (activeDl) {
+                          return (
+                            <button
+                              disabled
+                              title={`İndiriliyor: %${activeDl.progressPct}`}
+                              className="px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-500 font-mono text-[11px] font-bold flex items-center gap-1.5"
+                            >
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
+                              <span>%{activeDl.progressPct}</span>
+                            </button>
+                          );
+                        }
+
+                        return (
+                          <button
+                            onClick={(e) => handleDownloadToggle(ep, e)}
+                            title={isDownloaded ? "Çevrimdışı İndirildi (Tıkla ve Sil)" : "Çevrimdışı İndir (İnternetsiz Dinle)"}
+                            className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                              isDownloaded
+                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/25'
+                                : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-400 hover:text-amber-500 border-zinc-200 dark:border-zinc-700'
+                            }`}
+                          >
+                            <DownloadCloud className={`w-4 h-4 ${isDownloaded ? 'text-emerald-500' : ''}`} />
+                          </button>
+                        );
+                      })()}
+
                       {/* Favorite Episode Toggle Button */}
                       {onToggleFavoriteEpisode && (
                         <button
@@ -940,8 +1030,18 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-6 md:p-8 border border-zinc-200 dark:border-zinc-800 shadow-lg">
         <div className="relative z-10 max-w-2xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold tracking-wide uppercase border border-amber-500/30">
-            <Mic className="w-3.5 h-3.5 text-amber-500" /> Canlı Apple Podcast Ağı
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold tracking-wide uppercase border border-amber-500/30">
+              <Mic className="w-3.5 h-3.5 text-amber-500" /> Canlı Apple Podcast Ağı
+            </div>
+
+            <button
+              onClick={() => setIsWrappedOpen(true)}
+              className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-rose-500/20 hover:from-amber-500/30 hover:to-rose-500/30 border border-amber-500/40 text-amber-600 dark:text-amber-300 font-bold text-xs flex items-center space-x-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <BarChart2 className="w-3.5 h-3.5 text-amber-500 animate-bounce" />
+              <span>Podcast Wrapped & Isı Haritası</span>
+            </button>
           </div>
           <h1 className="text-2xl md:text-4xl font-black text-zinc-900 dark:text-white tracking-tight">
             Türkiye Podcast Yayınları
@@ -1551,6 +1651,11 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
           </section>
         </div>
       )}
+      {/* Listening Wrapped Modal */}
+      <ListeningWrappedModal
+        isOpen={isWrappedOpen}
+        onClose={() => setIsWrappedOpen(false)}
+      />
     </div>
   );
 });

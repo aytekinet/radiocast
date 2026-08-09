@@ -8,7 +8,8 @@ import {
   Radio, 
   Sparkles,
   Zap,
-  Mic
+  Mic,
+  FolderDown
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -40,6 +41,12 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
       label: 'Podcast’ler',
       icon: Mic,
       description: 'Türkçe Popüler Podcastler'
+    },
+    {
+      id: 'downloads',
+      label: 'İndirilenler',
+      icon: FolderDown,
+      description: 'Çevrimdışı Podcast Arşivi'
     },
     {
       id: 'favorites',

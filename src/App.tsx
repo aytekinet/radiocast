@@ -38,9 +38,11 @@ import { FavoritesView } from './components/FavoritesView';
 import { PlaylistsView } from './components/PlaylistsView';
 import { CountriesView } from './components/CountriesView';
 import { SettingsView } from './components/SettingsView';
+import { DownloadsView } from './components/DownloadsView';
 import { SleepTimerModal } from './components/SleepTimerModal';
 import { LegalView, LegalPageType } from './components/LegalView';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { WifiOff, DownloadCloud, Smartphone } from 'lucide-react';
 
 export default function App() {
   // Navigation & Settings
@@ -71,10 +73,42 @@ export default function App() {
     }, 10);
   }, [activeTab]);
 
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  // Online status & PWA install prompt listeners
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
+
   // Sync initial tab and listen to browser back/forward buttons (popstate)
   useEffect(() => {
     const legalRoutes = ['copyright', 'dmca', 'takedown', 'counter-notice', 'privacy', 'terms', 'content-policy'];
-    const validTabs = ['discover', 'podcasts', 'favorites', 'playlists', 'countries', 'settings', ...legalRoutes];
+    const validTabs = ['discover', 'podcasts', 'downloads', 'favorites', 'playlists', 'countries', 'settings', ...legalRoutes];
 
     const syncFromLocation = () => {
       const pathname = window.location.pathname.replace(/^\//, '').toLowerCase();
@@ -749,6 +783,49 @@ export default function App() {
 
         {/* Main Content Scrollable Workspace */}
         <main ref={mainRef} className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 pb-64 md:pb-48">
+          {/* Offline Warning Banner */}
+          {!isOnline && (
+            <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-600 dark:text-amber-300 text-xs font-bold flex flex-wrap items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center space-x-2.5">
+                <WifiOff className="w-5 h-5 text-amber-500 animate-pulse shrink-0" />
+                <div>
+                  <span className="block font-black text-sm text-zinc-900 dark:text-amber-300">İnternet Bağlantısı Kesildi — Çevrimdışı Mod</span>
+                  <span className="font-normal text-[11px] text-zinc-600 dark:text-zinc-300">
+                    Sadece cihazınıza önceden indirilmiş podcast bölümlerini kesintisiz dinleyebilirsiniz.
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => changeTab('downloads')}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shrink-0 cursor-pointer shadow-sm active:scale-95 transition-all"
+              >
+                İndirilenler Sekmesine Git
+              </button>
+            </div>
+          )}
+
+          {/* PWA Install Banner Prompt */}
+          {deferredPrompt && (
+            <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-amber-500/30 text-zinc-900 dark:text-zinc-100 text-xs font-bold flex flex-wrap items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center space-x-2.5">
+                <Smartphone className="w-5 h-5 text-amber-500 shrink-0" />
+                <div>
+                  <span className="block font-bold text-xs md:text-sm">Mobil & Masaüstü Uygulaması Olarak Yükleyin</span>
+                  <span className="font-normal text-[11px] text-zinc-600 dark:text-zinc-300">
+                    Tek tıkla ana ekranınıza ekleyip çevrimdışı podcast ve radyo dinleyin.
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handleInstallPWA}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shrink-0 cursor-pointer shadow-sm active:scale-95 transition-all flex items-center space-x-1.5"
+              >
+                <DownloadCloud className="w-4 h-4" />
+                <span>Uygulamayı Yükle</span>
+              </button>
+            </div>
+          )}
+
           <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
             <DiscoverView
               stations={filteredStations}
@@ -792,6 +869,13 @@ export default function App() {
               favoriteEpisodes={favoriteEpisodes}
               onToggleFavoritePodcast={handleToggleFavoritePodcast}
               onToggleFavoriteEpisode={handleToggleFavoriteEpisode}
+            />
+          </div>
+
+          <div className={activeTab === 'downloads' ? 'block' : 'hidden'}>
+            <DownloadsView
+              onPlayEpisode={handlePlayPodcastEpisode}
+              onNavigateToPodcasts={() => changeTab('podcasts')}
             />
           </div>
 

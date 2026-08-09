@@ -11,7 +11,8 @@ import {
   Radio, 
   Wifi, 
   WifiOff, 
-  Sparkles 
+  Sparkles,
+  FolderDown
 } from 'lucide-react';
 
 interface MobileNavProps {
@@ -43,6 +44,7 @@ export const MobileNav: React.FC<MobileNavProps> = React.memo(({
   ];
 
   const drawerItems = [
+    { id: 'downloads', label: 'İndirilen Podcast’ler', icon: FolderDown, desc: 'Çevrimdışı internetsiz dinle' },
     { id: 'playlists', label: 'Çalma Listelerim', icon: ListMusic, count: playlistsCount, desc: 'Özel radyo listelerin' },
     { id: 'settings', label: 'Ayarlar & İletişim', icon: Settings, desc: 'Tema, ses & LinkedIn iletişim' },
   ];
