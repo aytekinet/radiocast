@@ -13,6 +13,18 @@ export interface CuratedTurkishPodcast {
 
 export const CURATED_TURKISH_PODCASTS: CuratedTurkishPodcast[] = [
   {
+    "id": "apple-1588629255",
+    "title": "Bay J",
+    "publisher": "Kral Müzik",
+    "feedUrl": "https://feeds.podcastics.com/podcastics/podcasts/rss/860_907b5ebcaf8fbc8f1d1e59503cc3c2d6.rss",
+    "coverUrl": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts116/v4/4e/c6/3b/4ec63b1e-0897-f901-4966-22a36b3b060d/mza_10286395507856338089.jpg/600x600bb.jpg",
+    "category": "Eğlence & Mizah",
+    "description": "Bay J hafta içi her gün Kral Pop Radyo'da sizlerle! Eğlenceli sohbetler, güncel konular ve mizah.",
+    "language": "tr",
+    "verifiedAt": "2026-08-09",
+    "enabled": true
+  },
+  {
     "id": "apple-1500765798",
     "title": "Kitaplar, Filmler, Düşünceler, Psikoloji, Felsefe",
     "publisher": "Esra",

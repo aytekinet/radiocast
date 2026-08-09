@@ -82,9 +82,9 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
   {
     stationuuid: 'v-radyo-d',
     name: 'Radyo D',
-    playUrl: 'https://ssldyg.radyotvonline.com/radyod/radyod.stream/playlist.m3u8',
-    url: 'https://ssldyg.radyotvonline.com/radyod/radyod.stream/playlist.m3u8',
-    url_resolved: 'https://ssldyg.radyotvonline.com/radyod/radyod.stream/playlist.m3u8',
+    playUrl: 'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8',
+    url: 'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8',
+    url_resolved: 'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8',
     homepage: 'https://www.radyod.com.tr',
     favicon: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&q=80',
     tags: 'pop,turkce,hit',
@@ -99,9 +99,9 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
   {
     stationuuid: 'v-radyo-viva',
     name: 'Radyo Viva',
-    playUrl: 'https://showradyo.radyotvonline.net/radyoviva/playlist.m3u8',
-    url: 'https://showradyo.radyotvonline.net/radyoviva/playlist.m3u8',
-    url_resolved: 'https://showradyo.radyotvonline.net/radyoviva/playlist.m3u8',
+    playUrl: 'https://moondigitaledge.radyotvonline.net/radyoviva/playlist.m3u8',
+    url: 'https://moondigitaledge.radyotvonline.net/radyoviva/playlist.m3u8',
+    url_resolved: 'https://moondigitaledge.radyotvonline.net/radyoviva/playlist.m3u8',
     homepage: 'https://www.radyoviva.com.tr',
     favicon: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80',
     tags: 'pop,turkce,muzik',
@@ -116,9 +116,9 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
   {
     stationuuid: 'v-show-radyo',
     name: 'Show Radyo',
-    playUrl: 'https://showradyo.radyotvonline.net/showradyo/playlist.m3u8',
-    url: 'https://showradyo.radyotvonline.net/showradyo/playlist.m3u8',
-    url_resolved: 'https://showradyo.radyotvonline.net/showradyo/playlist.m3u8',
+    playUrl: 'https://showradyo.radyotvonline.net/showradyoaac/',
+    url: 'https://showradyo.radyotvonline.net/showradyoaac/',
+    url_resolved: 'https://showradyo.radyotvonline.net/showradyoaac/',
     homepage: 'https://www.showradyo.com.tr',
     favicon: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80',
     tags: 'pop,turkce,haber,sohbet',
@@ -127,15 +127,15 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
     state: 'Istanbul',
     language: 'turkish',
     votes: 27000,
-    codec: 'HLS',
+    codec: 'AAC',
     bitrate: 128
   },
   {
     stationuuid: 'v-alem-fm',
     name: 'Alem FM',
-    playUrl: 'https://turkuvaz.radyotvonline.net/alemfm/playlist.m3u8',
-    url: 'https://turkuvaz.radyotvonline.net/alemfm/playlist.m3u8',
-    url_resolved: 'https://turkuvaz.radyotvonline.net/alemfm/playlist.m3u8',
+    playUrl: 'https://edge1.radyotvonline.net/shoutcast/play/alemfm',
+    url: 'https://edge1.radyotvonline.net/shoutcast/play/alemfm',
+    url_resolved: 'https://edge1.radyotvonline.net/shoutcast/play/alemfm',
     homepage: 'https://www.alemfm.com',
     favicon: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80',
     tags: 'pop,sohbet,müzik,turkce',
@@ -144,7 +144,7 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
     state: 'Istanbul',
     language: 'turkish',
     votes: 26500,
-    codec: 'HLS',
+    codec: 'AAC',
     bitrate: 128
   },
   {
@@ -167,9 +167,9 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
   {
     stationuuid: 'v-kral-pop',
     name: 'Kral Pop',
-    playUrl: 'https://ssldyg.radyotvonline.com/kralpop/kralpop.stream/playlist.m3u8',
-    url: 'https://ssldyg.radyotvonline.com/kralpop/kralpop.stream/playlist.m3u8',
-    url_resolved: 'https://ssldyg.radyotvonline.com/kralpop/kralpop.stream/playlist.m3u8',
+    playUrl: 'https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8',
+    url: 'https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8',
+    url_resolved: 'https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8',
     homepage: 'https://www.kralmuzik.com.tr',
     favicon: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&q=80',
     tags: 'pop,turkce pop,top40',
@@ -798,62 +798,64 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
 // Fallback mirror map by station name / keyword
 export const STATION_MIRRORS_MAP: Record<string, string[]> = {
   'radyo d': [
-    'https://dygedge2.radyotvonline.net/radyod/playlist.m3u8',
     'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8',
-    'https://moondigitalmaster.radyotvonline.net/radyod/playlist.m3u8'
+    'https://radyo.duhnet.tv/radyod',
+    'https://dygedge2.radyotvonline.net/radyod/playlist.m3u8'
   ],
   'radyod': [
-    'https://dygedge2.radyotvonline.net/radyod/playlist.m3u8',
-    'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8'
+    'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8',
+    'https://radyo.duhnet.tv/radyod'
   ],
   'kral pop': [
-    'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8',
-    'https://moondigitaledge2.radyotvonline.net/kralpop/playlist.m3u8'
+    'https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8',
+    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8'
   ],
   'kralpop': [
-    'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8'
+    'https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8',
+    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8'
   ],
   'kral fm': [
     'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8',
-    'https://moondigitaledge2.radyotvonline.net/kralfm/playlist.m3u8'
+    'https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8'
   ],
   'kralfm': [
     'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8'
   ],
   'radyo viva': [
-    'https://edge1.radyotvonline.net/shoutcast/play/radyoviva',
-    'https://showradyo.radyotvonline.net/radyoviva/playlist.m3u8'
+    'https://moondigitaledge.radyotvonline.net/radyoviva/playlist.m3u8',
+    'https://edge1.radyotvonline.net/shoutcast/play/radyoviva'
   ],
   'radyoviva': [
+    'https://moondigitaledge.radyotvonline.net/radyoviva/playlist.m3u8',
     'https://edge1.radyotvonline.net/shoutcast/play/radyoviva'
   ],
   'show radyo': [
-    'https://showradyo.radyotvonline.net/showradyo',
+    'https://showradyo.radyotvonline.net/showradyoaac/',
     'https://edge1.radyotvonline.net/shoutcast/play/showradyo'
   ],
   'showradyo': [
-    'https://showradyo.radyotvonline.net/showradyo'
+    'https://showradyo.radyotvonline.net/showradyoaac/'
   ],
   'slow turk': [
-    'https://dygedge2.radyotvonline.net/slowturk/playlist.m3u8',
+    'https://radyo.duhnet.tv/ak_dtvh_slowturk',
     'https://moondigitaledge2.radyotvonline.net/slowturk/playlist.m3u8'
   ],
   'slowturk': [
-    'https://dygedge2.radyotvonline.net/slowturk/playlist.m3u8'
+    'https://radyo.duhnet.tv/ak_dtvh_slowturk'
   ],
   'power turk': [
-    'http://listen.powerapp.com.tr/powerturk/mpeg/icecast.audio',
-    'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8'
-  ],
-  'powerturk': [
+    'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8',
     'http://listen.powerapp.com.tr/powerturk/mpeg/icecast.audio'
   ],
+  'powerturk': [
+    'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8'
+  ],
   'power fm': [
-    'http://listen.powerapp.com.tr/powerfm/mpeg/icecast.audio',
-    'https://live.powerapp.com.tr/powerfm/abr/powerfm/128/playlist.m3u8'
+    'https://live.powerapp.com.tr/powerfm/abr/powerfm/128/playlist.m3u8',
+    'http://listen.powerapp.com.tr/powerfm/mpeg/icecast.audio'
   ],
   'powerfm': [
-    'http://listen.powerapp.com.tr/powerfm/mpeg/icecast.audio'
+    'https://live.powerapp.com.tr/powerfm/abr/powerfm/128/playlist.m3u8'
   ],
   'alem fm': [
     'https://edge1.radyotvonline.net/shoutcast/play/alemfm'

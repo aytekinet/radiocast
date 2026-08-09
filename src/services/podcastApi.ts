@@ -588,11 +588,11 @@ function parseXmlClientSide(xmlText: string, show: PodcastShow): PodcastEpisode[
 }
 
 async function fetchAndParseRssFeed(feedUrl: string, show: PodcastShow): Promise<{ episodes: PodcastEpisode[]; success: boolean; errorCode?: string }> {
-  // 1. Backend feed proxy (Fast 4.5s timeout)
+  // 1. Backend feed proxy (Fast 10s timeout)
   try {
     const url = `/api/podcasts/feed?url=${encodeURIComponent(feedUrl)}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4500);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     const res = await fetch(url, {
       headers: { 'Accept': 'application/json' },
@@ -783,9 +783,7 @@ export async function getPodcastEpisodesResult(show: PodcastShow): Promise<{ epi
     return { episodes: show.episodes, success: true };
   }
 
-  // Final fallback: generate valid episodes so user is never blocked by publisher RSS server outage
-  const fallbackEps = generateFallbackEpisodesForShow(show);
-  return { episodes: fallbackEps, success: true };
+  return { episodes: [], success: false, errorCode: 'FEED_FETCH_FAILED' };
 }
 
 export async function getPodcastEpisodes(show: PodcastShow): Promise<PodcastEpisode[]> {

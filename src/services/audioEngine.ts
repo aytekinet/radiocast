@@ -282,27 +282,21 @@ class AudioEngine {
     for (const url of baseCandidates) {
       if (!url) continue;
       const cleanUrl = url.trim();
-      const isHls = cleanUrl.toLowerCase().includes('.m3u8') || Boolean(station.hls);
       const proxyUrl = `/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`;
 
-      if (isHls) {
-        // HLS (.m3u8) streams on external domains fail browser CORS in hls.js.
-        // Put local proxy FIRST so hls.js gets an immediate CORS-enabled response!
-        rawCandidates.push(proxyUrl);
-        if (stationRelayUrl) rawCandidates.push(stationRelayUrl);
+      if (cleanUrl.toLowerCase().startsWith('https://')) {
+        // Direct HTTPS stream FIRST: Browser plays directly from CDN without Vercel serverless function timeouts
         rawCandidates.push(cleanUrl);
-        rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
-      } else if (cleanUrl.toLowerCase().startsWith('https://')) {
         rawCandidates.push(proxyUrl);
-        rawCandidates.push(cleanUrl);
-        rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
-      } else {
-        // HTTP stream: try local proxy first (to prevent mixed-content block), then HTTPS upgrade, then raw HTTP
+      } else if (cleanUrl.toLowerCase().startsWith('http://')) {
+        // Direct HTTP stream: Upgrade to HTTPS FIRST, then try Express proxy, then raw HTTP
         const httpsUpgraded = cleanUrl.replace(/^http:\/\//i, 'https://');
-        rawCandidates.push(proxyUrl);
         rawCandidates.push(httpsUpgraded);
+        rawCandidates.push(proxyUrl);
         rawCandidates.push(cleanUrl);
-        rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
+      } else {
+        rawCandidates.push(cleanUrl);
+        rawCandidates.push(proxyUrl);
       }
     }
 
@@ -437,10 +431,16 @@ class AudioEngine {
     if (typeof window !== 'undefined') {
       if (playableUrl.startsWith('/')) {
         playableUrl = window.location.origin + playableUrl;
-      } else if (window.location.protocol === 'https:' && playableUrl.startsWith('http://') && !playableUrl.includes('/api/radio/')) {
-        // Direct HTTP is blocked on HTTPS pages (Mixed Content)
-        // Proxy through internal express endpoint which sets proper CORS and HTTPS headers
-        playableUrl = window.location.origin + `/api/radio/proxy?url=${encodeURIComponent(playableUrl)}`;
+      } else if (
+        window.location.protocol === 'https:' &&
+        playableUrl.startsWith('http://') &&
+        !playableUrl.includes('/api/radio/') &&
+        !playableUrl.includes('corsproxy.io') &&
+        !playableUrl.includes('allorigins.win')
+      ) {
+        // Direct HTTP is blocked on HTTPS pages (Mixed Content).
+        // Try HTTPS upgraded version directly so browser can connect natively without Vercel serverless timeouts.
+        playableUrl = playableUrl.replace(/^http:\/\//i, 'https://');
       }
     }
 

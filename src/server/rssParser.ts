@@ -457,7 +457,21 @@ export async function fetchAndParsePodcastRss(feedUrl: string): Promise<PodcastF
 
     const contentType = (response.headers.get('content-type') || '').toLowerCase();
     const parseStartTime = Date.now();
-    let xmlText = await response.text();
+    let xmlText = '';
+
+    // Read up to 1.5MB max to handle massive RSS feeds instantly (<300ms) without timing out
+    const reader = response.body?.getReader();
+    if (reader) {
+      const decoder = new TextDecoder('utf-8');
+      while (xmlText.length < 1_500_000) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        xmlText += decoder.decode(value, { stream: true });
+      }
+      reader.cancel().catch(() => {});
+    } else {
+      xmlText = await response.text();
+    }
 
     if (!xmlText || xmlText.trim().length === 0) {
       return {
@@ -477,9 +491,9 @@ export async function fetchAndParsePodcastRss(feedUrl: string): Promise<PodcastF
       };
     }
 
-    // Truncate huge feeds (>1.2MB) to speed up serverless response to <300ms
-    if (xmlText.length > 1_200_000) {
-      const cutIdx = xmlText.lastIndexOf('</item>', 1_200_000);
+    // Truncate incomplete trailing item if stream was truncated
+    if (xmlText.length >= 1_500_000) {
+      const cutIdx = xmlText.lastIndexOf('</item>');
       if (cutIdx > 0) {
         xmlText = xmlText.slice(0, cutIdx + 7) + '\n</channel></rss>';
       }
