@@ -9,6 +9,7 @@ export interface PodcastProgressEntry {
   durationSeconds?: number;
   completed?: boolean;
   updatedAt?: number;
+  episode?: PodcastEpisode;
 }
 
 const PODCAST_PROGRESS_KEY = 'radyo_dunyasi_podcast_progress_v1';
@@ -29,7 +30,8 @@ export function getAllPodcastProgress(): Record<string, PodcastProgressEntry> {
           timeSeconds: Number(val.timeSeconds || val.time || 0),
           durationSeconds: val.durationSeconds ? Number(val.durationSeconds) : undefined,
           completed: Boolean(val.completed),
-          updatedAt: val.updatedAt ? Number(val.updatedAt) : undefined
+          updatedAt: val.updatedAt ? Number(val.updatedAt) : undefined,
+          episode: val.episode || undefined
         };
       }
     }
@@ -53,12 +55,14 @@ export function savePodcastProgress(
   episodeId: string,
   timeSeconds: number,
   durationSeconds?: number,
-  completed?: boolean
+  completed?: boolean,
+  episode?: PodcastEpisode
 ): void {
   try {
     const all = getAllPodcastProgress();
     const existing = all[episodeId] || { timeSeconds: 0 };
     const dur = durationSeconds && durationSeconds > 0 ? durationSeconds : existing.durationSeconds;
+    const epObj = episode || existing.episode;
 
     // Auto mark completed if passed or played >= 92% of duration
     const isCompleted = completed !== undefined
@@ -69,7 +73,8 @@ export function savePodcastProgress(
       timeSeconds: Math.max(0, timeSeconds),
       durationSeconds: dur,
       completed: isCompleted,
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
+      episode: epObj
     };
 
     localStorage.setItem(PODCAST_PROGRESS_KEY, JSON.stringify(all));
@@ -84,7 +89,7 @@ export function savePodcastProgress(
   }
 }
 
-export function markPodcastEpisodeCompleted(episodeId: string, completed: boolean, durationSeconds?: number): void {
+export function markPodcastEpisodeCompleted(episodeId: string, completed: boolean, durationSeconds?: number, episode?: PodcastEpisode): void {
   const all = getAllPodcastProgress();
   const existing = all[episodeId] || { timeSeconds: 0 };
   const dur = durationSeconds || existing.durationSeconds || 0;
@@ -93,7 +98,8 @@ export function markPodcastEpisodeCompleted(episodeId: string, completed: boolea
     episodeId,
     completed ? (dur > 0 ? dur : 99999) : 0,
     dur,
-    completed
+    completed,
+    episode || existing.episode
   );
 }
 

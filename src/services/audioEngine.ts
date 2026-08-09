@@ -249,7 +249,7 @@ class AudioEngine {
       const dur = Math.floor(ep.durationSeconds || this.audio.duration || 0);
       if (currTime > 2) {
         const isCompleted = dur > 0 && currTime >= dur - 15;
-        savePodcastProgress(ep.id, currTime, dur, isCompleted);
+        savePodcastProgress(ep.id, currTime, dur, isCompleted, ep);
       }
     }
   }
@@ -341,6 +341,7 @@ class AudioEngine {
       this.callbacks.onItemChange(this.currentItem);
     }
     this.updateMediaSession();
+    addRecentlyPlayed(this.currentItem);
 
     this.setStatus('connecting');
 
@@ -353,15 +354,18 @@ class AudioEngine {
       }
       rawCandidates.push(cleanUrl);
       rawCandidates.push(`/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`);
-      rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
     }
 
     this.candidates = rawCandidates.filter((u, idx, self) => u && self.indexOf(u) === idx);
     this.candidateIndex = 0;
 
     const entry = getPodcastProgressEntry(episode.id);
-    const isCompleted = entry?.completed || (entry?.durationSeconds && entry.timeSeconds >= entry.durationSeconds - 10);
+    const isCompleted = Boolean(entry?.completed || (entry?.durationSeconds && entry.timeSeconds >= entry.durationSeconds - 10));
     const savedTime = isCompleted ? 0 : (entry?.timeSeconds || 0);
+
+    // Immediately register progress entry with full episode object
+    savePodcastProgress(episode.id, savedTime, episode.durationSeconds, isCompleted, episode);
+
     this.startPlaybackCurrentCandidate(sessionId, savedTime);
   }
 

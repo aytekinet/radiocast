@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PodcastShow, PodcastEpisode } from '../types';
 import { searchPodcasts, getPopularPodcasts, fetchPodcastCatalog, getPodcastEpisodesResult, safeParseEpisodeDateMillis } from '../services/podcastApi';
-import { getAllPodcastProgress, markPodcastEpisodeCompleted, clearPodcastProgress, PodcastProgressEntry } from '../services/storage';
+import { getAllPodcastProgress, markPodcastEpisodeCompleted, clearPodcastProgress, PodcastProgressEntry, getRecentlyPlayed } from '../services/storage';
 import { 
   Mic, 
   Play, 
@@ -685,7 +685,97 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   // -------------------------------------------------------------
   // MAIN PODCAST SHOWS CATALOG VIEW
   // -------------------------------------------------------------
-  const allSavedEpisodeIds = Object.keys(progressMap);
+  const savedHistoryList = React.useMemo(() => {
+    const recentList = getRecentlyPlayed();
+    const savedIds = Object.keys(progressMap).filter(id => {
+      const entry = progressMap[id];
+      return entry && (entry.timeSeconds > 0 || entry.completed);
+    });
+
+    const recentPodcastEps = recentList
+      .filter(r => r.type === 'podcast' && r.podcastEpisode)
+      .map(r => r.podcastEpisode!);
+
+    const knownEpisodesMap = new Map<string, PodcastEpisode>();
+
+    for (const p of podcasts) {
+      if (p.episodes) {
+        for (const e of p.episodes) {
+          knownEpisodesMap.set(e.id, e);
+        }
+      }
+    }
+
+    for (const e of showEpisodes) {
+      knownEpisodesMap.set(e.id, e);
+    }
+
+    for (const e of favoriteEpisodes) {
+      knownEpisodesMap.set(e.id, e);
+    }
+
+    for (const p of favoritePodcasts) {
+      if (p.episodes) {
+        for (const e of p.episodes) {
+          knownEpisodesMap.set(e.id, e);
+        }
+      }
+    }
+
+    for (const ep of recentPodcastEps) {
+      if (!knownEpisodesMap.has(ep.id)) {
+        knownEpisodesMap.set(ep.id, ep);
+      }
+    }
+
+    for (const id of savedIds) {
+      const entry = progressMap[id];
+      if (entry?.episode && !knownEpisodesMap.has(id)) {
+        knownEpisodesMap.set(id, entry.episode);
+      }
+    }
+
+    const allIdsSet = new Set([...savedIds, ...recentPodcastEps.map(e => e.id)]);
+    const results: { episode: PodcastEpisode; entry?: PodcastProgressEntry; updatedAt: number }[] = [];
+
+    allIdsSet.forEach(id => {
+      const entry = progressMap[id];
+      let ep = knownEpisodesMap.get(id);
+
+      if (!ep) {
+        const recentMatch = recentList.find(r => r.type === 'podcast' && (r.podcastEpisode?.id === id || r.id === `podcast-${id}`));
+        if (recentMatch) {
+          ep = {
+            id,
+            title: recentMatch.title || 'Podcast Bölümü',
+            showTitle: recentMatch.subtitle || 'Podcast',
+            audioUrl: recentMatch.podcastEpisode?.audioUrl || '',
+            coverUrl: recentMatch.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80',
+            durationSeconds: entry?.durationSeconds || recentMatch.podcastEpisode?.durationSeconds || 0,
+            publishedDate: recentMatch.podcastEpisode?.publishedDate || ''
+          };
+        } else if (entry?.episode) {
+          ep = entry.episode;
+        } else {
+          ep = {
+            id,
+            title: 'Dinlenen Podcast Bölümü',
+            showTitle: 'Podcast',
+            audioUrl: '',
+            coverUrl: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80',
+            durationSeconds: entry?.durationSeconds || 0,
+            publishedDate: ''
+          };
+        }
+      }
+
+      const updatedAt = entry?.updatedAt || (recentList.find(r => r.type === 'podcast' && r.podcastEpisode?.id === id)?.playedAt) || 0;
+      results.push({ episode: ep, entry, updatedAt });
+    });
+
+    results.sort((a, b) => b.updatedAt - a.updatedAt);
+    return results;
+  }, [progressMap, podcasts, showEpisodes, favoriteEpisodes, favoritePodcasts]);
 
   return (
     <div className="p-4 md:p-6 space-y-8 max-w-7xl mx-auto pb-24">
@@ -888,7 +978,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                 <Clock className="w-5 h-5 text-amber-500" />
                 Podcast Dinleme Geçmişi ve Kaldığın Yerler
               </h2>
-              {allSavedEpisodeIds.length > 0 && (
+              {savedHistoryList.length > 0 && (
                 <button
                   onClick={handleClearAllHistory}
                   className="px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-red-500/10 dark:bg-zinc-800 dark:hover:bg-red-500/20 text-zinc-600 dark:text-zinc-400 hover:text-red-500 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
@@ -900,14 +990,13 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
             </div>
 
             <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4 shadow-sm">
-              {allSavedEpisodeIds.length === 0 ? (
+              {savedHistoryList.length === 0 ? (
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 italic">
                   Henüz dinlenmiş podcast bölümünüz bulunmuyor. Bir bölüm dinlediğinizde süreniz ve tamamlanma durumunuz otomatik olarak burada görünür.
                 </p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {podcasts.flatMap(s => s.episodes || []).filter(e => progressMap[e.id]).map(ep => {
-                    const entry = progressMap[ep.id];
+                  {savedHistoryList.map(({ episode: ep, entry }) => {
                     const savedSecs = entry?.timeSeconds || 0;
                     const dur = ep.durationSeconds || entry?.durationSeconds || 0;
                     const isCompleted = Boolean(entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
@@ -925,7 +1014,14 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                         }`}
                       >
                         <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
-                          <img src={ep.coverUrl} alt={ep.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                          <img
+                            src={ep.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'}
+                            alt={ep.title}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'; }}
+                          />
                           <div className="absolute inset-0 bg-zinc-950/40 flex items-center justify-center">
                             {isThisPlaying ? (
                               <Pause className="w-5 h-5 text-amber-400 fill-current" />
@@ -941,7 +1037,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                           <h4 className="text-xs font-bold text-zinc-900 dark:text-white line-clamp-1 group-hover:text-amber-500">
                             {ep.title}
                           </h4>
-                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1">{ep.showTitle}</p>
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1">{ep.showTitle || 'Podcast'}</p>
                           <div className="space-y-1">
                             <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                               <div
@@ -954,9 +1050,13 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                                 <span className="text-emerald-500 font-bold flex items-center gap-1">
                                   <CheckCircle2 className="w-2.5 h-2.5" /> Tamamlandı
                                 </span>
-                              ) : (
+                              ) : savedSecs > 0 ? (
                                 <span className="text-amber-500 font-bold">
                                   {formatDuration(savedSecs)} dinlendi
+                                </span>
+                              ) : (
+                                <span className="text-zinc-400 font-bold">
+                                  Başlatıldı
                                 </span>
                               )}
                               <span className={isCompleted ? 'text-emerald-500' : 'text-amber-500'}>%{pct}</span>
