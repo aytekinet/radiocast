@@ -68,11 +68,11 @@
     "bitrate": 128
   },
   {
-    "stationuuid": "bcf1eca1-d197-451b-bdd0-dde1e4bcaae1",
+    "stationuuid": "v-radyo-d",
     "name": "Radyo D",
-    "playUrl": "https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8",
-    "url": "https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8",
-    "url_resolved": "https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8",
+    "playUrl": "https://ssldyg.radyotvonline.com/radyod/radyod.stream/playlist.m3u8",
+    "url": "https://ssldyg.radyotvonline.com/radyod/radyod.stream/playlist.m3u8",
+    "url_resolved": "https://ssldyg.radyotvonline.com/radyod/radyod.stream/playlist.m3u8",
     "homepage": "https://www.radyod.com.tr",
     "favicon": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200&q=80",
     "tags": "pop,turkce,hit",
@@ -85,11 +85,11 @@
     "bitrate": 128
   },
   {
-    "stationuuid": "097bda49-2be1-4306-a657-ce5bd922bd40",
+    "stationuuid": "v-radyo-viva",
     "name": "Radyo Viva",
-    "playUrl": "https://showradyo.radyotvonline.net/radyoviva",
-    "url": "https://showradyo.radyotvonline.net/radyoviva",
-    "url_resolved": "https://showradyo.radyotvonline.net/radyoviva",
+    "playUrl": "https://showradyo.radyotvonline.net/radyoviva/playlist.m3u8",
+    "url": "https://showradyo.radyotvonline.net/radyoviva/playlist.m3u8",
+    "url_resolved": "https://showradyo.radyotvonline.net/radyoviva/playlist.m3u8",
     "homepage": "https://www.radyoviva.com.tr",
     "favicon": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80",
     "tags": "pop,turkce,muzik",
@@ -98,7 +98,7 @@
     "state": "Istanbul",
     "language": "turkish",
     "votes": 27500,
-    "codec": "AAC",
+    "codec": "HLS",
     "bitrate": 128
   },
   {

@@ -286,18 +286,21 @@ class AudioEngine {
       const proxyUrl = `/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`;
 
       if (isHls) {
-        rawCandidates.push(cleanUrl);
+        // HLS (.m3u8) streams on external domains fail browser CORS in hls.js.
+        // Put local proxy FIRST so hls.js gets an immediate CORS-enabled response!
         rawCandidates.push(proxyUrl);
+        if (stationRelayUrl) rawCandidates.push(stationRelayUrl);
+        rawCandidates.push(cleanUrl);
         rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
       } else if (cleanUrl.toLowerCase().startsWith('https://')) {
-        rawCandidates.push(cleanUrl);
         rawCandidates.push(proxyUrl);
+        rawCandidates.push(cleanUrl);
         rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
       } else {
-        // HTTP stream: try HTTPS upgrade first, then local proxy, then raw HTTP
+        // HTTP stream: try local proxy first (to prevent mixed-content block), then HTTPS upgrade, then raw HTTP
         const httpsUpgraded = cleanUrl.replace(/^http:\/\//i, 'https://');
-        rawCandidates.push(httpsUpgraded);
         rawCandidates.push(proxyUrl);
+        rawCandidates.push(httpsUpgraded);
         rawCandidates.push(cleanUrl);
         rawCandidates.push(`https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`);
       }

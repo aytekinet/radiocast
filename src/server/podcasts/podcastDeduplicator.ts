@@ -45,8 +45,10 @@ export function buildUnifiedPodcastCatalog(
   const catalogMap = new Map<string, WebPodcast>();
 
   // 1. Ingest Curated Podcasts
+  let curatedIdx = 0;
   for (const c of curatedList) {
     if (!c.enabled || !c.feedUrl) continue;
+    curatedIdx++;
     const normFeed = normalizeFeedUrl(c.feedUrl);
     const podcastId = `curated-${c.id}`;
 
@@ -63,7 +65,7 @@ export function buildUnifiedPodcastCatalog(
       source: 'curated',
       sources: ['curated'],
       turkishConfidence: 1.0,
-      releaseDateMillis: Date.now()
+      releaseDateMillis: 0
     };
 
     catalogMap.set(normFeed, podcastObj);

@@ -797,112 +797,77 @@ export const VERIFIED_TURKISH_STATIONS: RadioStation[] = [
 
 // Fallback mirror map by station name / keyword
 export const STATION_MIRRORS_MAP: Record<string, string[]> = {
-  'kralpop': [
-    'https://ssldyg.radyotvonline.com/kralpop/kralpop.stream/playlist.m3u8',
-    'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8',
-    'https://live.kralmuzik.com.tr/kralpop/playlist.m3u8',
-    'https://showradyo.radyotvonline.net/kralpop'
+  'radyo d': [
+    'https://dygedge2.radyotvonline.net/radyod/playlist.m3u8',
+    'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8',
+    'https://moondigitalmaster.radyotvonline.net/radyod/playlist.m3u8'
+  ],
+  'radyod': [
+    'https://dygedge2.radyotvonline.net/radyod/playlist.m3u8',
+    'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8'
   ],
   'kral pop': [
-    'https://ssldyg.radyotvonline.com/kralpop/kralpop.stream/playlist.m3u8',
     'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8',
-    'https://live.kralmuzik.com.tr/kralpop/playlist.m3u8',
-    'https://showradyo.radyotvonline.net/kralpop'
+    'https://moondigitaledge2.radyotvonline.net/kralpop/playlist.m3u8'
   ],
-  'kralfm': [
-    'https://ssldyg.radyotvonline.com/kralfm/kralfm.stream/playlist.m3u8',
-    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8',
-    'https://live.kralmuzik.com.tr/kralfm/playlist.m3u8'
+  'kralpop': [
+    'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8'
   ],
   'kral fm': [
-    'https://ssldyg.radyotvonline.com/kralfm/kralfm.stream/playlist.m3u8',
     'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8',
-    'https://live.kralmuzik.com.tr/kralfm/playlist.m3u8'
+    'https://moondigitaledge2.radyotvonline.net/kralfm/playlist.m3u8'
   ],
-  'radyo voyage': [
-    'https://ssldyg.radyotvonline.com/radyovoyage/radyovoyage.stream/playlist.m3u8',
-    'https://dygedge2.radyotvonline.net/radyovoyage/playlist.m3u8'
+  'kralfm': [
+    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8'
   ],
-  'voyage': [
-    'https://ssldyg.radyotvonline.com/radyovoyage/radyovoyage.stream/playlist.m3u8',
-    'https://dygedge2.radyotvonline.net/radyovoyage/playlist.m3u8'
+  'radyo viva': [
+    'https://edge1.radyotvonline.net/shoutcast/play/radyoviva',
+    'https://showradyo.radyotvonline.net/radyoviva/playlist.m3u8'
   ],
-  'kafa radyo': [
-    'https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8',
-    'https://edge1.radyotvonline.net/shoutcast/play/kafaradyo',
-    'https://listen.kafaradyo.com/stream'
-  ],
-  'kafaradyo': [
-    'https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8',
-    'https://edge1.radyotvonline.net/shoutcast/play/kafaradyo'
-  ],
-  'super fm': [
-    'https://29103.live.streamtheworld.com/SUPER_FM_SC',
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC'
-  ],
-  'superfm': [
-    'https://29103.live.streamtheworld.com/SUPER_FM_SC',
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC'
-  ],
-  'alem fm': [
-    'https://turkuvaz.radyotvonline.net/alemfm/playlist.m3u8',
-    'https://turkmedya.radyotvonline.net/alemfmaac',
-    'https://edge1.radyotvonline.net/shoutcast/play/alemfm'
-  ],
-  'alemfm': [
-    'https://turkuvaz.radyotvonline.net/alemfm/playlist.m3u8',
-    'https://turkmedya.radyotvonline.net/alemfmaac'
-  ],
-  'trt fm': [
-    'https://rd-trtfm.medya.trt.com.tr/master_128.m3u8',
-    'https://trt.radyotvonline.net/trtfm'
-  ],
-  'trtfm': [
-    'https://rd-trtfm.medya.trt.com.tr/master_128.m3u8',
-    'https://trt.radyotvonline.net/trtfm'
-  ],
-  'trt radyo haber': [
-    'https://rd-trtradyohaber.medya.trt.com.tr/master_128.m3u8',
-    'https://radiotrt.medya.trt.com.tr/trtradyohaber/playlist.m3u8'
-  ],
-  'trt haber': [
-    'https://rd-trtradyohaber.medya.trt.com.tr/master_128.m3u8',
-    'https://radiotrt.medya.trt.com.tr/trtradyohaber/playlist.m3u8'
-  ],
-  'virgin radio': [
-    'https://29103.live.streamtheworld.com/VIRGIN_RADIO_SC',
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/VIRGIN_RADIO_SC'
-  ],
-  'power fm': [
-    'https://live.powerapp.com.tr/powerfm/abr/powerfm/128/playlist.m3u8',
-    'https://powerfm.listenpowerapp.com/powerfm/mpeg/icecast.audio'
-  ],
-  'powerfm': [
-    'https://live.powerapp.com.tr/powerfm/abr/powerfm/128/playlist.m3u8'
-  ],
-  'power turk': [
-    'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8',
-    'https://listen.powerapp.com.tr/powerturk/abr/playlist.m3u8'
-  ],
-  'powerturk': [
-    'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8'
-  ],
-  'slow turk': [
-    'https://radyo.duhnet.tv/ak_dtvh_slowturk',
-    'https://kanald.radyotvonline.net/slowturk'
-  ],
-  'slowturk': [
-    'https://radyo.duhnet.tv/ak_dtvh_slowturk'
+  'radyoviva': [
+    'https://edge1.radyotvonline.net/shoutcast/play/radyoviva'
   ],
   'show radyo': [
-    'https://showradyo.radyotvonline.net/showradyo'
+    'https://showradyo.radyotvonline.net/showradyo',
+    'https://edge1.radyotvonline.net/shoutcast/play/showradyo'
   ],
   'showradyo': [
     'https://showradyo.radyotvonline.net/showradyo'
   ],
+  'slow turk': [
+    'https://dygedge2.radyotvonline.net/slowturk/playlist.m3u8',
+    'https://moondigitaledge2.radyotvonline.net/slowturk/playlist.m3u8'
+  ],
+  'slowturk': [
+    'https://dygedge2.radyotvonline.net/slowturk/playlist.m3u8'
+  ],
+  'power turk': [
+    'http://listen.powerapp.com.tr/powerturk/mpeg/icecast.audio',
+    'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8'
+  ],
+  'powerturk': [
+    'http://listen.powerapp.com.tr/powerturk/mpeg/icecast.audio'
+  ],
+  'power fm': [
+    'http://listen.powerapp.com.tr/powerfm/mpeg/icecast.audio',
+    'https://live.powerapp.com.tr/powerfm/abr/powerfm/128/playlist.m3u8'
+  ],
+  'powerfm': [
+    'http://listen.powerapp.com.tr/powerfm/mpeg/icecast.audio'
+  ],
+  'alem fm': [
+    'https://edge1.radyotvonline.net/shoutcast/play/alemfm'
+  ],
+  'alemfm': [
+    'https://edge1.radyotvonline.net/shoutcast/play/alemfm'
+  ],
+  'super fm': [
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC'
+  ],
+  'superfm': [
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC'
+  ],
   'joy fm': [
-    'https://20853.live.streamtheworld.com/JOY_FM_SC',
-    'https://28993.live.streamtheworld.com/JOY_FMAAC_SC',
     'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_FM_SC'
   ],
   'joy turk': [
@@ -911,102 +876,65 @@ export const STATION_MIRRORS_MAP: Record<string, string[]> = {
   'joyturk': [
     'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_SC'
   ],
-  'joy turk akustik': [
-    'https://22123.live.streamtheworld.com/JOY_TURK_AKUSTIK_SC',
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_AKUSTIK_SC'
-  ],
   'metro fm': [
-    'https://29103.live.streamtheworld.com/METRO_FM_SC',
-    'https://28503.live.streamtheworld.com/METRO_FMAAC_SC',
     'https://playerservices.streamtheworld.com/api/livestream-redirect/METRO_FM_SC'
   ],
   'metrofm': [
-    'https://29103.live.streamtheworld.com/METRO_FM_SC'
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/METRO_FM_SC'
   ],
-  'radyo d': [
-    'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8',
-    'https://moondigitalmaster.radyotvonline.net/radyod/playlist.m3u8',
-    'https://ssldyg.radyotvonline.com/radyod/radyod.stream/playlist.m3u8',
-    'https://radyo.duhnet.tv/ak_dtvh_radyod'
-  ],
-  'radyod': [
-    'https://moondigitaledge2.radyotvonline.net/radyod/playlist.m3u8',
-    'https://moondigitalmaster.radyotvonline.net/radyod/playlist.m3u8'
-  ],
-  'radyo viva': [
-    'https://showradyo.radyotvonline.net/radyoviva/playlist.m3u8',
-    'https://showradyo.radyotvonline.net/radyoviva',
-    'https://edge1.radyotvonline.net/shoutcast/play/radyoviva'
-  ],
-  'radyoviva': [
-    'https://showradyo.radyotvonline.net/radyoviva/playlist.m3u8',
-    'https://showradyo.radyotvonline.net/radyoviva'
+  'virgin radio': [
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/VIRGIN_RADIO_SC'
   ],
   'istanbul fm': [
-    'https://stream.istanbulfm.com.tr:8000/;',
-    'http://stream.istanbulfm.com.tr:8000/;'
+    'https://stream.istanbulfm.com.tr:8000/;'
   ],
   'istanbulfm': [
     'https://stream.istanbulfm.com.tr:8000/;'
   ],
   'radyo 45': [
-    'https://moondigitalmaster.radyotvonline.net/radyo45lik/playlist.m3u8',
-    'https://edge1.radyotvonline.net/shoutcast/play/radyo45lik'
+    'https://dygedge2.radyotvonline.net/radyo45lik/playlist.m3u8'
   ],
   'radyo45lik': [
-    'https://moondigitalmaster.radyotvonline.net/radyo45lik/playlist.m3u8',
-    'https://edge1.radyotvonline.net/shoutcast/play/radyo45lik'
-  ],
-  'romantik turk': [
-    'https://stream.romantikturk.com.tr:8032/;',
-    'http://stream.romantikturk.com.tr:8032/;'
-  ],
-  'romantikturk': [
-    'https://stream.romantikturk.com.tr:8032/;'
-  ],
-  'damar fm': [
-    'https://stream.damarfm.com:8000/;',
-    'https://live.damarfm.com:8000/stream'
-  ],
-  'damarfm': [
-    'https://stream.damarfm.com:8000/;'
+    'https://dygedge2.radyotvonline.net/radyo45lik/playlist.m3u8'
   ],
   'ntv radyo': [
-    'https://ssldyg.radyotvonline.com/ntvradyo/ntvradyo.stream/playlist.m3u8',
     'https://dygedge2.radyotvonline.net/ntvradyo/playlist.m3u8'
   ],
   'ntvradyo': [
-    'https://ssldyg.radyotvonline.com/ntvradyo/ntvradyo.stream/playlist.m3u8'
+    'https://dygedge2.radyotvonline.net/ntvradyo/playlist.m3u8'
   ],
   'cnn turk': [
-    'https://moondigitaledge2.radyotvonline.net/cnnturkradyo/playlist.m3u8',
-    'https://ssldyg.radyotvonline.com/cnnturk/cnnturk.stream/playlist.m3u8'
+    'https://dygedge2.radyotvonline.net/cnnturkradyo/playlist.m3u8'
   ],
   'radyo spor': [
-    'https://turkuvaz.radyotvonline.net/radyospor/playlist.m3u8',
-    'https://turkuvaz.radyotvonline.net/radyospor'
+    'https://edge1.radyotvonline.net/shoutcast/play/radyospor'
   ],
   'radyospor': [
-    'https://turkuvaz.radyotvonline.net/radyospor/playlist.m3u8'
+    'https://edge1.radyotvonline.net/shoutcast/play/radyospor'
   ],
   'radyo eksen': [
-    'https://ssldyg.radyotvonline.com/radyoeksen/radyoeksen.stream/playlist.m3u8',
     'https://dygedge2.radyotvonline.net/radyoeksen/playlist.m3u8'
   ],
-  'radyo fenomen': [
-    'https://fenomen.listenfenomen.com/fenomen/128/m3u8',
-    'https://fenomen.listenfenomen.com/fenomen/128/icecast.audio'
+  'radyoeksen': [
+    'https://dygedge2.radyotvonline.net/radyoeksen/playlist.m3u8'
   ],
-  'fenomen': [
-    'https://fenomen.listenfenomen.com/fenomen/128/m3u8'
+  'trt fm': [
+    'https://rd-trtfm.medya.trt.com.tr/master_128.m3u8'
   ],
-  'borusan': [
-    'https://borusan.karnaval.com/borusanklasik_high.mp3',
-    'https://20853.live.streamtheworld.com/BORUSAN_KLASIK_SC'
+  'trtfm': [
+    'https://rd-trtfm.medya.trt.com.tr/master_128.m3u8'
   ],
-  'radyo alaturka': [
-    'https://edge1.radyotvonline.net/shoutcast/play/radyoalaturka',
-    'https://showradyo.radyotvonline.net/radyoalaturka/playlist.m3u8'
+  'trt radyo 1': [
+    'https://rd-trtradyo1.medya.trt.com.tr/master_128.m3u8'
+  ],
+  'trt turku': [
+    'https://rd-trtturku.medya.trt.com.tr/master_128.m3u8'
+  ],
+  'trt nagme': [
+    'https://rd-trtnagme.medya.trt.com.tr/master_128.m3u8'
+  ],
+  'trt radyo haber': [
+    'https://rd-trthaber.medya.trt.com.tr/master_128.m3u8'
   ],
   'best fm': [
     'https://ssldyg.radyotvonline.com/best/bestfm.stream/playlist.m3u8'
@@ -1017,19 +945,17 @@ export const STATION_MIRRORS_MAP: Record<string, string[]> = {
   'diyanet radyo': [
     'https://eustr73.mediatriple.net/videoonlylive/mtikoimxnztxlive/broadcast_5e3c1171d7d2a.smil/playlist.m3u8'
   ],
-  'trt turku': [
-    'https://rd-trtturku.medya.trt.com.tr/master_128.m3u8'
+  'kafa radyo': [
+    'https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8'
   ],
-  'number1': [
-    'https://n10a-eu.superstream.com.tr/number1turk/playlist.m3u8',
-    'https://n10a-eu.superstream.com.tr/number1/playlist.m3u8'
+  'kafaradyo': [
+    'https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8'
   ],
-  'pal fm': [
-    'https://shoutcast.palmedya.com.tr/pal-fm/stream/1/',
-    'https://shoutcast.palmedya.com.tr/palfm/stream'
+  'radyo voyage': [
+    'https://dygedge2.radyotvonline.net/radyovoyage/playlist.m3u8'
   ],
-  'pal station': [
-    'https://shoutcast.palmedya.com.tr/palstation/stream'
+  'voyage': [
+    'https://dygedge2.radyotvonline.net/radyovoyage/playlist.m3u8'
   ]
 };
 
@@ -1038,8 +964,6 @@ export const STATION_MIRRORS_MAP: Record<string, string[]> = {
  */
 export function getCandidateUrlsForStation(station: RadioStation): string[] {
   const candidates: string[] = [];
-  const primary = station.url_resolved || station.url || station.playUrl || station.streamUrl;
-  if (primary) candidates.push(primary.trim());
 
   const rawName = (station.name || '').toLowerCase();
   const normalizedName = rawName
@@ -1053,6 +977,7 @@ export function getCandidateUrlsForStation(station: RadioStation): string[] {
 
   const cleanName = normalizedName.replace(/[^a-z0-9]/g, '');
 
+  // 1. Add guaranteed curated mirrors FIRST if available
   for (const [key, mirrors] of Object.entries(STATION_MIRRORS_MAP)) {
     const cleanKey = key
       .toLowerCase()
@@ -1064,10 +989,7 @@ export function getCandidateUrlsForStation(station: RadioStation): string[] {
       .replace(/ü/g, 'u')
       .replace(/[^a-z0-9]/g, '');
 
-    if (
-      normalizedName.includes(key) ||
-      (cleanKey.length >= 3 && cleanName.includes(cleanKey))
-    ) {
+    if (normalizedName === key || cleanName === cleanKey) {
       for (const m of mirrors) {
         if (m && !candidates.includes(m.trim())) {
           candidates.push(m.trim());
@@ -1076,14 +998,35 @@ export function getCandidateUrlsForStation(station: RadioStation): string[] {
     }
   }
 
-  // Also try backup URL if primary is http and can be https or vice versa
-  if (primary) {
-    const trimmedPrimary = primary.trim();
-    if (trimmedPrimary.startsWith('http://')) {
-      const httpsVersion = trimmedPrimary.replace(/^http:\/\//i, 'https://');
+  // 2. Add station's own primary URL
+  const primary = station.url_resolved || station.url || station.playUrl || station.streamUrl;
+  if (primary && !candidates.includes(primary.trim())) {
+    candidates.push(primary.trim());
+  }
+
+  // 3. Fallback partial matching on mirrors
+  if (candidates.length === 0) {
+    for (const [key, mirrors] of Object.entries(STATION_MIRRORS_MAP)) {
+      const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (cleanKey.length >= 4 && cleanName.includes(cleanKey)) {
+        for (const m of mirrors) {
+          if (m && !candidates.includes(m.trim())) {
+            candidates.push(m.trim());
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Also try HTTP/HTTPS variants if any candidate exists
+  const count = candidates.length;
+  for (let i = 0; i < count; i++) {
+    const c = candidates[i];
+    if (c.startsWith('http://')) {
+      const httpsVersion = c.replace(/^http:\/\//i, 'https://');
       if (!candidates.includes(httpsVersion)) candidates.push(httpsVersion);
-    } else if (trimmedPrimary.startsWith('https://')) {
-      const httpVersion = trimmedPrimary.replace(/^https:\/\//i, 'http://');
+    } else if (c.startsWith('https://')) {
+      const httpVersion = c.replace(/^https:\/\//i, 'http://');
       if (!candidates.includes(httpVersion)) candidates.push(httpVersion);
     }
   }

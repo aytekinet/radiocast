@@ -2,7 +2,7 @@ import { PodcastShow, PodcastEpisode } from '../types';
 import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
 
 export function getLocalCuratedPodcasts(): PodcastShow[] {
-  return CURATED_TURKISH_PODCASTS.map(p => ({
+  return CURATED_TURKISH_PODCASTS.map((p) => ({
     id: p.id,
     title: p.title,
     publisher: p.publisher,
@@ -107,13 +107,59 @@ export function safeParseEpisodeDateMillis(ep: any): number {
   return 0;
 }
 
+const TURKISH_CHARS_REGEX = /[çğışöüÇĞİŞÖÜ]/;
+const ENGLISH_STOP_WORDS = ['the', 'and', 'with', 'from', 'this', 'that', 'about', 'daily', 'weekly', 'official', 'podcast', 'episodes', 'hosted', 'sleep', 'meditation', 'magic', 'strangest', 'crimes', 'stories', 'night', 'falls', 'ballen'];
+
+export function isTurkishPodcastShow(show: { title?: string; publisher?: string; description?: string; category?: string }): boolean {
+  if (!show) return false;
+  const title = (show.title || '').trim();
+  const desc = (show.description || '').trim();
+  const pub = (show.publisher || '').trim();
+  const text = `${title} ${desc} ${pub}`.toLowerCase();
+
+  if (!text) return false;
+
+  // If contains Turkish characters, it's definitely Turkish!
+  if (TURKISH_CHARS_REGEX.test(text)) return true;
+
+  // Check for English stop words
+  const words = text.split(/\s+/).map(w => w.replace(/[^a-z]/g, ''));
+  let englishMatches = 0;
+  for (const w of words) {
+    if (ENGLISH_STOP_WORDS.includes(w)) {
+      englishMatches++;
+    }
+  }
+  if (englishMatches >= 2) return false;
+
+  // Check for common Turkish words / keywords
+  const trKeywords = [
+    'felsefe', 'haber', 'gündem', 'teknoloji', 'bilim', 'psikoloji', 'tarih',
+    'mizah', 'ekonomi', 'spor', 'sanat', 'edebiyat', 'müzik', 'bilişim',
+    'eğitim', 'finans', 'girişimcilik', 'sinema', 'dizi', 'sağlık', 'yaşam',
+    'kişisel', 'oyun', 'çocuk', 'ebeveyn', 'futbol', 'kripto', 'kültür', 'hikaye',
+    'sohbet', 'türkiye', 'türkçe', 'yayın', 'bölüm', 've', 'ile', 'bir', 'bu',
+    'için', 'daha', 'gibi', 'kadar', 'sonra', 'göre', 'olan', 'her', 'ben', 'sen',
+    'biz', 'siz', 'onlar', 'var', 'yok', 'nasıl', 'neden', 'niçin', 'aykut', 'ahmet', 'mehmet', 'can', 'cem'
+  ];
+
+  let matchedTr = 0;
+  for (const w of words) {
+    if (trKeywords.includes(w)) {
+      matchedTr++;
+    }
+  }
+
+  return matchedTr >= 1;
+}
+
 export async function fetchITunesPodcastsDirect(query: string, country = 'TR', limit = 100): Promise<PodcastShow[]> {
   try {
     const res = await fetch(`https://itunes.apple.com/search?media=podcast&entity=podcast&country=${encodeURIComponent(country)}&limit=${limit}&term=${encodeURIComponent(query)}`);
     if (res.ok) {
       const data = await res.json();
       if (data && Array.isArray(data.results)) {
-        return data.results
+        const parsedShows = data.results
           .filter((item: any) => item.feedUrl && item.collectionName)
           .map((item: any) => ({
             id: String(item.collectionId || Math.random()),
@@ -126,6 +172,8 @@ export async function fetchITunesPodcastsDirect(query: string, country = 'TR', l
             releaseDateMillis: item.releaseDate ? new Date(item.releaseDate).getTime() : 0,
             episodes: []
           }));
+
+        return parsedShows.filter(isTurkishPodcastShow);
       }
     }
   } catch (err) {
@@ -143,6 +191,24 @@ export interface PodcastCatalogResponse {
   hasMore: boolean;
 }
 
+function addOrMergePodcast(map: Map<string, PodcastShow>, p: PodcastShow) {
+  if (!isTurkishPodcastShow(p)) return;
+  const key = (p.feedUrl || p.title).toLowerCase().trim();
+  const existing = map.get(key);
+  if (!existing) {
+    map.set(key, p);
+  } else {
+    const bestDate = Math.max(existing.releaseDateMillis || 0, p.releaseDateMillis || 0);
+    const bestCover = (existing.coverUrl && !existing.coverUrl.includes('unsplash')) ? existing.coverUrl : (p.coverUrl || existing.coverUrl);
+    map.set(key, {
+      ...existing,
+      coverUrl: bestCover,
+      description: existing.description || p.description,
+      releaseDateMillis: bestDate
+    });
+  }
+}
+
 let cachedMultiKeywordShows: PodcastShow[] | null = null;
 let lastFetchTime = 0;
 
@@ -150,7 +216,7 @@ export async function fetchAllClientPodcasts(query = '', category = 'all'): Prom
   const normQuery = query.toLowerCase().trim();
   const normCat = category.toLowerCase().trim();
 
-  // If specific search query provided
+  // 1. If specific search query provided
   if (normQuery && normQuery !== 'podcast' && normQuery !== 'popular') {
     const directResults = await fetchITunesPodcastsDirect(normQuery, 'TR', 200);
     const localMatches = getLocalCuratedPodcasts().filter(p =>
@@ -162,29 +228,43 @@ export async function fetchAllClientPodcasts(query = '', category = 'all'): Prom
 
     const mergedMap = new Map<string, PodcastShow>();
     for (const p of [...directResults, ...localMatches]) {
-      const key = (p.feedUrl || p.title).toLowerCase().trim();
-      if (!mergedMap.has(key)) mergedMap.set(key, p);
+      addOrMergePodcast(mergedMap, p);
     }
-    return Array.from(mergedMap.values());
+    const results = Array.from(mergedMap.values());
+    results.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
+    return results;
   }
 
-  // If specific category selected
+  // 2. If specific category selected
   if (normCat && normCat !== 'all') {
-    const catQuery = normQuery || normCat;
-    const directResults = await fetchITunesPodcastsDirect(catQuery, 'TR', 200);
+    const categorySearchTerms: Record<string, string> = {
+      haber: 'haber gündem news son dakika',
+      felsefe: 'felsefe kültür düşünce',
+      mizah: 'mizah eğlence komedi',
+      teknoloji: 'teknoloji bilim yazılım tech',
+      psikoloji: 'psikoloji yaşam kişisel gelişim',
+      tarih: 'tarih geçmiş hikaye',
+      ekonomi: 'ekonomi finans borsa iş',
+      spor: 'spor futbol basketbol',
+      sanat: 'sanat edebiyat sinema'
+    };
+    const catSearchQuery = categorySearchTerms[normCat] || normCat;
+
+    const directResults = await fetchITunesPodcastsDirect(catSearchQuery, 'TR', 200);
     const localMatches = getLocalCuratedPodcasts().filter(p =>
       p.category.toLowerCase().includes(normCat) || p.title.toLowerCase().includes(normCat)
     );
 
     const mergedMap = new Map<string, PodcastShow>();
     for (const p of [...directResults, ...localMatches]) {
-      const key = (p.feedUrl || p.title).toLowerCase().trim();
-      if (!mergedMap.has(key)) mergedMap.set(key, p);
+      addOrMergePodcast(mergedMap, p);
     }
-    return Array.from(mergedMap.values());
+    const results = Array.from(mergedMap.values());
+    results.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
+    return results;
   }
 
-  // Category 'all' (Tüm Podcastler): Return broad Turkish multi-keyword podcasts (1000+)
+  // 3. Category 'all' (Tüm Podcastler): Return broad Turkish multi-keyword podcasts (1000+)
   const NOW = Date.now();
   if (cachedMultiKeywordShows && (NOW - lastFetchTime) < 15 * 60 * 1000) {
     return cachedMultiKeywordShows;
@@ -202,23 +282,19 @@ export async function fetchAllClientPodcasts(query = '', category = 'all'): Prom
 
   const mergedMap = new Map<string, PodcastShow>();
   for (const p of getLocalCuratedPodcasts()) {
-    const key = (p.feedUrl || p.title).toLowerCase().trim();
-    mergedMap.set(key, p);
+    addOrMergePodcast(mergedMap, p);
   }
 
   for (const res of results) {
     if (res.status === 'fulfilled' && Array.isArray(res.value)) {
       for (const p of res.value) {
-        const key = (p.feedUrl || p.title).toLowerCase().trim();
-        if (!mergedMap.has(key)) {
-          mergedMap.set(key, p);
-        }
+        addOrMergePodcast(mergedMap, p);
       }
     }
   }
 
   const allShows = Array.from(mergedMap.values());
-  // Sort ALL podcasts by recency (newest releaseDateMillis first)
+  // Sort ALL podcasts strictly by recency (newest releaseDateMillis first)
   allShows.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
 
   cachedMultiKeywordShows = allShows;
@@ -248,7 +324,7 @@ export async function fetchPodcastCatalog(params: {
 
     if (res.ok) {
       const data = await res.json();
-      if (data && data.success && Array.isArray(data.items) && data.items.length >= 30) {
+      if (data && data.success && Array.isArray(data.items) && data.items.length >= 1) {
         const shows: PodcastShow[] = data.items.map((item: any) => ({
           id: item.id,
           title: item.title,
@@ -261,10 +337,12 @@ export async function fetchPodcastCatalog(params: {
           episodes: []
         }));
 
+        const turkishOnly = shows.filter(isTurkishPodcastShow);
+
         return {
-          items: shows,
-          count: data.count || shows.length,
-          total: data.total || shows.length,
+          items: turkishOnly,
+          count: data.count || turkishOnly.length,
+          total: data.total || turkishOnly.length,
           limit: data.limit || limit,
           offset: data.offset || offset,
           hasMore: data.hasMore ?? false

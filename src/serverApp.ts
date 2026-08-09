@@ -3,7 +3,7 @@ import http from 'http';
 import https from 'https';
 import { URL } from 'url';
 import { XMLParser } from 'fast-xml-parser';
-import { VERIFIED_TURKISH_STATIONS } from './data/fallbackStations';
+import { VERIFIED_TURKISH_STATIONS, ALL_TURKISH_STATIONS } from './data/fallbackStations';
 import { processTakedownRequest } from './services/takedownHandler';
 import { 
   handlePodcastFeed as unifiedPodcastFeed, 
@@ -629,7 +629,38 @@ function registerInCatalog(station: any, source = 'radio-browser') {
   });
 }
 
+ALL_TURKISH_STATIONS.forEach(s => registerInCatalog(s, 'all-turkish'));
 VERIFIED_TURKISH_STATIONS.forEach(s => registerInCatalog(s, 'curated'));
+
+function rewriteM3u8Playlist(manifestText: string, baseUrl: string): string {
+  const lines = manifestText.split(/\r?\n/);
+  const rewrittenLines = lines.map(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return line;
+
+    // Attribute line with URI="..." e.g. #EXT-X-KEY:METHOD=AES-128,URI="key.bin" or #EXT-X-MEDIA:...
+    if (trimmed.startsWith('#')) {
+      return line.replace(/URI=["']([^"']+)["']/gi, (_match, uri) => {
+        try {
+          const abs = new URL(uri, baseUrl).href;
+          return `URI="/api/radio/proxy?url=${encodeURIComponent(abs)}"`;
+        } catch {
+          return _match;
+        }
+      });
+    }
+
+    // URI line
+    try {
+      const absUrl = new URL(trimmed, baseUrl).href;
+      return `/api/radio/proxy?url=${encodeURIComponent(absUrl)}`;
+    } catch {
+      return line;
+    }
+  });
+
+  return rewrittenLines.join('\n');
+}
 
 function proxyAudioStream(targetUrl: string, req: express.Request, res: express.Response, redirectCount = 0) {
   if (redirectCount > 3) {
@@ -649,16 +680,21 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
 
   const client = parsed.protocol === 'https:' ? https : http;
 
-  const options = {
+  const requestHeaders: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept': '*/*',
+    'Icy-MetaData': '1',
+    'Referer': `${parsed.protocol}//${parsed.hostname}/`,
+    'Origin': `${parsed.protocol}//${parsed.hostname}`
+  };
+
+  const options: https.RequestOptions = {
     hostname: parsed.hostname,
     port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
     path: parsed.pathname + parsed.search,
     method: 'GET',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-      'Accept': 'audio/*, */*',
-      'Icy-MetaData': '1'
-    },
+    headers: requestHeaders,
+    rejectUnauthorized: false, // Allow radios with self-signed or expired SSL certs
     timeout: 10000
   };
 
@@ -675,6 +711,29 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
       return res.status(upstreamRes.statusCode || 502).end();
     }
 
+    const currentCT = (upstreamRes.headers['content-type'] || '').toLowerCase();
+    const isM3u8 = targetUrl.includes('.m3u8') || targetUrl.includes('playlist') || currentCT.includes('mpegurl') || currentCT.includes('m3u8');
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    if (isM3u8) {
+      res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+      let bodyData = '';
+      upstreamRes.setEncoding('utf8');
+      upstreamRes.on('data', chunk => { bodyData += chunk; });
+      upstreamRes.on('end', () => {
+        if (bodyData.includes('#EXTM3U') || isM3u8) {
+          const rewritten = rewriteM3u8Playlist(bodyData, targetUrl);
+          res.status(upstreamRes.statusCode || 200).send(rewritten);
+        } else {
+          res.status(upstreamRes.statusCode || 200).send(bodyData);
+        }
+      });
+      return;
+    }
+
     res.status(upstreamRes.statusCode);
 
     const hopByHopHeaders = new Set([
@@ -688,20 +747,13 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
       }
     }
 
-    const currentCT = (upstreamRes.headers['content-type'] || '').toLowerCase();
     if (!currentCT || currentCT.includes('text/html') || currentCT.includes('text/plain') || currentCT.includes('octet-stream')) {
-      if (targetUrl.includes('.m3u8') || targetUrl.includes('playlist')) {
-        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-      } else if (targetUrl.includes('aac')) {
+      if (targetUrl.includes('aac')) {
         res.setHeader('Content-Type', 'audio/aac');
       } else {
         res.setHeader('Content-Type', 'audio/mpeg');
       }
     }
-
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
 
     upstreamRes.pipe(res);
 

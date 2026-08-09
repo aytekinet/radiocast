@@ -132,6 +132,9 @@ export async function queryPodcastCatalogPage(options: {
     );
   }
 
+  // Sort strictly by recency / release date descending (newest first)
+  filtered.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
+
   const total = filtered.length;
   const pagedItems = filtered.slice(offset, offset + limit);
   const hasMore = (offset + limit) < total;

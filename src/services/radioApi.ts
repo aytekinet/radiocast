@@ -98,12 +98,43 @@ function normalizeName(name: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
+const VERIFIED_MAP = new Map<string, RadioStation>();
+for (const v of VERIFIED_TURKISH_STATIONS) {
+  if (v && v.name) {
+    VERIFIED_MAP.set(normalizeName(v.name), v);
+  }
+}
+
+export function enrichWithVerifiedStationData(station: RadioStation): RadioStation {
+  if (!station || !station.name) return station;
+  const norm = normalizeName(station.name);
+  const matchedVerified = VERIFIED_MAP.get(norm);
+  if (matchedVerified) {
+    return {
+      ...station,
+      ...matchedVerified,
+      stationuuid: matchedVerified.stationuuid || station.stationuuid,
+      playUrl: matchedVerified.playUrl || matchedVerified.url_resolved || matchedVerified.url,
+      url_resolved: matchedVerified.playUrl || matchedVerified.url_resolved || matchedVerified.url,
+      url: matchedVerified.url || matchedVerified.playUrl || matchedVerified.url_resolved,
+      favicon: matchedVerified.favicon || station.favicon,
+      countrycode: 'TR',
+      country: 'Turkey',
+      codec: matchedVerified.codec || station.codec || 'HLS'
+    };
+  }
+  return station;
+}
+
+const GUARANTEED_TURKISH_STATIONS = mergeVerifiedAndApiStations(VERIFIED_TURKISH_STATIONS, ALL_TURKISH_STATIONS);
+
 function deduplicateStationsByName(list: RadioStation[]): RadioStation[] {
   const seen = new Set<string>();
   const result: RadioStation[] = [];
 
-  for (const item of list) {
-    if (!item || !item.name) continue;
+  for (const rawItem of list) {
+    if (!rawItem || !rawItem.name) continue;
+    const item = enrichWithVerifiedStationData(rawItem);
     if (isStationBlocked(item)) continue;
     const key = normalizeName(item.name);
     if (seen.has(key)) continue;
@@ -132,19 +163,20 @@ function mergeVerifiedAndApiStations(verified: RadioStation[], apiStations: Radi
     const key = normalizeName(v.name);
     addedKeys.add(key);
 
+    const enriched = enrichWithVerifiedStationData(v);
     const apiMatch = apiMap.get(key);
     if (apiMatch) {
       result.push({
         ...apiMatch,
-        ...v,
-        stationuuid: apiMatch.stationuuid || v.stationuuid,
-        playUrl: v.playUrl || apiMatch.playUrl || apiMatch.url_resolved || apiMatch.url,
-        url_resolved: v.playUrl || apiMatch.url_resolved || v.url_resolved || apiMatch.url,
-        url: v.url || apiMatch.url || apiMatch.url_resolved,
-        favicon: v.favicon || apiMatch.favicon
+        ...enriched,
+        stationuuid: enriched.stationuuid || apiMatch.stationuuid,
+        playUrl: enriched.playUrl || apiMatch.playUrl || apiMatch.url_resolved || apiMatch.url,
+        url_resolved: enriched.playUrl || apiMatch.url_resolved || enriched.url_resolved || apiMatch.url,
+        url: enriched.url || apiMatch.url || apiMatch.url_resolved,
+        favicon: enriched.favicon || apiMatch.favicon
       });
     } else {
-      result.push(v);
+      result.push(enriched);
     }
   }
 
@@ -153,7 +185,7 @@ function mergeVerifiedAndApiStations(verified: RadioStation[], apiStations: Radi
     const key = normalizeName(s.name);
     if (!addedKeys.has(key)) {
       addedKeys.add(key);
-      result.push(s);
+      result.push(enrichWithVerifiedStationData(s));
     }
   }
 
@@ -172,7 +204,7 @@ export async function getStationsByCountry(countryCode = 'TR', page = 1): Promis
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           if (codeUpper === 'TR' && page === 1) {
-            return mergeVerifiedAndApiStations(ALL_TURKISH_STATIONS, data);
+            return mergeVerifiedAndApiStations(GUARANTEED_TURKISH_STATIONS, data);
           }
           return deduplicateStationsByName(data);
         }
@@ -212,7 +244,7 @@ export async function getStationsByCountry(countryCode = 'TR', page = 1): Promis
     if (rawList && rawList.length > 0) {
       const formatted = rawList.map(formatRawStation);
       if (codeUpper === 'TR' && page === 1) {
-        return mergeVerifiedAndApiStations(ALL_TURKISH_STATIONS, formatted);
+        return mergeVerifiedAndApiStations(GUARANTEED_TURKISH_STATIONS, formatted);
       }
       return deduplicateStationsByName(formatted);
     }
@@ -222,7 +254,7 @@ export async function getStationsByCountry(countryCode = 'TR', page = 1): Promis
 
   // 3. Last fallback: local catalog
   if (codeUpper === 'TR' && page === 1) {
-    return deduplicateStationsByName(ALL_TURKISH_STATIONS);
+    return deduplicateStationsByName(GUARANTEED_TURKISH_STATIONS);
   }
   return [];
 }

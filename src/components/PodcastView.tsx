@@ -182,10 +182,10 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     loadPodcasts(searchQuery, activeCategory, true);
   };
 
-  const handleCategorySelect = (catId: string, catQuery: string) => {
+  const handleCategorySelect = (catId: string) => {
     setActiveCategory(catId);
-    setSearchQuery(catQuery);
-    loadPodcasts(catQuery, catId, true);
+    setSearchQuery('');
+    loadPodcasts('', catId, true);
   };
 
   const handleOpenShow = async (show: PodcastShow) => {
@@ -729,7 +729,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
               return (
                 <button
                   key={cat.id}
-                  onClick={() => handleCategorySelect(cat.id, cat.query)}
+                  onClick={() => handleCategorySelect(cat.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all active:scale-95 border cursor-pointer ${
                     isActive
                       ? 'bg-amber-500 text-zinc-950 border-amber-500 font-bold shadow-md'
