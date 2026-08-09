@@ -188,31 +188,52 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                     <Mic className="w-3.5 h-3.5" /> Podcast Serileri ({matchingPodcasts.length})
                   </h4>
                   <div className="space-y-1.5">
-                    {matchingPodcasts.map(pod => (
-                      <div
-                        key={pod.id}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <img
-                            src={pod.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100&q=80'}
-                            alt={pod.title}
-                            className="w-10 h-10 rounded-lg object-cover shrink-0 border border-zinc-200 dark:border-zinc-700"
-                            onError={e => {
-                              e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100&q=80';
-                            }}
-                          />
-                          <div className="min-w-0">
-                            <h5 className="text-xs font-bold text-zinc-900 dark:text-white truncate">
-                              {pod.title}
-                            </h5>
-                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                              {pod.publisher} • {pod.category}
-                            </p>
+                    {matchingPodcasts.map(pod => {
+                      const targetShow: PodcastShow = {
+                        id: pod.id,
+                        title: pod.title,
+                        publisher: pod.publisher,
+                        feedUrl: pod.feedUrl,
+                        coverUrl: pod.coverUrl,
+                        category: pod.category,
+                        description: pod.description,
+                        episodes: []
+                      };
+
+                      return (
+                        <div
+                          key={pod.id}
+                          onClick={() => {
+                            window.dispatchEvent(new CustomEvent('openPodcastShow', { detail: { show: targetShow } }));
+                            onClose();
+                          }}
+                          className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 hover:bg-amber-500/10 dark:hover:bg-amber-500/20 border border-zinc-200 dark:border-zinc-700/60 transition-all cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={pod.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100&q=80'}
+                              alt={pod.title}
+                              className="w-10 h-10 rounded-lg object-cover shrink-0 border border-zinc-200 dark:border-zinc-700 group-hover:scale-105 transition-transform"
+                              onError={e => {
+                                e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100&q=80';
+                              }}
+                            />
+                            <div className="min-w-0">
+                              <h5 className="text-xs font-bold text-zinc-900 dark:text-white truncate group-hover:text-amber-500 transition-colors">
+                                {pod.title}
+                              </h5>
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                                {pod.publisher} • {pod.category}
+                              </p>
+                            </div>
                           </div>
+                          <button className="p-2 rounded-lg bg-amber-500 text-zinc-950 font-bold text-xs opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 shrink-0 ml-2">
+                            <ArrowRight className="w-3.5 h-3.5" />
+                            <span>İncele</span>
+                          </button>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

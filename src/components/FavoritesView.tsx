@@ -244,7 +244,8 @@ export const FavoritesView: React.FC<FavoritesViewProps> = React.memo(({
               {filteredPodcasts.map((show) => (
                 <div
                   key={show.id || show.feedUrl}
-                  className="group bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800 hover:border-amber-500/50 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg flex flex-col justify-between relative overflow-hidden"
+                  onClick={() => onOpenPodcastShow && onOpenPodcastShow(show)}
+                  className="group bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800 hover:border-amber-500/50 rounded-2xl p-4 transition-all duration-300 hover:shadow-lg flex flex-col justify-between relative overflow-hidden cursor-pointer"
                 >
                   <div className="space-y-3">
                     <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-950">
@@ -261,7 +262,10 @@ export const FavoritesView: React.FC<FavoritesViewProps> = React.memo(({
                       {/* Remove from favorites button */}
                       {onToggleFavoritePodcast && (
                         <button
-                          onClick={() => onToggleFavoritePodcast(show)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavoritePodcast(show);
+                          }}
                           title="Favorilerden Çıkar"
                           className="absolute top-2 right-2 p-2 rounded-xl bg-rose-500 text-white shadow-md hover:scale-110 transition-all z-10 cursor-pointer"
                         >

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PodcastShow, PodcastEpisode } from '../types';
 import { searchPodcasts, getPopularPodcasts, fetchPodcastCatalog, getPodcastEpisodesResult, safeParseEpisodeDateMillis } from '../services/podcastApi';
 import { getAllPodcastProgress, markPodcastEpisodeCompleted, clearPodcastProgress, PodcastProgressEntry, getRecentlyPlayed } from '../services/storage';
+import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
 import { 
   Mic, 
   Play, 
@@ -93,6 +94,95 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     { id: 'sanat', name: 'Sanat & Edebiyat', query: 'sanat' }
   ];
 
+  const selectedShowRef = React.useRef<PodcastShow | null>(selectedShow);
+  selectedShowRef.current = selectedShow;
+
+  const resolveShowFromId = (showId: string): PodcastShow => {
+    const cleanId = decodeURIComponent(showId.trim());
+
+    // 1. Check CURATED_TURKISH_PODCASTS (support with or without apple- prefix)
+    const curatedMatch = CURATED_TURKISH_PODCASTS.find(p => 
+      p.id === cleanId || 
+      p.feedUrl === cleanId ||
+      p.id.replace('apple-', '') === cleanId.replace('apple-', '')
+    );
+    if (curatedMatch) {
+      return {
+        id: curatedMatch.id,
+        title: curatedMatch.title,
+        publisher: curatedMatch.publisher,
+        feedUrl: curatedMatch.feedUrl,
+        coverUrl: curatedMatch.coverUrl,
+        category: curatedMatch.category,
+        description: curatedMatch.description,
+        episodes: []
+      };
+    }
+
+    // 2. Check loaded podcasts list
+    const stateMatch = podcasts.find(p => p && (p.id === cleanId || p.feedUrl === cleanId || (p.id && p.id.replace('apple-', '') === cleanId.replace('apple-', ''))));
+    if (stateMatch) return stateMatch;
+
+    // 3. Check favoritePodcasts
+    const favoriteMatch = (favoritePodcasts || []).find(p => p && (p.id === cleanId || p.feedUrl === cleanId || (p.id && p.id.replace('apple-', '') === cleanId.replace('apple-', ''))));
+    if (favoriteMatch) return favoriteMatch;
+
+    // 4. Construct a dynamic show object (for iTunes/Apple ID or custom IDs)
+    return {
+      id: cleanId,
+      title: 'Podcast Serisi',
+      publisher: 'Podcast',
+      feedUrl: '',
+      coverUrl: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=600&q=80',
+      category: 'Podcast',
+      description: 'Podcast bölümleri yükleniyor...',
+      episodes: []
+    };
+  };
+
+  const syncShowFromLocation = () => {
+    if (typeof window === 'undefined') return;
+
+    const hash = window.location.hash.replace(/^#\/?/, '');
+    
+    // Check if hash is #podcasts/some-id or podcasts/some-id
+    if (hash.startsWith('podcasts/')) {
+      const showId = hash.replace(/^podcasts\//, '');
+      if (showId) {
+        const cleanShowId = decodeURIComponent(showId.trim());
+        const curr = selectedShowRef.current;
+        
+        // If current selectedShow is already this ID, do nothing to prevent re-fetching
+        if (curr && (curr.id === cleanShowId || curr.feedUrl === cleanShowId || (curr.id && curr.id.replace('apple-', '') === cleanShowId.replace('apple-', '')))) {
+          return;
+        }
+
+        // Check window.history.state first
+        if (window.history?.state?.podcastShow) {
+          const showFromState = window.history.state.podcastShow as PodcastShow;
+          if (showFromState && (showFromState.id === cleanShowId || showFromState.feedUrl === cleanShowId || (showFromState.id && showFromState.id.replace('apple-', '') === cleanShowId.replace('apple-', '')))) {
+            setSelectedShow(showFromState);
+            loadEpisodesForShow(showFromState);
+            return;
+          }
+        }
+
+        // Otherwise resolve show by ID
+        const resolvedShow = resolveShowFromId(cleanShowId);
+        setSelectedShow(resolvedShow);
+        loadEpisodesForShow(resolvedShow);
+        return;
+      }
+    }
+
+    // If hash is just #podcasts or empty or another tab, clear selected show
+    if (!hash || hash === 'podcasts' || !hash.includes('podcasts/')) {
+      if (selectedShowRef.current !== null) {
+        setSelectedShow(null);
+      }
+    }
+  };
+
   useEffect(() => {
     loadPodcasts();
 
@@ -104,37 +194,33 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     window.addEventListener('podcastProgressChanged', syncProgress);
     window.addEventListener('storage', syncProgress);
 
+    syncShowFromLocation();
+
+    const handlePopState = () => {
+      syncShowFromLocation();
+    };
+
+    const handleHashChange = () => {
+      syncShowFromLocation();
+    };
+
     const handleOpenPodcastShowEvent = (e: Event) => {
       const customEvent = e as CustomEvent<{ show: PodcastShow }>;
       if (customEvent.detail?.show) {
-        setSelectedShow(customEvent.detail.show);
-        loadEpisodesForShow(customEvent.detail.show);
+        handleOpenShow(customEvent.detail.show);
       }
     };
 
     window.addEventListener('openPodcastShow', handleOpenPodcastShowEvent);
-
-    if (typeof window !== 'undefined' && window.history?.state?.podcastShow) {
-      const show = window.history.state.podcastShow;
-      setSelectedShow(show);
-      loadEpisodesForShow(show);
-    }
-
-    const handlePopState = (event: PopStateEvent) => {
-      if (event.state && event.state.podcastShow) {
-        setSelectedShow(event.state.podcastShow);
-        loadEpisodesForShow(event.state.podcastShow);
-      } else {
-        setSelectedShow(null);
-      }
-    };
-
     window.addEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handleHashChange);
+
     return () => {
       window.removeEventListener('podcastProgressChanged', syncProgress);
       window.removeEventListener('storage', syncProgress);
       window.removeEventListener('openPodcastShow', handleOpenPodcastShowEvent);
       window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
 
@@ -147,6 +233,9 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     try {
       const res = await getPodcastEpisodesResult(show);
       if (requestIdRef.current !== currentReqId) return;
+
+      // Update selectedShow if Apple lookup or RSS feed resolved show metadata (title, publisher, coverUrl)
+      setSelectedShow(prev => prev ? { ...prev, ...show } : show);
 
       if (res.success) {
         const sorted = [...res.episodes].sort((a, b) => {
@@ -226,22 +315,23 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     setSelectedShow(show);
     setEpisodeFilter('all');
     if (typeof window !== 'undefined' && window.history) {
-      window.history.pushState(
-        { tab: 'podcasts', podcastShow: show },
-        '',
-        `#podcasts/${show.id}`
-      );
+      const targetHash = `#podcasts/${show.id || show.feedUrl}`;
+      if (window.location.hash !== targetHash) {
+        window.history.pushState(
+          { tab: 'podcasts', podcastShow: show },
+          '',
+          targetHash
+        );
+      }
     }
     loadEpisodesForShow(show);
   };
 
   const handleBackToShows = () => {
-    if (typeof window !== 'undefined' && window.history && window.history.state?.podcastShow) {
-      window.history.back();
-    } else {
-      setSelectedShow(null);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.replaceState({ tab: 'podcasts' }, '', '#podcasts');
+    setSelectedShow(null);
+    if (typeof window !== 'undefined' && window.history) {
+      if (window.location.hash.includes('podcasts/')) {
+        window.history.pushState({ tab: 'podcasts' }, '', '#podcasts');
       }
     }
   };
@@ -256,7 +346,10 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   };
 
   const getEpisodeState = (ep: PodcastEpisode) => {
-    const entry = progressMap[ep.id];
+    if (!ep || !ep.id) {
+      return { entry: undefined, savedSecs: 0, dur: 0, isCompleted: false, hasProgress: false, isUnplayed: true, pct: 0 };
+    }
+    const entry = (progressMap || {})[ep.id];
     const savedSecs = entry?.timeSeconds || 0;
     const dur = ep.durationSeconds || entry?.durationSeconds || 0;
     const isCompleted = Boolean(entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
@@ -292,6 +385,129 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
       setProgressMap({});
     }
   };
+
+  const savedHistoryList = React.useMemo(() => {
+    const recentList = getRecentlyPlayed();
+    const savedIds = Object.keys(progressMap).filter(id => {
+      const entry = progressMap[id];
+      return entry && (entry.timeSeconds > 0 || entry.completed);
+    });
+
+    const recentPodcastEps = recentList
+      .filter(r => r.type === 'podcast' && r.podcastEpisode)
+      .map(r => r.podcastEpisode!);
+
+    const knownEpisodesMap = new Map<string, PodcastEpisode>();
+
+    for (const p of podcasts) {
+      if (p.episodes) {
+        for (const e of p.episodes) {
+          knownEpisodesMap.set(e.id, e);
+        }
+      }
+    }
+
+    for (const e of showEpisodes) {
+      knownEpisodesMap.set(e.id, e);
+    }
+
+    for (const e of (favoriteEpisodes || [])) {
+      if (e && e.id) knownEpisodesMap.set(e.id, e);
+    }
+
+    for (const p of (favoritePodcasts || [])) {
+      if (p && p.episodes) {
+        for (const e of p.episodes) {
+          if (e && e.id) knownEpisodesMap.set(e.id, e);
+        }
+      }
+    }
+
+    for (const ep of recentPodcastEps) {
+      if (!knownEpisodesMap.has(ep.id)) {
+        knownEpisodesMap.set(ep.id, ep);
+      }
+    }
+
+    for (const id of savedIds) {
+      const entry = progressMap[id];
+      if (entry?.episode && !knownEpisodesMap.has(id)) {
+        knownEpisodesMap.set(id, entry.episode);
+      }
+    }
+
+    const allIdsSet = new Set([...savedIds, ...recentPodcastEps.map(e => e.id)]);
+    const results: { episode: PodcastEpisode; entry?: PodcastProgressEntry; updatedAt: number }[] = [];
+
+    allIdsSet.forEach(id => {
+      const entry = progressMap[id];
+      let ep = knownEpisodesMap.get(id);
+
+      if (!ep) {
+        const recentMatch = recentList.find(r => r.type === 'podcast' && (r.podcastEpisode?.id === id || r.id === `podcast-${id}`));
+        if (recentMatch) {
+          ep = {
+            id,
+            showId: recentMatch.podcastEpisode?.showId || 'unknown',
+            title: recentMatch.title || 'Podcast Bölümü',
+            showTitle: recentMatch.subtitle || 'Podcast',
+            description: recentMatch.podcastEpisode?.description || '',
+            audioUrl: recentMatch.podcastEpisode?.audioUrl || '',
+            coverUrl: recentMatch.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80',
+            durationSeconds: entry?.durationSeconds || recentMatch.podcastEpisode?.durationSeconds || 0,
+            publishedDate: recentMatch.podcastEpisode?.publishedDate || '',
+            category: recentMatch.podcastEpisode?.category || 'Podcast'
+          };
+        } else if (entry?.episode) {
+          ep = entry.episode;
+        } else {
+          ep = {
+            id,
+            showId: 'unknown',
+            title: 'Dinlenen Podcast Bölümü',
+            showTitle: 'Podcast',
+            description: '',
+            audioUrl: '',
+            coverUrl: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80',
+            durationSeconds: entry?.durationSeconds || 0,
+            publishedDate: '',
+            category: 'Podcast'
+          };
+        }
+      }
+
+      const updatedAt = entry?.updatedAt || (recentList.find(r => r.type === 'podcast' && r.podcastEpisode?.id === id)?.playedAt) || 0;
+      results.push({ episode: ep, entry, updatedAt });
+    });
+
+    results.sort((a, b) => b.updatedAt - a.updatedAt);
+    return results;
+  }, [progressMap, podcasts, showEpisodes, favoriteEpisodes, favoritePodcasts]);
+
+  const inProgressList = React.useMemo(() => {
+    return savedHistoryList.filter(item => {
+      const savedSecs = item.entry?.timeSeconds || 0;
+      const dur = item.episode.durationSeconds || item.entry?.durationSeconds || 0;
+      const isCompleted = Boolean(item.entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
+      return !isCompleted && savedSecs > 0;
+    });
+  }, [savedHistoryList]);
+
+  const completedList = React.useMemo(() => {
+    return savedHistoryList.filter(item => {
+      const savedSecs = item.entry?.timeSeconds || 0;
+      const dur = item.episode.durationSeconds || item.entry?.durationSeconds || 0;
+      return Boolean(item.entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
+    });
+  }, [savedHistoryList]);
+
+  const latestResumeItem = inProgressList[0] || null;
+
+  const displayHistoryList = React.useMemo(() => {
+    if (historyFilter === 'in-progress') return inProgressList;
+    if (historyFilter === 'completed') return completedList;
+    return savedHistoryList;
+  }, [historyFilter, inProgressList, completedList, savedHistoryList]);
 
   // -------------------------------------------------------------
   // SINGLE SHOW EPISODES DETAIL VIEW
@@ -624,14 +840,14 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                             e.stopPropagation();
                             onToggleFavoriteEpisode(ep);
                           }}
-                          title={favoriteEpisodes.some(e => e.id === ep.id) ? "Favorilerden Çıkar" : "Favorilere Ekle"}
+                          title={(favoriteEpisodes || []).some(e => e && e.id === ep.id) ? "Favorilerden Çıkar" : "Favorilere Ekle"}
                           className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
-                            favoriteEpisodes.some(e => e.id === ep.id)
+                            (favoriteEpisodes || []).some(e => e && e.id === ep.id)
                               ? 'bg-rose-500/15 text-rose-500 border-rose-500/40 hover:bg-rose-500/25'
                               : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-400 hover:text-rose-500 border-zinc-200 dark:border-zinc-700'
                           }`}
                         >
-                          <Heart className={`w-4 h-4 ${favoriteEpisodes.some(e => e.id === ep.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                          <Heart className={`w-4 h-4 ${(favoriteEpisodes || []).some(e => e && e.id === ep.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
                         </button>
                       )}
 
@@ -719,129 +935,6 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   // -------------------------------------------------------------
   // MAIN PODCAST SHOWS CATALOG VIEW
   // -------------------------------------------------------------
-  const savedHistoryList = React.useMemo(() => {
-    const recentList = getRecentlyPlayed();
-    const savedIds = Object.keys(progressMap).filter(id => {
-      const entry = progressMap[id];
-      return entry && (entry.timeSeconds > 0 || entry.completed);
-    });
-
-    const recentPodcastEps = recentList
-      .filter(r => r.type === 'podcast' && r.podcastEpisode)
-      .map(r => r.podcastEpisode!);
-
-    const knownEpisodesMap = new Map<string, PodcastEpisode>();
-
-    for (const p of podcasts) {
-      if (p.episodes) {
-        for (const e of p.episodes) {
-          knownEpisodesMap.set(e.id, e);
-        }
-      }
-    }
-
-    for (const e of showEpisodes) {
-      knownEpisodesMap.set(e.id, e);
-    }
-
-    for (const e of favoriteEpisodes) {
-      knownEpisodesMap.set(e.id, e);
-    }
-
-    for (const p of favoritePodcasts) {
-      if (p.episodes) {
-        for (const e of p.episodes) {
-          knownEpisodesMap.set(e.id, e);
-        }
-      }
-    }
-
-    for (const ep of recentPodcastEps) {
-      if (!knownEpisodesMap.has(ep.id)) {
-        knownEpisodesMap.set(ep.id, ep);
-      }
-    }
-
-    for (const id of savedIds) {
-      const entry = progressMap[id];
-      if (entry?.episode && !knownEpisodesMap.has(id)) {
-        knownEpisodesMap.set(id, entry.episode);
-      }
-    }
-
-    const allIdsSet = new Set([...savedIds, ...recentPodcastEps.map(e => e.id)]);
-    const results: { episode: PodcastEpisode; entry?: PodcastProgressEntry; updatedAt: number }[] = [];
-
-    allIdsSet.forEach(id => {
-      const entry = progressMap[id];
-      let ep = knownEpisodesMap.get(id);
-
-      if (!ep) {
-        const recentMatch = recentList.find(r => r.type === 'podcast' && (r.podcastEpisode?.id === id || r.id === `podcast-${id}`));
-        if (recentMatch) {
-          ep = {
-            id,
-            showId: recentMatch.podcastEpisode?.showId || 'unknown',
-            title: recentMatch.title || 'Podcast Bölümü',
-            showTitle: recentMatch.subtitle || 'Podcast',
-            description: recentMatch.podcastEpisode?.description || '',
-            audioUrl: recentMatch.podcastEpisode?.audioUrl || '',
-            coverUrl: recentMatch.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80',
-            durationSeconds: entry?.durationSeconds || recentMatch.podcastEpisode?.durationSeconds || 0,
-            publishedDate: recentMatch.podcastEpisode?.publishedDate || '',
-            category: recentMatch.podcastEpisode?.category || 'Podcast'
-          };
-        } else if (entry?.episode) {
-          ep = entry.episode;
-        } else {
-          ep = {
-            id,
-            showId: 'unknown',
-            title: 'Dinlenen Podcast Bölümü',
-            showTitle: 'Podcast',
-            description: '',
-            audioUrl: '',
-            coverUrl: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80',
-            durationSeconds: entry?.durationSeconds || 0,
-            publishedDate: '',
-            category: 'Podcast'
-          };
-        }
-      }
-
-      const updatedAt = entry?.updatedAt || (recentList.find(r => r.type === 'podcast' && r.podcastEpisode?.id === id)?.playedAt) || 0;
-      results.push({ episode: ep, entry, updatedAt });
-    });
-
-    results.sort((a, b) => b.updatedAt - a.updatedAt);
-    return results;
-  }, [progressMap, podcasts, showEpisodes, favoriteEpisodes, favoritePodcasts]);
-
-  const inProgressList = React.useMemo(() => {
-    return savedHistoryList.filter(item => {
-      const savedSecs = item.entry?.timeSeconds || 0;
-      const dur = item.episode.durationSeconds || item.entry?.durationSeconds || 0;
-      const isCompleted = Boolean(item.entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
-      return !isCompleted && savedSecs > 0;
-    });
-  }, [savedHistoryList]);
-
-  const completedList = React.useMemo(() => {
-    return savedHistoryList.filter(item => {
-      const savedSecs = item.entry?.timeSeconds || 0;
-      const dur = item.episode.durationSeconds || item.entry?.durationSeconds || 0;
-      return Boolean(item.entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
-    });
-  }, [savedHistoryList]);
-
-  const latestResumeItem = inProgressList[0] || null;
-
-  const displayHistoryList = React.useMemo(() => {
-    if (historyFilter === 'in-progress') return inProgressList;
-    if (historyFilter === 'completed') return completedList;
-    return savedHistoryList;
-  }, [historyFilter, inProgressList, completedList, savedHistoryList]);
-
   return (
     <div className="p-4 md:p-6 space-y-8 max-w-7xl mx-auto pb-24">
       {/* Header Banner */}

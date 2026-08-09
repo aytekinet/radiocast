@@ -79,7 +79,8 @@ export default function App() {
     const syncFromLocation = () => {
       const pathname = window.location.pathname.replace(/^\//, '').toLowerCase();
       const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-      const target = pathname || hash;
+      const rawTarget = pathname || hash;
+      const target = rawTarget.split('/')[0];
 
       if (validTabs.includes(target)) {
         setActiveTab(target);
@@ -96,8 +97,18 @@ export default function App() {
       }
     };
 
+    const handleOpenPodcastShowEvent = () => {
+      setActiveTab('podcasts');
+    };
+
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', syncFromLocation);
+    window.addEventListener('openPodcastShow', handleOpenPodcastShowEvent);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', syncFromLocation);
+      window.removeEventListener('openPodcastShow', handleOpenPodcastShowEvent);
+    };
   }, []);
 
   // Search & Filters
