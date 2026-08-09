@@ -259,11 +259,13 @@ export async function downloadPodcastEpisode(
   if (onProgress) onProgress(initialState);
 
   const cleanUrl = (episode.audioUrl || '').trim();
+  const proxyUrl = `/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`;
+  const httpsUrl = cleanUrl.startsWith('http://') ? cleanUrl.replace(/^http:\/\//i, 'https://') : '';
   const candidateUrls = [
+    proxyUrl,
     cleanUrl,
-    cleanUrl.startsWith('http://') ? cleanUrl.replace(/^http:\/\//i, 'https://') : '',
-    `/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`
-  ].filter(Boolean);
+    httpsUrl
+  ].filter((u, i, self) => u && self.indexOf(u) === i);
 
   let blob: Blob | null = null;
   let totalSize = 0;

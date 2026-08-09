@@ -387,7 +387,7 @@ export default function App() {
     try {
       if (append) {
         setIsLoadingMore(true);
-      } else if (stations.length === 0 || searchQuery.trim()) {
+      } else {
         setIsLoading(true);
       }
 
@@ -427,15 +427,26 @@ export default function App() {
     }
   }, [searchQuery, selectedCountry]);
 
+  const prevCountryRef = useRef(selectedCountry);
+
   // Reset pagination and reload on search/filter change
   useEffect(() => {
     setPage(1);
     setHasMore(true);
+
+    if (prevCountryRef.current !== selectedCountry) {
+      prevCountryRef.current = selectedCountry;
+      setStations([]);
+      setIsLoading(true);
+      fetchStationsData(1, false);
+      return;
+    }
+
     const timer = setTimeout(() => {
       fetchStationsData(1, false);
-    }, 250);
+    }, 150);
     return () => clearTimeout(timer);
-  }, [fetchStationsData]);
+  }, [fetchStationsData, selectedCountry]);
 
   // Settings Update
   const updateSettings = useCallback((newSettings: Partial<AppSettings>) => {

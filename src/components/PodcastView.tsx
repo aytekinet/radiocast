@@ -40,6 +40,21 @@ import {
   Loader2
 } from 'lucide-react';
 
+function decodeHtmlEntities(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+    .replace(/<[^>]+>/g, '')
+    .trim();
+}
+
 interface PodcastViewProps {
   currentEpisodeId: string | null;
   isPlaying: boolean;
@@ -131,6 +146,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   };
 
   const requestIdRef = React.useRef<number>(0);
+  const episodesCacheRef = React.useRef<Map<string, PodcastEpisode[]>>(new Map());
 
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [offset, setOffset] = useState<number>(0);
@@ -282,34 +298,60 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   }, []);
 
   const loadEpisodesForShow = async (show: PodcastShow) => {
+    const showKey = show.id || show.feedUrl || show.title;
     const currentReqId = ++requestIdRef.current;
-    setLoadingEpisodes(true);
-    setEpisodeStatus('loading');
-    setShowEpisodes([]);
+    
+    // Check if cached in memory for instant loading
+    const cached = episodesCacheRef.current.get(showKey);
+    if (cached && cached.length > 0) {
+      setShowEpisodes(cached);
+      setEpisodeStatus('success');
+      setLoadingEpisodes(false);
+    } else {
+      setLoadingEpisodes(true);
+      setEpisodeStatus('loading');
+      setShowEpisodes([]);
+    }
 
     try {
       const res = await getPodcastEpisodesResult(show);
       if (requestIdRef.current !== currentReqId) return;
 
-      // Update selectedShow if Apple lookup or RSS feed resolved show metadata (title, publisher, coverUrl)
-      setSelectedShow(prev => prev ? { ...prev, ...show } : show);
+      setSelectedShow(prev => prev ? {
+        ...prev,
+        ...show,
+        title: decodeHtmlEntities(show.title || prev.title),
+        description: decodeHtmlEntities(show.description || prev.description)
+      } : {
+        ...show,
+        title: decodeHtmlEntities(show.title),
+        description: decodeHtmlEntities(show.description)
+      });
 
       if (res.success) {
         const sorted = [...res.episodes].sort((a, b) => {
           const timeA = safeParseEpisodeDateMillis(a);
           const timeB = safeParseEpisodeDateMillis(b);
           return timeB - timeA;
-        });
+        }).map(ep => ({
+          ...ep,
+          title: decodeHtmlEntities(ep.title),
+          description: decodeHtmlEntities(ep.description)
+        }));
+
+        episodesCacheRef.current.set(showKey, sorted);
         setShowEpisodes(sorted);
         setEpisodeStatus(sorted.length > 0 ? 'success' : 'empty');
-      } else {
+      } else if (!cached) {
         setShowEpisodes([]);
         setEpisodeStatus('failed');
       }
     } catch {
       if (requestIdRef.current !== currentReqId) return;
-      setShowEpisodes([]);
-      setEpisodeStatus('failed');
+      if (!cached) {
+        setShowEpisodes([]);
+        setEpisodeStatus('failed');
+      }
     } finally {
       if (requestIdRef.current === currentReqId) {
         setLoadingEpisodes(false);
@@ -603,7 +645,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     }
 
     return (
-      <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto pb-24">
+      <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto pb-56 sm:pb-48 md:pb-40">
         {/* Back Button & General Stats */}
         <div className="flex items-center justify-between">
           <button
@@ -1026,7 +1068,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   // MAIN PODCAST SHOWS CATALOG VIEW
   // -------------------------------------------------------------
   return (
-    <div className="p-4 md:p-6 space-y-8 max-w-7xl mx-auto pb-24">
+    <div className="p-4 md:p-6 space-y-8 max-w-7xl mx-auto pb-56 sm:pb-48 md:pb-40">
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 p-6 md:p-8 border border-zinc-200 dark:border-zinc-800 shadow-lg">
         <div className="relative z-10 max-w-2xl space-y-4">

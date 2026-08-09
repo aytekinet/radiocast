@@ -27,6 +27,7 @@ export const ListeningWrappedModal: React.FC<ListeningWrappedModalProps> = ({
   onClose
 }) => {
   const [copied, setCopied] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   // Compute Statistics & Heatmap
   const stats = useMemo(() => {
@@ -237,12 +238,13 @@ export const ListeningWrappedModal: React.FC<ListeningWrappedModalProps> = ({
           {/* Top Podcast Card */}
           <div className="p-4 rounded-2xl bg-zinc-800/60 border border-zinc-700/60 flex items-center justify-between gap-4">
             <div className="flex items-center space-x-3.5 min-w-0">
-              {stats.topShow.coverUrl ? (
+              {stats.topShow.coverUrl && !imgError ? (
                 <img 
                   src={stats.topShow.coverUrl} 
                   alt={stats.topShow.title}
                   className="w-12 h-12 rounded-xl object-cover shrink-0"
                   referrerPolicy="no-referrer"
+                  onError={() => setImgError(true)}
                 />
               ) : (
                 <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">

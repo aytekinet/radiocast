@@ -139,7 +139,7 @@ export const DownloadsView: React.FC<DownloadsViewProps> = ({
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-8 max-w-7xl mx-auto pb-28">
+    <div className="p-4 md:p-6 space-y-8 max-w-7xl mx-auto pb-56 sm:pb-48 md:pb-40">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
