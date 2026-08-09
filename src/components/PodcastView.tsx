@@ -81,6 +81,16 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     window.addEventListener('podcastProgressChanged', syncProgress);
     window.addEventListener('storage', syncProgress);
 
+    const handleOpenPodcastShowEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ show: PodcastShow }>;
+      if (customEvent.detail?.show) {
+        setSelectedShow(customEvent.detail.show);
+        loadEpisodesForShow(customEvent.detail.show);
+      }
+    };
+
+    window.addEventListener('openPodcastShow', handleOpenPodcastShowEvent);
+
     if (typeof window !== 'undefined' && window.history?.state?.podcastShow) {
       const show = window.history.state.podcastShow;
       setSelectedShow(show);
@@ -100,6 +110,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     return () => {
       window.removeEventListener('podcastProgressChanged', syncProgress);
       window.removeEventListener('storage', syncProgress);
+      window.removeEventListener('openPodcastShow', handleOpenPodcastShowEvent);
       window.removeEventListener('popstate', handlePopState);
     };
   }, []);

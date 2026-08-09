@@ -45,6 +45,7 @@ interface PlayerBarProps {
   lowDataMode: boolean;
   themePalette: ThemePalette;
   onNavigateToDiscover?: () => void;
+  onNavigateToPodcastShow?: (episode: PodcastEpisode) => void;
 }
 
 export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
@@ -68,7 +69,8 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
   sleepTimerSeconds,
   onOpenSleepTimer,
   themePalette,
-  onNavigateToDiscover
+  onNavigateToDiscover,
+  onNavigateToPodcastShow
 }) => {
   const [localCurrentTime, setLocalCurrentTime] = useState(0);
   const [localDuration, setLocalDuration] = useState(0);
@@ -319,8 +321,13 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
         <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 flex-1 sm:flex-initial sm:max-w-[320px]">
           <div 
             className="relative shrink-0 cursor-pointer group" 
+            title={isPodcast ? 'Podcast detay sayfasına git' : 'Yayın sayfasına git'}
             onClick={() => {
-              onNavigateToDiscover?.();
+              if (isPodcast && podcast && onNavigateToPodcastShow) {
+                onNavigateToPodcastShow(podcast);
+              } else {
+                onNavigateToDiscover?.();
+              }
             }}
           >
             {coverUrl && !imgError ? (
@@ -349,8 +356,13 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
           <div className="min-w-0 flex-1">
             <div className="flex items-center space-x-1.5">
               <h4 
+                title={isPodcast ? 'Podcast detay sayfasına git' : 'Yayın sayfasına git'}
                 onClick={() => {
-                  onNavigateToDiscover?.();
+                  if (isPodcast && podcast && onNavigateToPodcastShow) {
+                    onNavigateToPodcastShow(podcast);
+                  } else {
+                    onNavigateToDiscover?.();
+                  }
                 }}
                 className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
               >
@@ -375,7 +387,17 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
               )}
             </div>
 
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
+            <p 
+              title={isPodcast ? 'Podcast detay sayfasına git' : 'Yayın sayfasına git'}
+              onClick={() => {
+                if (isPodcast && podcast && onNavigateToPodcastShow) {
+                  onNavigateToPodcastShow(podcast);
+                } else {
+                  onNavigateToDiscover?.();
+                }
+              }}
+              className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 cursor-pointer hover:text-amber-500 transition-colors"
+            >
               {subtitle}
             </p>
           </div>

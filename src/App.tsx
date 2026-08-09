@@ -12,6 +12,7 @@ import {
 } from './services/radioApi';
 import { matchesCategory, matchesGroup } from './constants/categories';
 import { VERIFIED_TURKISH_STATIONS, ALL_TURKISH_STATIONS } from './data/fallbackStations';
+import { CURATED_TURKISH_PODCASTS } from './data/curatedTurkishPodcasts';
 import { audioEngine, PlaybackStatus } from './services/audioEngine';
 import { 
   getStoredFavorites, 
@@ -455,6 +456,44 @@ export default function App() {
       window.history.pushState({ tab: 'podcasts', podcastShow: show }, '', '#podcasts');
     }
     changeTab('podcasts');
+    window.dispatchEvent(new CustomEvent('openPodcastShow', { detail: { show } }));
+  }, [changeTab]);
+
+  const handleNavigateToPodcastShow = useCallback((episode: PodcastEpisode) => {
+    changeTab('podcasts');
+
+    const curatedMatch = CURATED_TURKISH_PODCASTS.find(
+      p => p.id === episode.showId || p.title.toLowerCase() === (episode.showTitle || '').toLowerCase()
+    );
+
+    let targetShow: PodcastShow;
+    if (curatedMatch) {
+      targetShow = {
+        id: curatedMatch.id,
+        title: curatedMatch.title,
+        publisher: curatedMatch.publisher,
+        coverUrl: curatedMatch.coverUrl || episode.coverUrl,
+        feedUrl: curatedMatch.feedUrl,
+        category: curatedMatch.category || episode.category || 'Genel',
+        description: curatedMatch.description || `${curatedMatch.title} podcast serisi.`,
+        episodes: [episode]
+      };
+    } else {
+      targetShow = {
+        id: episode.showId || `show-${episode.id}`,
+        title: episode.showTitle || 'Podcast',
+        publisher: episode.category || 'Podcast',
+        coverUrl: episode.coverUrl,
+        category: episode.category || 'Genel',
+        description: episode.description || '',
+        episodes: [episode]
+      };
+    }
+
+    if (typeof window !== 'undefined' && window.history) {
+      window.history.pushState({ tab: 'podcasts', podcastShow: targetShow }, '', '#podcasts');
+    }
+    window.dispatchEvent(new CustomEvent('openPodcastShow', { detail: { show: targetShow } }));
   }, [changeTab]);
 
   const handleClearAllFavorites = useCallback(() => {
@@ -645,6 +684,7 @@ export default function App() {
         lowDataMode={settings.lowDataMode}
         themePalette={settings.themePalette}
         onNavigateToDiscover={() => changeTab('discover')}
+        onNavigateToPodcastShow={handleNavigateToPodcastShow}
       />
 
       {/* Main Body: Sidebar + Active View Content */}
