@@ -14,11 +14,10 @@ export interface ApplePodcastItem {
 }
 
 export const TURKISH_SEARCH_KEYWORDS = [
-  'felsefe', 'haber', 'gündem', 'teknoloji', 'bilim', 'psikoloji', 'tarih',
-  'mizah', 'ekonomi', 'spor', 'sanat', 'edebiyat', 'müzik', 'bilişim',
+  'türkçe', 'türkiye', 'felsefe', 'haberler', 'gündem', 'teknoloji', 'bilim', 'psikoloji',
+  'tarih', 'mizah', 'ekonomi', 'spor', 'sanat', 'edebiyat', 'müzik', 'bilişim',
   'eğitim', 'finans', 'girişimcilik', 'sinema', 'dizi', 'sağlık', 'yaşam',
-  'kişisel gelişim', 'oyun', 'çocuk', 'ebeveyn', 'futbol', 'türkçe', 'türkiye',
-  'kripto', 'podcast', 'sohbet', 'kültür', 'hikaye'
+  'kişisel gelişim', 'oyun', 'çocuk', 'ebeveyn', 'futbol', 'kripto', 'kültür', 'hikaye'
 ];
 
 export async function fetchApplePodcastsByKeyword(keyword: string, country = 'TR', limit = 100): Promise<ApplePodcastItem[]> {

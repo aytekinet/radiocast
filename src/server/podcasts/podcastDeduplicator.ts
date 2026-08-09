@@ -91,7 +91,7 @@ export function buildUnifiedPodcastCatalog(
       publisher: p.author
     });
 
-    if (confidence < 0.35) continue;
+    if (confidence < 0.5) continue;
 
     const existing = catalogMap.get(normFeed);
     if (existing) {
@@ -140,7 +140,7 @@ export function buildUnifiedPodcastCatalog(
       publisher: a.artistName
     });
 
-    if (confidence < 0.35) continue;
+    if (confidence < 0.5) continue;
 
     let releaseMillis = 0;
     if (a.releaseDate) {
