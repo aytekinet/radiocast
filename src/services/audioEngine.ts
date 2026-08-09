@@ -44,7 +44,7 @@ class AudioEngine {
   
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
   private watchdogStartTime: number = 0;
-  private watchdogDurationMs: number = 4000;
+  private watchdogDurationMs: number = 8000;
   private progressSaveTimer: ReturnType<typeof setInterval> | null = null;
   
   private candidates: string[] = [];
@@ -434,12 +434,10 @@ class AudioEngine {
     if (typeof window !== 'undefined') {
       if (playableUrl.startsWith('/')) {
         playableUrl = window.location.origin + playableUrl;
-      } else if (window.location.protocol === 'https:' && playableUrl.startsWith('http://') && !playableUrl.includes('/api/radio/stream/')) {
+      } else if (window.location.protocol === 'https:' && playableUrl.startsWith('http://') && !playableUrl.includes('/api/radio/')) {
         // Direct HTTP is blocked on HTTPS pages (Mixed Content)
-        // If not already proxied, try CORS proxy over HTTPS or HTTPS upgrade
-        if (!playableUrl.includes('corsproxy.io')) {
-          playableUrl = `https://corsproxy.io/?url=${encodeURIComponent(playableUrl)}`;
-        }
+        // Proxy through internal express endpoint which sets proper CORS and HTTPS headers
+        playableUrl = window.location.origin + `/api/radio/proxy?url=${encodeURIComponent(playableUrl)}`;
       }
     }
 
@@ -490,12 +488,12 @@ class AudioEngine {
             this.hlsInstance = new Hls({
               enableWorker: true,
               lowLatencyMode: true,
-              manifestLoadingTimeOut: 5000,
-              manifestLoadingMaxRetry: 1,
-              levelLoadingTimeOut: 5000,
-              levelLoadingMaxRetry: 1,
-              fragLoadingTimeOut: 5000,
-              fragLoadingMaxRetry: 1,
+              manifestLoadingTimeOut: 10000,
+              manifestLoadingMaxRetry: 3,
+              levelLoadingTimeOut: 10000,
+              levelLoadingMaxRetry: 3,
+              fragLoadingTimeOut: 10000,
+              fragLoadingMaxRetry: 3,
               maxBufferLength: 15,
               maxMaxBufferLength: 30,
               maxBufferSize: 30 * 1024 * 1024,

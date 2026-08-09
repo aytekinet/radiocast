@@ -167,7 +167,7 @@ export function buildUnifiedPodcastCatalog(
         normalizedFeedUrl: normFeed,
         image: a.artworkUrl600 || a.artworkUrl100 || '',
         website: a.collectionViewUrl || '',
-        language: 'tr',
+        language: 'tr-unknown',
         categories: [a.primaryGenreName || 'Podcast'],
         episodeCount: a.trackCount || 0,
         releaseDateMillis: releaseMillis || Date.now(),

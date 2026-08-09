@@ -312,7 +312,7 @@ export default function App() {
     try {
       if (append) {
         setIsLoadingMore(true);
-      } else {
+      } else if (stations.length === 0 || searchQuery.trim()) {
         setIsLoading(true);
       }
 

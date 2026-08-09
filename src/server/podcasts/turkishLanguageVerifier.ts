@@ -27,32 +27,57 @@ export function calculateTurkishConfidence(item: {
 }): number {
   if (item.isCurated) return 1.0;
 
-  let score = 0;
+  const title = (item.title || '').trim();
+  const desc = (item.description || '').trim();
+  const pub = (item.publisher || '').trim();
+  const textToScan = `${title} ${desc} ${pub}`.toLowerCase();
 
-  if (isTurkishLanguageCode(item.language)) {
-    score += 0.8;
-  }
+  if (!textToScan) return 0;
 
-  const textToScan = `${item.title || ''} ${item.description || ''} ${item.publisher || ''}`.toLowerCase();
+  // 1. Explicit Turkish characters in title/description/publisher -> Strongest indicator
+  const hasTurkishChars = TURKISH_CHARS_REGEX.test(textToScan);
 
-  if (TURKISH_CHARS_REGEX.test(textToScan)) {
-    score += 0.4;
-  }
-
-  const words = textToScan.split(/\s+/);
+  // 2. Count Turkish keywords
+  const words = textToScan.split(/\s+/).map(w => w.replace(/[^a-zA-ZçğışöüÇĞİŞÖÜ]/g, ''));
   let matchedKeywords = 0;
   for (const w of words) {
-    const cleanW = w.replace(/[^a-zA-ZçğışöüÇĞİŞÖÜ]/g, '');
-    if (TURKISH_KEYWORDS.includes(cleanW)) {
+    if (TURKISH_KEYWORDS.includes(w)) {
       matchedKeywords++;
-      if (matchedKeywords >= 3) break;
+      if (matchedKeywords >= 5) break;
     }
   }
 
-  if (matchedKeywords >= 1) score += 0.2;
-  if (matchedKeywords >= 3) score += 0.3;
+  // 3. Detect dominant English text (e.g. BBC, TED, NPR, Global News)
+  const englishStopWords = ['the', 'and', 'with', 'from', 'this', 'that', 'about', 'daily', 'weekly', 'official', 'podcast', 'episodes', 'hosted', 'by'];
+  let englishMatches = 0;
+  for (const w of words) {
+    if (englishStopWords.includes(w)) {
+      englishMatches++;
+      if (englishMatches >= 3) break;
+    }
+  }
 
-  if (item.country === 'TR' || item.country === 'tr') {
+  // If text has 0 Turkish chars, 0 Turkish keywords, and multiple English stop words -> It's non-Turkish
+  if (!hasTurkishChars && matchedKeywords === 0 && englishMatches >= 2) {
+    return 0.0;
+  }
+
+  let score = 0;
+
+  if (hasTurkishChars) {
+    score += 0.5;
+  }
+
+  if (matchedKeywords >= 1) score += 0.2;
+  if (matchedKeywords >= 2) score += 0.2;
+  if (matchedKeywords >= 4) score += 0.2;
+
+  // Only trust language code if not contradicted by text
+  if (isTurkishLanguageCode(item.language) && item.language !== 'tr-unknown') {
+    score += 0.2;
+  }
+
+  if (item.country === 'TR' || item.country === 'tr' || item.country === 'TUR') {
     score += 0.1;
   }
 
@@ -67,5 +92,6 @@ export function isTurkishPodcast(item: {
   publisher?: string;
   isCurated?: boolean;
 }): boolean {
-  return calculateTurkishConfidence(item) >= 0.4;
+  if (item.isCurated) return true;
+  return calculateTurkishConfidence(item) >= 0.5;
 }
