@@ -322,47 +322,66 @@ export async function downloadPodcastEpisode(
         const contentLengthHeader = response.headers.get('content-length');
         totalSize = contentLengthHeader ? parseInt(contentLengthHeader, 10) || 0 : 0;
 
-        if (!response.body) {
-          // Fallback arrayBuffer if body stream not available
-          const buf = await response.arrayBuffer();
-          if (controller.signal.aborted) break;
-          blob = new Blob([buf], { type: response.headers.get('content-type') || 'audio/mpeg' });
-          totalSize = blob.size;
-          break;
-        }
-
-        const reader = response.body.getReader();
+        let streamSuccess = false;
         const chunks: Uint8Array[] = [];
         let receivedBytes = 0;
 
-        while (true) {
-          if (controller.signal.aborted) break;
-          const { done, value } = await reader.read();
-          if (done) break;
+        // Try streaming response.body if available
+        if (response.body && typeof response.body.getReader === 'function') {
+          try {
+            const reader = response.body.getReader();
+            while (true) {
+              if (controller.signal.aborted) break;
+              const { done, value } = await reader.read();
+              if (done) {
+                streamSuccess = true;
+                break;
+              }
 
-          chunks.push(value);
-          receivedBytes += value.length;
+              chunks.push(value);
+              receivedBytes += value.length;
 
-          const pct = totalSize > 0 ? Math.min(99, Math.round((receivedBytes / totalSize) * 100)) : 50;
+              const pct = totalSize > 0 ? Math.min(99, Math.round((receivedBytes / totalSize) * 100)) : 50;
 
-          const progressState: ActiveDownloadState = {
-            episodeId,
-            episode,
-            progressPct: pct,
-            downloadedBytes: receivedBytes,
-            totalBytes: totalSize || receivedBytes
-          };
+              const progressState: ActiveDownloadState = {
+                episodeId,
+                episode,
+                progressPct: pct,
+                downloadedBytes: receivedBytes,
+                totalBytes: totalSize || receivedBytes
+              };
 
-          activeDownloads.set(episodeId, progressState);
-          notifyDownloadProgress(episodeId, progressState);
-          if (onProgress) onProgress(progressState);
+              activeDownloads.set(episodeId, progressState);
+              notifyDownloadProgress(episodeId, progressState);
+              if (onProgress) onProgress(progressState);
+            }
+          } catch (streamErr) {
+            console.warn('Stream reader failed or incomplete, trying direct blob/arrayBuffer fallback:', streamErr);
+          }
         }
 
-        if (controller.signal.aborted) break;
-
-        blob = new Blob(chunks, { type: response.headers.get('content-type') || 'audio/mpeg' });
-        totalSize = blob.size;
-        break;
+        if (streamSuccess && chunks.length > 0) {
+          blob = new Blob(chunks, { type: response.headers.get('content-type') || 'audio/mpeg' });
+          totalSize = blob.size;
+          break;
+        } else if (!controller.signal.aborted) {
+          // Direct Blob or ArrayBuffer fetch fallback (Crucial for iOS Safari / WebKit)
+          try {
+            const directBlob = await response.blob();
+            if (directBlob && directBlob.size > 0) {
+              blob = directBlob;
+              totalSize = blob.size;
+              break;
+            }
+          } catch {
+            const buf = await response.arrayBuffer();
+            if (buf && buf.byteLength > 0) {
+              blob = new Blob([buf], { type: response.headers.get('content-type') || 'audio/mpeg' });
+              totalSize = blob.size;
+              break;
+            }
+          }
+        }
       } catch (err: any) {
         if (err?.name === 'AbortError' || controller.signal.aborted) {
           lastErr = 'İndirme iptal edildi';
@@ -392,53 +411,82 @@ export async function downloadPodcastEpisode(
 
   // Save blob or arrayBuffer to IndexedDB
   try {
-    const db = await getDB();
     const mimeType = blob.type || 'audio/mpeg';
-
     let savedSuccessfully = false;
 
-    // First attempt: Store directly as Blob
-    try {
-      const record: DownloadedEpisodeRecord = {
-        id: episodeId,
-        episode,
-        sizeBytes: totalSize,
-        downloadedAt: Date.now(),
-        blob,
-        mimeType
-      };
+    const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent || '');
 
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.put(record);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-      });
-      savedSuccessfully = true;
-    } catch (blobSaveErr) {
-      console.warn('Direct Blob put failed in IndexedDB (common on iOS Safari), trying ArrayBuffer fallback:', blobSaveErr);
+    // iOS Safari Safari DataCloneError workaround: prefer ArrayBuffer directly
+    if (isIOS) {
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
+        const record: DownloadedEpisodeRecord = {
+          id: episodeId,
+          episode,
+          sizeBytes: totalSize,
+          downloadedAt: Date.now(),
+          arrayBuffer,
+          mimeType
+        };
+        const db = await getDB();
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.put(record);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+        savedSuccessfully = true;
+      } catch (iosErr) {
+        console.warn('iOS ArrayBuffer IndexedDB put failed, trying standard blob:', iosErr);
+      }
     }
 
-    // Second attempt: Convert to ArrayBuffer for iOS Safari compatibility
     if (!savedSuccessfully) {
-      const arrayBuffer = await blob.arrayBuffer();
-      const record: DownloadedEpisodeRecord = {
-        id: episodeId,
-        episode,
-        sizeBytes: totalSize,
-        downloadedAt: Date.now(),
-        arrayBuffer,
-        mimeType
-      };
+      const db = await getDB();
+      // First attempt: Store directly as Blob
+      try {
+        const record: DownloadedEpisodeRecord = {
+          id: episodeId,
+          episode,
+          sizeBytes: totalSize,
+          downloadedAt: Date.now(),
+          blob,
+          mimeType
+        };
 
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.put(record);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-      });
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.put(record);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+        savedSuccessfully = true;
+      } catch (blobSaveErr) {
+        console.warn('Direct Blob put failed in IndexedDB, trying ArrayBuffer fallback:', blobSaveErr);
+      }
+
+      // Second attempt: Convert to ArrayBuffer for compatibility
+      if (!savedSuccessfully) {
+        const arrayBuffer = await blob.arrayBuffer();
+        const record: DownloadedEpisodeRecord = {
+          id: episodeId,
+          episode,
+          sizeBytes: totalSize,
+          downloadedAt: Date.now(),
+          arrayBuffer,
+          mimeType
+        };
+
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.put(record);
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      }
     }
 
     const finishState: ActiveDownloadState = {

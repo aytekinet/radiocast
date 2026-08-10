@@ -128,8 +128,11 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
         await syncDownloadedSet();
       }
     } else {
-      await downloadPodcastEpisode(ep);
+      const ok = await downloadPodcastEpisode(ep);
       await syncDownloadedSet();
+      if (!ok) {
+        alert(`"${ep.title}" bölümü indirilemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.`);
+      }
     }
   };
 
