@@ -681,15 +681,16 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
   const client = parsed.protocol === 'https:' ? https : http;
 
   const requestHeaders: Record<string, string> = {
-    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
-    'Accept': '*/*',
-    'Icy-MetaData': '1',
-    'Referer': `${parsed.protocol}//${parsed.hostname}/`,
-    'Origin': `${parsed.protocol}//${parsed.hostname}`
+    'User-Agent': (req.headers['user-agent'] as string) || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept': (req.headers['accept'] as string) || '*/*',
+    'Accept-Encoding': 'identity'
   };
 
   if (req.headers['range']) {
     requestHeaders['Range'] = req.headers['range'] as string;
+  }
+  if (req.headers['icy-metadata']) {
+    requestHeaders['Icy-MetaData'] = req.headers['icy-metadata'] as string;
   }
 
   const options: https.RequestOptions = {
@@ -707,8 +708,12 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
     proxyReq.setTimeout(0);
     if (upstreamRes.statusCode && upstreamRes.statusCode >= 300 && upstreamRes.statusCode < 400 && upstreamRes.headers.location) {
       let redirectLocation = upstreamRes.headers.location;
-      if (redirectLocation.startsWith('/')) {
-        redirectLocation = `${parsed.protocol}//${parsed.host}${redirectLocation}`;
+      try {
+        redirectLocation = new URL(redirectLocation, targetUrl).href;
+      } catch {
+        if (redirectLocation.startsWith('/')) {
+          redirectLocation = `${parsed.protocol}//${parsed.host}${redirectLocation}`;
+        }
       }
       return proxyAudioStream(redirectLocation, req, res, redirectCount + 1);
     }

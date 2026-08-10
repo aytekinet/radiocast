@@ -296,14 +296,13 @@ export async function downloadPodcastEpisode(
   notifyDownloadProgress(episodeId, initialState);
   if (onProgress) onProgress(initialState);
 
-  const cleanUrl = (episode.audioUrl || '').trim();
-  const proxyUrl = `/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`;
-  const httpsUrl = cleanUrl.startsWith('http://') ? cleanUrl.replace(/^http:\/\//i, 'https://') : cleanUrl;
-  // Try direct cleanUrl/httpsUrl first for full speed, fallback to proxyUrl if CORS blocks
+  const rawUrl = (episode.audioUrl || '').trim();
+  const cleanUrl = rawUrl.startsWith('http://') ? rawUrl.replace(/^http:\/\//i, 'https://') : rawUrl;
+  const proxyUrl = rawUrl.startsWith('/api/') ? rawUrl : `/api/radio/proxy?url=${encodeURIComponent(rawUrl)}`;
   const candidateUrls = [
-    httpsUrl,
+    proxyUrl,
     cleanUrl,
-    proxyUrl
+    rawUrl
   ].filter((u, i, self) => u && self.indexOf(u) === i);
 
   let blob: Blob | null = null;
