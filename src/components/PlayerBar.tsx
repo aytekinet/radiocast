@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Play, 
   Pause, 
@@ -365,141 +366,144 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
 
   return (
     <>
-      {/* Sticky Bottom Mini Player Bar */}
-      <div className="fixed bottom-14 md:bottom-3 inset-x-2 sm:inset-x-4 max-w-5xl mx-auto z-30 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl shadow-xl dark:shadow-2xl shrink-0 select-none transition-all duration-300 overflow-hidden">
-        {/* Top 2px Progress Indicator Bar for Podcasts */}
-        {isPodcast && (
-          <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 relative">
-            <div
-              className="h-full bg-amber-500 transition-all duration-150"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        )}
-
-        <div className="px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2">
-          {/* Left: Artwork & Info (Tap anywhere on left side to Expand Fullscreen Player) */}
-          <div 
-            onClick={() => setIsExpanded(true)}
-            className="flex items-center space-x-2.5 min-w-0 flex-1 cursor-pointer group py-0.5"
-            title="Tam Ekran Çalara Geç"
-          >
-            <div className="relative shrink-0">
-              {coverUrl && !imgError ? (
-                <img
-                  src={coverUrl}
-                  alt={title || ''}
-                  onError={() => setImgError(true)}
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-cover bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md group-hover:scale-105 transition-transform"
-                />
-              ) : (
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500 flex items-center justify-center text-zinc-950 shadow-md">
-                  {isPodcast ? <Mic className="w-5 h-5 text-zinc-950" /> : <Radio className="w-5 h-5 text-zinc-950" />}
-                </div>
-              )}
-              {status === 'playing' && (
-                <div className="absolute -bottom-1 -right-1 bg-amber-500 text-zinc-950 p-0.5 rounded-full border border-zinc-950 shadow flex items-center justify-center">
-                  <div className="flex items-end gap-[1px] h-2.5 w-2.5">
-                    <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.1s] h-full" />
-                    <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.3s] h-2/3" />
-                    <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.2s] h-5/6" />
-                  </div>
-                </div>
-              )}
+      {/* Sticky Bottom Mini Player Bar (Hidden when player is expanded fullscreen) */}
+      {!isExpanded && (
+        <div className="fixed bottom-14 md:bottom-3 inset-x-2 sm:inset-x-4 max-w-5xl mx-auto z-30 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl shadow-xl dark:shadow-2xl shrink-0 select-none transition-all duration-300 overflow-hidden">
+          {/* Top 2px Progress Indicator Bar for Podcasts */}
+          {isPodcast && (
+            <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 relative">
+              <div
+                className="h-full bg-amber-500 transition-all duration-150"
+                style={{ width: `${progressPercent}%` }}
+              />
             </div>
+          )}
 
-            <div className="min-w-0 flex-1">
-              <h4 className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate group-hover:text-amber-500 transition-colors">
-                {title}
-              </h4>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 flex items-center gap-1">
-                <span>{subtitle}</span>
-                {isPodcast && activeDuration > 0 && (
-                  <span className="text-[10px] font-mono text-amber-500 shrink-0">
-                    • {formatTime(currentPos)} / {formatTime(activeDuration)}
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-
-          {/* Right: Clean Controls & Expand Button */}
-          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
-            {/* Download Button on Mini Player for Podcasts */}
-            {isPodcast && (
-              <button
-                onClick={handleDownloadToggle}
-                className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer"
-                title={
-                  activeDownload
-                    ? `İndiriliyor: %${activeDownload.progressPct.toFixed(0)}`
-                    : isDownloaded
-                    ? 'İndirilmiş (Sil)'
-                    : 'İndir'
-                }
-              >
-                {activeDownload ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
-                ) : isDownloaded ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-500/20" />
+          <div className="px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2">
+            {/* Left: Artwork & Info (Tap anywhere on left side to Expand Fullscreen Player) */}
+            <div 
+              onClick={() => setIsExpanded(true)}
+              className="flex items-center space-x-2.5 min-w-0 flex-1 cursor-pointer group py-0.5"
+              title="Tam Ekran Çalara Geç"
+            >
+              <div className="relative shrink-0">
+                {coverUrl && !imgError ? (
+                  <img
+                    src={coverUrl}
+                    alt={title || ''}
+                    onError={() => setImgError(true)}
+                    className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-cover bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md group-hover:scale-105 transition-transform"
+                  />
                 ) : (
-                  <DownloadCloud className="w-4 h-4 hover:text-amber-500" />
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500 flex items-center justify-center text-zinc-950 shadow-md">
+                    {isPodcast ? <Mic className="w-5 h-5 text-zinc-950" /> : <Radio className="w-5 h-5 text-zinc-950" />}
+                  </div>
                 )}
-              </button>
-            )}
+                {status === 'playing' && (
+                  <div className="absolute -bottom-1 -right-1 bg-amber-500 text-zinc-950 p-0.5 rounded-full border border-zinc-950 shadow flex items-center justify-center">
+                    <div className="flex items-end gap-[1px] h-2.5 w-2.5">
+                      <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.1s] h-full" />
+                      <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.3s] h-2/3" />
+                      <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.2s] h-5/6" />
+                    </div>
+                  </div>
+                )}
+              </div>
 
-            {/* Heart Favorite Toggle Button */}
-            {favoriteStationTarget && (
+              <div className="min-w-0 flex-1">
+                <h4 className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate group-hover:text-amber-500 transition-colors">
+                  {title}
+                </h4>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 flex items-center gap-1">
+                  <span>{subtitle}</span>
+                  {isPodcast && activeDuration > 0 && (
+                    <span className="text-[10px] font-mono text-amber-500 shrink-0">
+                      • {formatTime(currentPos)} / {formatTime(activeDuration)}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* Right: Clean Controls & Expand Button */}
+            <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+              {/* Download Button on Mini Player for Podcasts */}
+              {isPodcast && (
+                <button
+                  onClick={handleDownloadToggle}
+                  className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer"
+                  title={
+                    activeDownload
+                      ? `İndiriliyor: %${activeDownload.progressPct.toFixed(0)}`
+                      : isDownloaded
+                      ? 'İndirilmiş (Sil)'
+                      : 'İndir'
+                  }
+                >
+                  {activeDownload ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                  ) : isDownloaded ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-500/20" />
+                  ) : (
+                    <DownloadCloud className="w-4 h-4 hover:text-amber-500" />
+                  )}
+                </button>
+              )}
+
+              {/* Heart Favorite Toggle Button */}
+              {favoriteStationTarget && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleFavorite(favoriteStationTarget);
+                  }}
+                  className="text-zinc-400 hover:text-rose-500 transition-colors p-1.5 shrink-0 active:scale-90 cursor-pointer"
+                  title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+                >
+                  <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+                </button>
+              )}
+
+              {/* Play / Pause Main Button */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onToggleFavorite(favoriteStationTarget);
+                  onPlayPause();
                 }}
-                className="text-zinc-400 hover:text-rose-500 transition-colors p-1.5 shrink-0 active:scale-90 cursor-pointer"
-                title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+                className={`p-2.5 sm:p-3 rounded-2xl transition-all shadow-md active:scale-95 cursor-pointer ${
+                  status === 'playing'
+                    ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold shadow-amber-500/20'
+                    : 'bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-950 font-bold'
+                }`}
+                title={status === 'playing' ? 'Duraklat' : 'Oynat'}
               >
-                <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+                {status === 'connecting' || status === 'buffering' ? (
+                  <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                ) : status === 'playing' ? (
+                  <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                ) : (
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
+                )}
               </button>
-            )}
 
-            {/* Play / Pause Main Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onPlayPause();
-              }}
-              className={`p-2.5 sm:p-3 rounded-2xl transition-all shadow-md active:scale-95 cursor-pointer ${
-                status === 'playing'
-                  ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold shadow-amber-500/20'
-                  : 'bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-950 font-bold'
-              }`}
-              title={status === 'playing' ? 'Duraklat' : 'Oynat'}
-            >
-              {status === 'connecting' || status === 'buffering' ? (
-                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-              ) : status === 'playing' ? (
-                <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
-              ) : (
-                <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />
-              )}
-            </button>
-
-            {/* Expand Fullscreen Button */}
-            <button
-              onClick={() => setIsExpanded(true)}
-              className="p-2 sm:p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-bold transition-all active:scale-95 cursor-pointer ml-1"
-              title="Tam Ekran Çalar"
-            >
-              <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+              {/* Expand Fullscreen Button */}
+              <button
+                onClick={() => setIsExpanded(true)}
+                className="p-2 sm:p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-bold transition-all active:scale-95 cursor-pointer ml-1"
+                title="Tam Ekran Çalar"
+              >
+                <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* FULL-SCREEN OVERLAY PLAYER (RESPONSIVE, NON-OVERFLOWING, PERFECTLY BALANCED) */}
-      {isExpanded && (
-        <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-2xl text-white flex flex-col justify-between p-3 sm:p-5 overflow-y-auto no-scrollbar max-h-screen select-none animate-fadeIn relative">
-          {/* Ambient Artwork Glow */}
+      {/* FULL-SCREEN OVERLAY PLAYER (RESPONSIVE, FULL VIEWPORT, PERFECTLY ISOLATED) */}
+      {isExpanded &&
+        createPortal(
+          <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-[999] bg-slate-950 text-white flex flex-col justify-between p-3 sm:p-5 overflow-y-auto no-scrollbar w-screen h-screen h-[100dvh] select-none animate-fadeIn">
+            {/* Ambient Artwork Glow */}
           {coverUrl && !imgError && (
             <div 
               className="absolute inset-0 bg-cover bg-center opacity-20 blur-3xl scale-125 pointer-events-none -z-10"
@@ -828,7 +832,8 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

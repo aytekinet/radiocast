@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Share, SquarePlus, X, Smartphone, Check, ArrowDown } from 'lucide-react';
 
 interface IOSInstallGuideModalProps {
@@ -9,8 +10,8 @@ interface IOSInstallGuideModalProps {
 export const IOSInstallGuideModal: React.FC<IOSInstallGuideModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
       <div 
         className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-amber-500/30 p-6 shadow-2xl space-y-6 text-slate-900 dark:text-slate-100 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
@@ -113,6 +114,7 @@ export const IOSInstallGuideModal: React.FC<IOSInstallGuideModalProps> = ({ isOp
           Anladım, Kapat
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

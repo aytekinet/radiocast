@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Radio, Mic, Globe, X, Play, Volume2, ArrowRight } from 'lucide-react';
 import { RadioStation, PodcastShow, PodcastEpisode } from '../types';
 import { ALL_TURKISH_STATIONS } from '../data/fallbackStations';
@@ -80,8 +81,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
   const hasResults = matchingStations.length > 0 || matchingPodcasts.length > 0 || matchingCountries.length > 0;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 bg-zinc-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-zinc-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
         className="w-full max-w-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
         onClick={e => e.stopPropagation()}
@@ -272,6 +273,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
           <span>İpucu: İstediğiniz an <kbd className="px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono text-[10px]">Cmd + K</kbd> tuşlarına basarak aramayı açabilirsiniz.</span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
