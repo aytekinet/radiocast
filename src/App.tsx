@@ -13,6 +13,7 @@ import {
 import { matchesCategory, matchesGroup } from './constants/categories';
 import { VERIFIED_TURKISH_STATIONS, ALL_TURKISH_STATIONS } from './data/fallbackStations';
 import { CURATED_TURKISH_PODCASTS } from './data/curatedTurkishPodcasts';
+import GENERATED_PODCAST_CATALOG from './data/generatedPodcastCatalog.json';
 import { audioEngine, PlaybackStatus } from './services/audioEngine';
 import { 
   getStoredFavorites, 
@@ -628,9 +629,16 @@ export default function App() {
   const handleNavigateToPodcastShow = useCallback((episode: PodcastEpisode) => {
     changeTab('podcasts', false);
 
+    const showTitleLower = (episode.showTitle || '').toLowerCase();
     const curatedMatch = CURATED_TURKISH_PODCASTS.find(
-      p => p.id === episode.showId || p.title.toLowerCase() === (episode.showTitle || '').toLowerCase()
+      p => p.id === episode.showId || (showTitleLower && p.title.toLowerCase() === showTitleLower)
     );
+
+    const catalogMatch = !curatedMatch
+      ? (GENERATED_PODCAST_CATALOG as any[]).find(
+          item => (item.id && item.id === episode.showId) || (showTitleLower && item.title && item.title.toLowerCase() === showTitleLower)
+        )
+      : null;
 
     let targetShow: PodcastShow;
     if (curatedMatch) {
@@ -642,6 +650,17 @@ export default function App() {
         feedUrl: curatedMatch.feedUrl,
         category: curatedMatch.category || episode.category || 'Genel',
         description: curatedMatch.description || `${curatedMatch.title} podcast serisi.`,
+        episodes: [episode]
+      };
+    } else if (catalogMatch) {
+      targetShow = {
+        id: catalogMatch.id || episode.showId || `show-${episode.id}`,
+        title: catalogMatch.title || episode.showTitle || 'Podcast',
+        publisher: catalogMatch.author || episode.category || 'Yayıncı',
+        coverUrl: catalogMatch.image || catalogMatch.coverUrl || episode.coverUrl,
+        feedUrl: catalogMatch.feedUrl,
+        category: (catalogMatch.categories && catalogMatch.categories[0]) || episode.category || 'Genel',
+        description: catalogMatch.description || episode.description || '',
         episodes: [episode]
       };
     } else {

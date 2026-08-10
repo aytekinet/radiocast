@@ -19,6 +19,7 @@ import {
   SkipForward,
   Share2,
   ChevronDown,
+  ChevronRight,
   Maximize2,
   X,
   DownloadCloud,
@@ -654,7 +655,18 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
             {/* Center Content Section: Artwork + Title + Visualizer */}
             <div className="w-full max-w-md mx-auto my-auto py-1 sm:py-2 flex flex-col items-center text-center space-y-2 sm:space-y-3 flex-1 justify-center min-h-0 overflow-hidden">
               {/* Album Artwork Cover */}
-              <div className="relative w-28 h-28 xs:w-36 xs:h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 max-h-[22vh] sm:max-h-[28vh] aspect-square rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-800/80 bg-slate-900 shrink-0 group">
+              <div 
+                onClick={() => {
+                  if (isPodcast && currentItem && onNavigateToPodcastShow) {
+                    handleSetExpanded(false);
+                    onNavigateToPodcastShow(currentItem as PodcastEpisode);
+                  }
+                }}
+                className={`relative w-28 h-28 xs:w-36 xs:h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 max-h-[22vh] sm:max-h-[28vh] aspect-square rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-800/80 bg-slate-900 shrink-0 group ${
+                  isPodcast ? 'cursor-pointer' : ''
+                }`}
+                title={isPodcast ? 'Podcast Kanalına Git' : undefined}
+              >
                 {coverUrl && !imgError ? (
                   <img
                     src={coverUrl}
@@ -673,7 +685,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
               </div>
 
               {/* Title & Subtitle (Line clamped & nicely padded) */}
-              <div className="space-y-0.5 sm:space-y-1 w-full px-2 max-w-full">
+              <div className="space-y-0.5 sm:space-y-1 w-full px-2 max-w-full flex flex-col items-center">
                 <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                   <h2 className="text-xs xs:text-sm sm:text-base md:text-lg font-black text-white text-center leading-tight sm:leading-snug line-clamp-2">
                     {title}
@@ -688,9 +700,28 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] sm:text-xs md:text-sm font-semibold text-amber-400/90 text-center truncate px-2">
-                  {subtitle}
-                </p>
+
+                {isPodcast && currentItem && (currentItem as PodcastEpisode) ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSetExpanded(false);
+                      if (onNavigateToPodcastShow) {
+                        onNavigateToPodcastShow(currentItem as PodcastEpisode);
+                      }
+                    }}
+                    className="inline-flex items-center justify-center gap-1 px-3 py-1 mt-1 rounded-full bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 hover:text-white text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 shadow-md group/chan max-w-full"
+                    title="Podcast Kanalına / Sayfasına Git"
+                  >
+                    <Mic className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="truncate max-w-[240px] sm:max-w-[320px]">{subtitle}</span>
+                    <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-70 group-hover/chan:translate-x-0.5 transition-transform" />
+                  </button>
+                ) : (
+                  <p className="text-[11px] sm:text-xs md:text-sm font-semibold text-amber-400/90 text-center truncate px-2">
+                    {subtitle}
+                  </p>
+                )}
               </div>
 
               {/* Visualizer Wave */}

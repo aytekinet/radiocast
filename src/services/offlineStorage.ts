@@ -300,10 +300,8 @@ export async function downloadPodcastEpisode(
   const cleanUrl = rawUrl.startsWith('http://') ? rawUrl.replace(/^http:\/\//i, 'https://') : rawUrl;
   const proxyUrl = rawUrl.startsWith('/api/') ? rawUrl : `/api/radio/proxy?url=${encodeURIComponent(rawUrl)}`;
   
-  // Smart candidate URLs order: Direct HTTPS first for maximum speed & CORS compatibility, proxy as fallback
-  const candidateUrls = cleanUrl.startsWith('https://')
-    ? [cleanUrl, proxyUrl, rawUrl]
-    : [proxyUrl, cleanUrl, rawUrl];
+  // Always try proxyUrl FIRST so browser XHR downloads bypass CORS restrictions on third-party podcast hosting CDNs
+  const candidateUrls = [proxyUrl, cleanUrl, rawUrl];
   
   const uniqueCandidateUrls = candidateUrls.filter((u, i, self) => u && self.indexOf(u) === i);
 

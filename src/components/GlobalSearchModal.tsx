@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Radio, Mic, Globe, X, Play, Volume2, ArrowRight } from 'lucide-react';
+import { Search, Radio, Mic, Globe, X, Play, Volume2, ArrowRight, Loader2 } from 'lucide-react';
 import { RadioStation, PodcastShow, PodcastEpisode } from '../types';
 import { ALL_TURKISH_STATIONS } from '../data/fallbackStations';
 import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
+import { POPULAR_TURKISH_PODCASTS } from '../data/podcastsData';
+import GENERATED_PODCAST_CATALOG from '../data/generatedPodcastCatalog.json';
 import { ALL_COUNTRIES, COUNTRY_NAMES_TR } from '../constants/categories';
+import { searchPodcasts } from '../services/podcastApi';
 
 interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -22,6 +25,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   onSelectCountry
 }) => {
   const [query, setQuery] = useState('');
+  const [livePodcasts, setLivePodcasts] = useState<PodcastShow[]>([]);
+  const [isSearchingLive, setIsSearchingLive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -31,8 +36,33 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       }, 50);
     } else {
       setQuery('');
+      setLivePodcasts([]);
     }
   }, [isOpen]);
+
+  // Debounced live podcast search for queries >= 2 chars
+  useEffect(() => {
+    const trimmed = query.trim().toLowerCase();
+    if (trimmed.length < 2) {
+      setLivePodcasts([]);
+      setIsSearchingLive(false);
+      return;
+    }
+
+    setIsSearchingLive(true);
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchPodcasts(trimmed);
+        setLivePodcasts(results || []);
+      } catch (err) {
+        console.warn('GlobalSearch live search error:', err);
+      } finally {
+        setIsSearchingLive(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   // Global ESC key listener
   useEffect(() => {
@@ -55,19 +85,92 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         s =>
           s.name.toLowerCase().includes(normalizedQuery) ||
           (s.tags && s.tags.toLowerCase().includes(normalizedQuery))
-      ).slice(0, 5)
+      ).slice(0, 6)
     : [];
 
-  // Search Podcasts
-  const matchingPodcasts = normalizedQuery
-    ? CURATED_TURKISH_PODCASTS.filter(
-        p =>
-          p.title.toLowerCase().includes(normalizedQuery) ||
-          p.publisher.toLowerCase().includes(normalizedQuery) ||
-          p.category.toLowerCase().includes(normalizedQuery) ||
-          p.description.toLowerCase().includes(normalizedQuery)
-      ).slice(0, 5)
-    : [];
+  // Search Local + Catalog + Curated Podcasts
+  const localPodcastMatches: PodcastShow[] = [];
+  if (normalizedQuery) {
+    const seenTitles = new Set<string>();
+
+    // 1. Curated Podcasts
+    for (const p of CURATED_TURKISH_PODCASTS) {
+      if (
+        p.title.toLowerCase().includes(normalizedQuery) ||
+        p.publisher.toLowerCase().includes(normalizedQuery) ||
+        p.category.toLowerCase().includes(normalizedQuery) ||
+        p.description.toLowerCase().includes(normalizedQuery)
+      ) {
+        const key = p.title.toLowerCase();
+        if (!seenTitles.has(key)) {
+          seenTitles.add(key);
+          localPodcastMatches.push({
+            id: p.id,
+            title: p.title,
+            publisher: p.publisher,
+            feedUrl: p.feedUrl,
+            coverUrl: p.coverUrl,
+            category: p.category,
+            description: p.description,
+            episodes: []
+          });
+        }
+      }
+    }
+
+    // 2. Generated Catalog JSON
+    for (const item of GENERATED_PODCAST_CATALOG as any[]) {
+      const title = item.title || '';
+      const author = item.author || '';
+      const desc = item.description || '';
+      if (
+        title.toLowerCase().includes(normalizedQuery) ||
+        author.toLowerCase().includes(normalizedQuery) ||
+        desc.toLowerCase().includes(normalizedQuery)
+      ) {
+        const key = title.toLowerCase();
+        if (!seenTitles.has(key)) {
+          seenTitles.add(key);
+          localPodcastMatches.push({
+            id: item.id || `gen-${title}`,
+            title: title,
+            publisher: author || 'Podcast',
+            feedUrl: item.feedUrl,
+            coverUrl: item.image || item.coverUrl,
+            category: (item.categories && item.categories[0]) || 'Podcast',
+            description: desc,
+            episodes: []
+          });
+        }
+      }
+    }
+
+    // 3. Popular Podcasts Data
+    for (const p of POPULAR_TURKISH_PODCASTS) {
+      if (
+        p.title.toLowerCase().includes(normalizedQuery) ||
+        p.publisher.toLowerCase().includes(normalizedQuery) ||
+        p.category.toLowerCase().includes(normalizedQuery)
+      ) {
+        const key = p.title.toLowerCase();
+        if (!seenTitles.has(key)) {
+          seenTitles.add(key);
+          localPodcastMatches.push(p);
+        }
+      }
+    }
+
+    // 4. Live API Podcasts
+    for (const p of livePodcasts) {
+      const key = p.title.toLowerCase();
+      if (!seenTitles.has(key)) {
+        seenTitles.add(key);
+        localPodcastMatches.push(p);
+      }
+    }
+  }
+
+  const matchingPodcasts = localPodcastMatches.slice(0, 8);
 
   // Search Countries
   const matchingCountries = normalizedQuery
@@ -98,6 +201,9 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
             placeholder="Radyo, podcast, konu veya ülke ara... (Örn: Power FM, Evrim Ağacı, Power)"
             className="w-full bg-transparent text-sm md:text-base font-medium text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none"
           />
+          {isSearchingLive && (
+            <Loader2 className="w-4 h-4 text-amber-500 animate-spin shrink-0 mr-2" />
+          )}
           {query && (
             <button
               onClick={() => setQuery('')}
