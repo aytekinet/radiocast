@@ -298,11 +298,12 @@ export async function downloadPodcastEpisode(
 
   const cleanUrl = (episode.audioUrl || '').trim();
   const proxyUrl = `/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`;
-  const httpsUrl = cleanUrl.startsWith('http://') ? cleanUrl.replace(/^http:\/\//i, 'https://') : '';
+  const httpsUrl = cleanUrl.startsWith('http://') ? cleanUrl.replace(/^http:\/\//i, 'https://') : cleanUrl;
+  // Try direct cleanUrl/httpsUrl first for full speed, fallback to proxyUrl if CORS blocks
   const candidateUrls = [
-    proxyUrl,
+    httpsUrl,
     cleanUrl,
-    httpsUrl
+    proxyUrl
   ].filter((u, i, self) => u && self.indexOf(u) === i);
 
   let blob: Blob | null = null;
@@ -318,6 +319,7 @@ export async function downloadPodcastEpisode(
         const downloadedResult = await new Promise<{ blob: Blob; size: number }>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open('GET', fetchUrl, true);
+          xhr.timeout = 300000; // 5 minutes timeout for downloading audio files
           const isIOSDevice = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent || '');
           xhr.responseType = isIOSDevice ? 'arraybuffer' : 'blob';
 

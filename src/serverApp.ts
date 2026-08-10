@@ -699,10 +699,12 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
     method: 'GET',
     headers: requestHeaders,
     rejectUnauthorized: false, // Allow radios with self-signed or expired SSL certs
-    timeout: 15000
+    timeout: 60000 // 60 seconds connection timeout
   };
 
   const proxyReq = client.request(options, (upstreamRes) => {
+    // Disable timeout once streaming starts so downloads complete without abrupt cuts
+    proxyReq.setTimeout(0);
     if (upstreamRes.statusCode && upstreamRes.statusCode >= 300 && upstreamRes.statusCode < 400 && upstreamRes.headers.location) {
       let redirectLocation = upstreamRes.headers.location;
       if (redirectLocation.startsWith('/')) {

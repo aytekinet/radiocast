@@ -166,10 +166,26 @@ export default function App() {
       if (state?.overlay !== 'search') {
         setIsSearchModalOpen(false);
       }
+      let targetTab = '';
       if (state && state.tab && validTabs.includes(state.tab)) {
-        setActiveTab(state.tab);
+        targetTab = state.tab;
+        setActiveTab(targetTab);
       } else {
-        syncFromLocation();
+        const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().split('/')[0];
+        if (validTabs.includes(hash)) {
+          targetTab = hash;
+          setActiveTab(targetTab);
+        } else {
+          syncFromLocation();
+        }
+      }
+
+      if (targetTab) {
+        setTimeout(() => {
+          if (mainRef.current && tabScrollPositions.current[targetTab] !== undefined) {
+            mainRef.current.scrollTop = tabScrollPositions.current[targetTab];
+          }
+        }, 20);
       }
     };
 
@@ -250,6 +266,17 @@ export default function App() {
   // Scroll Position Preservation Container Ref
   const mainRef = useRef<HTMLDivElement>(null);
   const tabScrollPositions = useRef<Record<string, number>>({});
+
+  // Continuously preserve scroll position per tab
+  useEffect(() => {
+    const mainEl = mainRef.current;
+    if (!mainEl) return;
+    const handleScroll = () => {
+      tabScrollPositions.current[activeTab] = mainEl.scrollTop;
+    };
+    mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    return () => mainEl.removeEventListener('scroll', handleScroll);
+  }, [activeTab]);
 
   // Notification Toast Message
   const [toastMessage, setToastMessage] = useState<string | null>(null);

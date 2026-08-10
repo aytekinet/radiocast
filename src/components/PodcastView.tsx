@@ -174,6 +174,26 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   const selectedShowRef = React.useRef<PodcastShow | null>(selectedShow);
   selectedShowRef.current = selectedShow;
 
+  const catalogScrollPosRef = React.useRef<number>(0);
+  const prevSelectedShowRef = React.useRef<PodcastShow | null>(null);
+
+  useEffect(() => {
+    // Restore catalog scroll position when returning from show details
+    if (prevSelectedShowRef.current && !selectedShow) {
+      const pos = catalogScrollPosRef.current;
+      if (pos > 0) {
+        const restore = () => {
+          const mainEl = document.querySelector('main');
+          if (mainEl) mainEl.scrollTop = pos;
+        };
+        requestAnimationFrame(restore);
+        setTimeout(restore, 30);
+        setTimeout(restore, 100);
+      }
+    }
+    prevSelectedShowRef.current = selectedShow;
+  }, [selectedShow]);
+
   const resolveShowFromId = (showId: string): PodcastShow => {
     const cleanId = decodeURIComponent(showId.trim());
 
@@ -415,6 +435,10 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   };
 
   const handleOpenShow = async (show: PodcastShow) => {
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+      catalogScrollPosRef.current = mainEl.scrollTop;
+    }
     setSelectedShow(show);
     setEpisodeFilter('all');
     if (typeof window !== 'undefined' && window.history) {
@@ -428,6 +452,10 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
       }
     }
     loadEpisodesForShow(show);
+    setTimeout(() => {
+      const m = document.querySelector('main');
+      if (m) m.scrollTop = 0;
+    }, 10);
   };
 
   const handleBackToShows = () => {

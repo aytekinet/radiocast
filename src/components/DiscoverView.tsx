@@ -108,12 +108,13 @@ const VirtualizedStationGrid: React.FC<VirtualizedStationGridProps> = React.memo
 
     handleScroll();
     scrollParent.addEventListener('scroll', handleScroll, { passive: true });
-    return () => scrollParent.removeEventListener('scroll', handleScroll as any);
+    // Also re-check scroll position on window resize or view unhide
+    window.addEventListener('resize', handleScroll);
+    return () => {
+      scrollParent.removeEventListener('scroll', handleScroll as any);
+      window.removeEventListener('resize', handleScroll);
+    };
   }, [stations]);
-
-  useEffect(() => {
-    setScrollTop(0);
-  }, [stations.length]);
 
   const totalRows = Math.ceil(stations.length / columns);
   const totalHeight = totalRows * ROW_HEIGHT;
