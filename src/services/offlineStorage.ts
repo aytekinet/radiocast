@@ -298,12 +298,15 @@ export async function downloadPodcastEpisode(
 
   const rawUrl = (episode.audioUrl || '').trim().replace(/&amp;/g, '&');
   const cleanUrl = rawUrl.startsWith('http://') ? rawUrl.replace(/^http:\/\//i, 'https://') : rawUrl;
+
   const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(cleanUrl)}`;
   const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`;
+  const codeTabsUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(cleanUrl)}`;
+  const bridgeUrl = `https://cors.bridge.workers.dev/?${encodeURIComponent(cleanUrl)}`;
   const proxyUrl = rawUrl.startsWith('/api/') ? rawUrl : `/api/radio/proxy?url=${encodeURIComponent(rawUrl)}`;
   
-  // Prioritize direct CDN URLs & client CORS proxies to bypass Vercel 10s serverless function timeout
-  const candidateUrls = [cleanUrl, rawUrl, corsProxyUrl, allOriginsUrl, proxyUrl];
+  // Prioritize direct CDN URLs & fast client CORS proxies to bypass Vercel 10s serverless function timeout
+  const candidateUrls = [cleanUrl, rawUrl, corsProxyUrl, codeTabsUrl, bridgeUrl, allOriginsUrl, proxyUrl];
   
   const uniqueCandidateUrls = candidateUrls.filter((u, i, self) => u && self.indexOf(u) === i);
 
@@ -316,11 +319,14 @@ export async function downloadPodcastEpisode(
       if (controller.signal.aborted) break;
       
       try {
-        // Use XMLHttpRequest for solid, cross-platform progress and arraybuffer/blob handling on iOS Safari
+        // Use XMLHttpRequest with fast connect fallback
         const downloadedResult = await new Promise<{ blob: Blob; size: number }>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open('GET', fetchUrl, true);
-          xhr.timeout = 300000; // 5 minutes timeout for downloading audio files
+          // Set reasonable timeout per candidate URL so we failover quickly to working proxies
+          const isVercelServerProxy = fetchUrl.startsWith('/api/');
+          xhr.timeout = isVercelServerProxy ? 12000 : 180000; // 12s for Vercel proxy before fallback, 3min for direct CDN/CORS proxies
+
           const isIOSDevice = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent || '');
           xhr.responseType = isIOSDevice ? 'arraybuffer' : 'blob';
 
@@ -363,7 +369,7 @@ export async function downloadPodcastEpisode(
             controller.signal.removeEventListener('abort', onAbort);
             if (xhr.status >= 200 && xhr.status < 300) {
               const contentType = (xhr.getResponseHeader('content-type') || '').toLowerCase();
-              if (contentType.includes('text/html') || contentType.includes('application/json')) {
+              if (contentType.includes('text/html') && !fetchUrl.includes('code') && !fetchUrl.includes('bridge')) {
                 reject(new Error('Gelen yanıt ses dosyası değil (Web sayfası döndü)'));
                 return;
               }
@@ -415,7 +421,7 @@ export async function downloadPodcastEpisode(
           const res = await fetch(fetchUrl, { signal: controller.signal });
           if (res.ok) {
             const directBlob = await res.blob();
-            if (directBlob && directBlob.size > 0) {
+            if (directBlob && directBlob.size > 2000) {
               blob = directBlob;
               totalSize = directBlob.size;
               break;

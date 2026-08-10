@@ -155,32 +155,53 @@ export function isTurkishPodcastShow(show: { title?: string; publisher?: string;
 
 export async function fetchITunesPodcastsDirect(query: string, country = 'TR', limit = 100): Promise<PodcastShow[]> {
   try {
-    const res = await fetch(`https://itunes.apple.com/search?media=podcast&entity=podcast&country=${encodeURIComponent(country)}&limit=${limit}&term=${encodeURIComponent(query)}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && Array.isArray(data.results)) {
-        const parsedShows = data.results
-          .filter((item: any) => item.feedUrl && item.collectionName)
-          .map((item: any) => ({
-            id: String(item.collectionId || Math.random()),
-            title: item.collectionName.trim(),
-            publisher: (item.artistName || 'Yayıncı').trim(),
-            coverUrl: item.artworkUrl600 || item.artworkUrl100 || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=400&q=80',
-            category: item.primaryGenreName || 'Podcast',
-            description: `${item.artistName || 'Yayıncı'} - ${item.primaryGenreName || 'Podcast'} serisi.`,
-            feedUrl: item.feedUrl,
-            releaseDateMillis: item.releaseDate ? new Date(item.releaseDate).getTime() : 0,
-            episodes: []
-          }));
+    const urls = [
+      `https://itunes.apple.com/search?media=podcast&entity=podcast&country=${encodeURIComponent(country || 'TR')}&limit=${limit}&term=${encodeURIComponent(query)}`
+    ];
+    if (query.trim().length > 0 && country) {
+      urls.push(`https://itunes.apple.com/search?media=podcast&entity=podcast&limit=${limit}&term=${encodeURIComponent(query)}`);
+    }
 
-        // If specific search query provided, return all iTunes results matching query
-        if (query.trim().length > 0) {
-          return parsedShows;
+    const allResults: PodcastShow[] = [];
+    const seenFeeds = new Set<string>();
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.results)) {
+            for (const item of data.results) {
+              if (item.feedUrl && item.collectionName) {
+                const feedKey = item.feedUrl.toLowerCase().trim();
+                if (!seenFeeds.has(feedKey)) {
+                  seenFeeds.add(feedKey);
+                  allResults.push({
+                    id: String(item.collectionId || Math.random()),
+                    title: item.collectionName.trim(),
+                    publisher: (item.artistName || 'Yayıncı').trim(),
+                    coverUrl: item.artworkUrl600 || item.artworkUrl100 || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=400&q=80',
+                    category: item.primaryGenreName || 'Podcast',
+                    description: `${item.artistName || 'Yayıncı'} - ${item.primaryGenreName || 'Podcast'} serisi.`,
+                    feedUrl: item.feedUrl,
+                    releaseDateMillis: item.releaseDate ? new Date(item.releaseDate).getTime() : 0,
+                    episodes: []
+                  });
+                }
+              }
+            }
+          }
         }
-
-        return parsedShows.filter(isTurkishPodcastShow);
+      } catch (err) {
+        console.warn('iTunes query fetch error:', err);
       }
     }
+
+    if (query.trim().length > 0) {
+      return allResults;
+    }
+
+    return allResults.filter(isTurkishPodcastShow);
   } catch (err) {
     console.warn('Direct iTunes fetch error:', err);
   }

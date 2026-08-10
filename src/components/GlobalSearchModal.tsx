@@ -93,7 +93,16 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   if (normalizedQuery) {
     const seenTitles = new Set<string>();
 
-    // 1. Curated Podcasts
+    // 1. Live API Podcasts (iTunes Direct Search) - Prioritized first
+    for (const p of livePodcasts) {
+      const key = (p.feedUrl || p.title).toLowerCase().trim();
+      if (!seenTitles.has(key)) {
+        seenTitles.add(key);
+        localPodcastMatches.push(p);
+      }
+    }
+
+    // 2. Curated Podcasts
     for (const p of CURATED_TURKISH_PODCASTS) {
       if (
         p.title.toLowerCase().includes(normalizedQuery) ||
@@ -101,7 +110,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         p.category.toLowerCase().includes(normalizedQuery) ||
         p.description.toLowerCase().includes(normalizedQuery)
       ) {
-        const key = p.title.toLowerCase();
+        const key = (p.feedUrl || p.title).toLowerCase().trim();
         if (!seenTitles.has(key)) {
           seenTitles.add(key);
           localPodcastMatches.push({
@@ -118,7 +127,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       }
     }
 
-    // 2. Generated Catalog JSON
+    // 3. Generated Catalog JSON
     for (const item of GENERATED_PODCAST_CATALOG as any[]) {
       const title = item.title || '';
       const author = item.author || '';
@@ -128,7 +137,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         author.toLowerCase().includes(normalizedQuery) ||
         desc.toLowerCase().includes(normalizedQuery)
       ) {
-        const key = title.toLowerCase();
+        const key = (item.feedUrl || title).toLowerCase().trim();
         if (!seenTitles.has(key)) {
           seenTitles.add(key);
           localPodcastMatches.push({
@@ -145,32 +154,23 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       }
     }
 
-    // 3. Popular Podcasts Data
+    // 4. Popular Podcasts Data
     for (const p of POPULAR_TURKISH_PODCASTS) {
       if (
         p.title.toLowerCase().includes(normalizedQuery) ||
         p.publisher.toLowerCase().includes(normalizedQuery) ||
         p.category.toLowerCase().includes(normalizedQuery)
       ) {
-        const key = p.title.toLowerCase();
+        const key = (p.feedUrl || p.title).toLowerCase().trim();
         if (!seenTitles.has(key)) {
           seenTitles.add(key);
           localPodcastMatches.push(p);
         }
       }
     }
-
-    // 4. Live API Podcasts
-    for (const p of livePodcasts) {
-      const key = p.title.toLowerCase();
-      if (!seenTitles.has(key)) {
-        seenTitles.add(key);
-        localPodcastMatches.push(p);
-      }
-    }
   }
 
-  const matchingPodcasts = localPodcastMatches.slice(0, 8);
+  const matchingPodcasts = localPodcastMatches.slice(0, 12);
 
   // Search Countries
   const matchingCountries = normalizedQuery
