@@ -57,6 +57,32 @@ function getDB(): Promise<IDBDatabase> {
 
 // Global active downloads tracking
 const activeDownloads = new Map<string, ActiveDownloadState>();
+const abortControllersMap = new Map<string, AbortController>();
+
+export function cancelDownloadEpisode(episodeId: string): void {
+  const controller = abortControllersMap.get(episodeId);
+  if (controller) {
+    try {
+      controller.abort();
+    } catch {
+      // ignore
+    }
+    abortControllersMap.delete(episodeId);
+  }
+  const existing = activeDownloads.get(episodeId);
+  activeDownloads.delete(episodeId);
+  
+  if (existing) {
+    notifyDownloadProgress(episodeId, {
+      episodeId,
+      episode: existing.episode,
+      progressPct: 0,
+      downloadedBytes: 0,
+      totalBytes: 0,
+      error: 'İndirme durduruldu'
+    });
+  }
+}
 
 export function getActiveDownloadsMap(): Map<string, ActiveDownloadState> {
   return activeDownloads;
@@ -254,6 +280,9 @@ export async function downloadPodcastEpisode(
     totalBytes: 0
   };
 
+  const controller = new AbortController();
+  abortControllersMap.set(episodeId, controller);
+
   activeDownloads.set(episodeId, initialState);
   notifyDownloadProgress(episodeId, initialState);
   if (onProgress) onProgress(initialState);
@@ -271,57 +300,70 @@ export async function downloadPodcastEpisode(
   let totalSize = 0;
   let lastErr = '';
 
-  for (const fetchUrl of candidateUrls) {
-    try {
-      const response = await fetch(fetchUrl);
-      if (!response.ok) {
-        lastErr = `HTTP ${response.status} ${response.statusText}`;
-        continue;
-      }
+  try {
+    for (const fetchUrl of candidateUrls) {
+      if (controller.signal.aborted) break;
+      try {
+        const response = await fetch(fetchUrl, { signal: controller.signal });
+        if (!response.ok) {
+          lastErr = `HTTP ${response.status} ${response.statusText}`;
+          continue;
+        }
 
-      const contentLengthHeader = response.headers.get('content-length');
-      totalSize = contentLengthHeader ? parseInt(contentLengthHeader, 10) || 0 : 0;
+        const contentLengthHeader = response.headers.get('content-length');
+        totalSize = contentLengthHeader ? parseInt(contentLengthHeader, 10) || 0 : 0;
 
-      if (!response.body) {
-        // Fallback arrayBuffer if body stream not available
-        const buf = await response.arrayBuffer();
-        blob = new Blob([buf], { type: response.headers.get('content-type') || 'audio/mpeg' });
+        if (!response.body) {
+          // Fallback arrayBuffer if body stream not available
+          const buf = await response.arrayBuffer();
+          if (controller.signal.aborted) break;
+          blob = new Blob([buf], { type: response.headers.get('content-type') || 'audio/mpeg' });
+          totalSize = blob.size;
+          break;
+        }
+
+        const reader = response.body.getReader();
+        const chunks: Uint8Array[] = [];
+        let receivedBytes = 0;
+
+        while (true) {
+          if (controller.signal.aborted) break;
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          chunks.push(value);
+          receivedBytes += value.length;
+
+          const pct = totalSize > 0 ? Math.min(99, Math.round((receivedBytes / totalSize) * 100)) : 50;
+
+          const progressState: ActiveDownloadState = {
+            episodeId,
+            episode,
+            progressPct: pct,
+            downloadedBytes: receivedBytes,
+            totalBytes: totalSize || receivedBytes
+          };
+
+          activeDownloads.set(episodeId, progressState);
+          notifyDownloadProgress(episodeId, progressState);
+          if (onProgress) onProgress(progressState);
+        }
+
+        if (controller.signal.aborted) break;
+
+        blob = new Blob(chunks, { type: response.headers.get('content-type') || 'audio/mpeg' });
         totalSize = blob.size;
         break;
+      } catch (err: any) {
+        if (err?.name === 'AbortError' || controller.signal.aborted) {
+          lastErr = 'İndirme iptal edildi';
+          break;
+        }
+        lastErr = err?.message || 'İndirme hatası';
       }
-
-      const reader = response.body.getReader();
-      const chunks: Uint8Array[] = [];
-      let receivedBytes = 0;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        chunks.push(value);
-        receivedBytes += value.length;
-
-        const pct = totalSize > 0 ? Math.min(99, Math.round((receivedBytes / totalSize) * 100)) : 50;
-
-        const progressState: ActiveDownloadState = {
-          episodeId,
-          episode,
-          progressPct: pct,
-          downloadedBytes: receivedBytes,
-          totalBytes: totalSize || receivedBytes
-        };
-
-        activeDownloads.set(episodeId, progressState);
-        notifyDownloadProgress(episodeId, progressState);
-        if (onProgress) onProgress(progressState);
-      }
-
-      blob = new Blob(chunks, { type: response.headers.get('content-type') || 'audio/mpeg' });
-      totalSize = blob.size;
-      break;
-    } catch (err: any) {
-      lastErr = err?.message || 'İndirme hatası';
     }
+  } finally {
+    abortControllersMap.delete(episodeId);
   }
 
   if (!blob || blob.size === 0) {

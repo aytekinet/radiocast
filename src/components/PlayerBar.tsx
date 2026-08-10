@@ -425,8 +425,8 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
         </div>
 
         {/* Center Controls: Skip 10s, Stop, Play/Pause, Skip 30s, Equalizer (Centered) */}
-        <div className="flex flex-col items-center justify-center shrink-0">
-          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0 justify-center">
+        <div className="flex items-center justify-center shrink-0">
+          <div className="flex items-center space-x-1 sm:space-x-2 shrink-0 justify-center">
             {/* Podcast Backward -10s Button */}
             {isPodcast && (
               <button
@@ -451,7 +451,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
             {/* Main Play/Pause Big Button */}
             <button
               onClick={onPlayPause}
-              className={`p-2.5 sm:p-3 rounded-2xl transition-all shadow-lg active:scale-95 ${
+              className={`p-2 sm:p-2.5 rounded-2xl transition-all shadow-lg active:scale-95 ${
                 status === 'playing'
                   ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold shadow-amber-500/20 scale-105'
                   : 'bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-950 font-bold'
@@ -471,7 +471,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
             {onPrevious && (
               <button
                 onClick={onPrevious}
-                className="p-1.5 sm:p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-amber-500 transition-all active:scale-90 flex items-center justify-center"
+                className="hidden xs:flex p-1.5 sm:p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-amber-500 transition-all active:scale-90 items-center justify-center"
                 title={isPodcast ? 'Önceki Bölüm' : 'Önceki Radyo'}
               >
                 <SkipBack className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
@@ -482,7 +482,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
             {onNext && (
               <button
                 onClick={onNext}
-                className="p-1.5 sm:p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-amber-500 transition-all active:scale-90 flex items-center justify-center"
+                className="hidden xs:flex p-1.5 sm:p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-amber-500 transition-all active:scale-90 items-center justify-center"
                 title={isPodcast ? 'Sonraki Bölüm' : 'Sonraki Radyo'}
               >
                 <SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
@@ -505,7 +505,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
             {isPodcast && (
               <button
                 onClick={handleNextRate}
-                className="px-2 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-amber-500 hover:text-zinc-950 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 text-[11px] font-bold font-mono transition-all active:scale-95"
+                className="px-1.5 sm:px-2 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-amber-500 hover:text-zinc-950 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 text-[10px] sm:text-[11px] font-bold font-mono transition-all active:scale-95"
                 title="Oynatma Hızı"
               >
                 {playbackRate}x
@@ -522,15 +522,6 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
               />
             </div>
           </div>
-
-          {/* Time indicator for podcast */}
-          {isPodcast && (
-            <div className="flex items-center gap-1.5 text-[10px] font-mono text-amber-500 font-medium mt-0.5">
-              <span>{formatTime(currentTime)}</span>
-              <span>/</span>
-              <span>{formatTime(duration || podcast?.durationSeconds || 0)}</span>
-            </div>
-          )}
         </div>
 
         {/* Right: Volume & Sleep Timer */}

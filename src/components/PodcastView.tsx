@@ -5,6 +5,7 @@ import { getAllPodcastProgress, markPodcastEpisodeCompleted, clearPodcastProgres
 import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
 import { 
   downloadPodcastEpisode, 
+  cancelDownloadEpisode,
   isEpisodeDownloaded, 
   deleteDownloadedEpisode, 
   getActiveDownloadsMap, 
@@ -940,12 +941,15 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                         if (activeDl) {
                           return (
                             <button
-                              disabled
-                              title={`İndiriliyor: %${activeDl.progressPct}`}
-                              className="px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-500 font-mono text-[11px] font-bold flex items-center gap-1.5"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                cancelDownloadEpisode(ep.id);
+                              }}
+                              title={`İndiriliyor: %${activeDl.progressPct} (İptal etmek için tıkla)`}
+                              className="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-red-500/20 border border-amber-500/40 hover:border-red-500/40 text-amber-500 hover:text-red-500 font-mono text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                             >
                               <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
-                              <span>%{activeDl.progressPct}</span>
+                              <span>%{activeDl.progressPct} (Dur)</span>
                             </button>
                           );
                         }
@@ -1134,7 +1138,426 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
         </div>
       </div>
 
-      {/* Main Podcast Grid */}
+      {/* Quick Resume & Podcast History Widget (At Top) */}
+      <section className="space-y-6 pb-6 border-b border-zinc-200 dark:border-zinc-800/80">
+        {/* Header & Controls Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 dark:bg-amber-500/20">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                Dinleme Geçmişi ve Kaldığın Yerler
+              </h2>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Bölümlere kaldığınız dakikadan devam edebilir veya geçmişi yönetebilirsiniz.
+              </p>
+            </div>
+          </div>
+
+          {savedHistoryList.length > 0 && (
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              {/* Layout toggle */}
+              <div className="flex items-center p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/60">
+                <button
+                  onClick={() => setHistoryLayout('carousel')}
+                  className={`p-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    historyLayout === 'carousel'
+                      ? 'bg-amber-500 text-zinc-950 shadow-sm'
+                      : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                  title="Yatay Kaydırıcı Görünümü"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setHistoryLayout('grid')}
+                  className={`p-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    historyLayout === 'grid'
+                      ? 'bg-amber-500 text-zinc-950 shadow-sm'
+                      : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                  title="Kompakt Izgara Görünümü"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+              </div>
+
+              <button
+                onClick={handleClearAllHistory}
+                className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Tüm dinleme geçmişini sıfırla"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Sıfırla</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {savedHistoryList.length === 0 ? (
+          <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 text-center space-y-2 shadow-sm">
+            <Clock className="w-8 h-8 text-zinc-400 mx-auto opacity-50" />
+            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+              Henüz dinlenmiş podcast bölümünüz bulunmuyor
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
+              Bir podcast bölümü dinlemeye başladığınızda, kaldığınız süre ve tamamlanma oranınız otomatik olarak burada listelenir.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {/* Featured "Son Kaldığın Bölüm" Hero Resume Card (If active in-progress exists) */}
+            {latestResumeItem && historyFilter !== 'completed' && (
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent dark:from-amber-500/20 dark:via-zinc-900/90 dark:to-zinc-900/60 border border-amber-500/30 p-4 md:p-5 shadow-sm group">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
+                    <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 shadow-md border border-amber-500/20">
+                      <img
+                        src={latestResumeItem.episode.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'}
+                        alt={latestResumeItem.episode.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'; }}
+                      />
+                      <div className="absolute inset-0 bg-zinc-950/40 flex items-center justify-center">
+                        {currentEpisodeId === latestResumeItem.episode.id && isPlaying ? (
+                          <Pause className="w-7 h-7 text-amber-400 fill-current" />
+                        ) : (
+                          <Play className="w-7 h-7 text-white fill-current ml-0.5" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-md bg-amber-500 text-zinc-950 flex items-center gap-1">
+                          <RotateCcw className="w-3 h-3" /> Son Kaldığın Yer
+                        </span>
+                        <span className="text-xs text-amber-500 font-bold">
+                          %{Math.min(99, Math.round(((latestResumeItem.entry?.timeSeconds || 0) / (latestResumeItem.episode.durationSeconds || latestResumeItem.entry?.durationSeconds || 1)) * 100))}
+                        </span>
+                      </div>
+
+                      <h3 className="text-sm md:text-base font-bold text-zinc-900 dark:text-white truncate">
+                        {latestResumeItem.episode.title}
+                      </h3>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                        {latestResumeItem.episode.showTitle || 'Podcast'}
+                      </p>
+
+                      {/* Progress bar */}
+                      <div className="pt-1 space-y-1 max-w-md">
+                        <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-amber-500 rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(99, Math.round(((latestResumeItem.entry?.timeSeconds || 0) / (latestResumeItem.episode.durationSeconds || latestResumeItem.entry?.durationSeconds || 1)) * 100))}%`
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
+                          <span>Kaldığın Süre: {formatDuration(latestResumeItem.entry?.timeSeconds || 0)}</span>
+                          {latestResumeItem.episode.durationSeconds ? (
+                            <span>Kalan: {formatDuration(Math.max(0, latestResumeItem.episode.durationSeconds - (latestResumeItem.entry?.timeSeconds || 0)))}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-amber-500/20">
+                    <button
+                      onClick={() => onPlayEpisode(latestResumeItem.episode)}
+                      className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-amber-500/20 transition-all cursor-pointer"
+                    >
+                      {currentEpisodeId === latestResumeItem.episode.id && isPlaying ? (
+                        <>
+                          <Pause className="w-4 h-4 fill-current" />
+                          <span>Duraklat</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-4 h-4 fill-current" />
+                          <span>Devam Et ({formatDuration(latestResumeItem.entry?.timeSeconds || 0)})</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => handleRemoveHistoryItem(latestResumeItem.episode.id, e)}
+                      className="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 hover:bg-red-500/10 hover:text-red-500 text-zinc-400 transition-colors cursor-pointer"
+                      title="Geçmişten Kaldır"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Filter Tabs */}
+            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/80 pb-2">
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                <button
+                  onClick={() => setHistoryFilter('in-progress')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                    historyFilter === 'in-progress'
+                      ? 'bg-amber-500 text-zinc-950 shadow-sm'
+                      : 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Kaldığım Yerler ({inProgressList.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setHistoryFilter('completed')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                    historyFilter === 'completed'
+                      ? 'bg-emerald-500 text-zinc-950 shadow-sm'
+                      : 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Tamamlananlar ({completedList.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setHistoryFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                    historyFilter === 'all'
+                      ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm'
+                      : 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Tüm Geçmiş ({savedHistoryList.length})</span>
+                </button>
+              </div>
+
+              {/* Carousel navigation arrows */}
+              {historyLayout === 'carousel' && displayHistoryList.length > 2 && (
+                <div className="hidden sm:flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => scrollHistoryCarousel('left')}
+                    className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-amber-500 hover:text-zinc-950 transition-colors cursor-pointer"
+                    title="Sola Kaydır"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => scrollHistoryCarousel('right')}
+                    className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-amber-500 hover:text-zinc-950 transition-colors cursor-pointer"
+                    title="Sağa Kaydır"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Items View (Carousel or Grid) */}
+            {displayHistoryList.length === 0 ? (
+              <div className="p-6 text-center text-xs text-zinc-500 dark:text-zinc-400 italic bg-zinc-50 dark:bg-zinc-900/40 rounded-xl border border-zinc-200 dark:border-zinc-800/50">
+                {historyFilter === 'in-progress' && 'Yarıda kalmış podcast bölümü bulunmuyor.'}
+                {historyFilter === 'completed' && 'Tamamlanmış podcast bölümü bulunmuyor.'}
+                {historyFilter === 'all' && 'Geçmiş listenizde hiç bölüm bulunmuyor.'}
+              </div>
+            ) : historyLayout === 'carousel' ? (
+              /* CAROUSEL MODE */
+              <div
+                ref={historyCarouselRef}
+                className="flex gap-3.5 overflow-x-auto pb-3 pt-1 scrollbar-none snap-x scroll-smooth"
+              >
+                {displayHistoryList.map(({ episode: ep, entry }) => {
+                  const savedSecs = entry?.timeSeconds || 0;
+                  const dur = ep.durationSeconds || entry?.durationSeconds || 0;
+                  const isCompleted = Boolean(entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
+                  const pct = isCompleted ? 100 : (dur > 0 && savedSecs > 0 ? Math.min(99, Math.round((savedSecs / dur) * 100)) : 0);
+                  const isThisPlaying = currentEpisodeId === ep.id && isPlaying;
+
+                  return (
+                    <div
+                      key={ep.id}
+                      onClick={() => onPlayEpisode(ep)}
+                      className={`w-64 md:w-72 shrink-0 snap-start flex flex-col justify-between p-3.5 rounded-2xl border cursor-pointer transition-all relative group shadow-sm ${
+                        isThisPlaying
+                          ? 'bg-amber-500/10 border-amber-500/50 shadow-amber-500/10'
+                          : isCompleted
+                          ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40'
+                          : 'bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border-zinc-200 dark:border-zinc-800'
+                      }`}
+                    >
+                      {/* Top right delete x button */}
+                      <button
+                        onClick={(e) => handleRemoveHistoryItem(ep.id, e)}
+                        className="absolute top-2.5 right-2.5 p-1 rounded-lg bg-zinc-900/80 hover:bg-red-500 text-zinc-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all z-10 cursor-pointer"
+                        title="Geçmişten Kaldır"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+
+                      <div className="flex items-center gap-3">
+                        <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-zinc-800">
+                          <img
+                            src={ep.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'}
+                            alt={ep.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'; }}
+                          />
+                          <div className="absolute inset-0 bg-zinc-950/40 flex items-center justify-center">
+                            {isThisPlaying ? (
+                              <Pause className="w-5 h-5 text-amber-400 fill-current" />
+                            ) : isCompleted ? (
+                              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                            ) : (
+                              <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="min-w-0 flex-1 pr-4">
+                          <h4 className="text-xs font-bold text-zinc-900 dark:text-white line-clamp-1 group-hover:text-amber-500 transition-colors">
+                            {ep.title}
+                          </h4>
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1">
+                            {ep.showTitle || 'Podcast'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 space-y-1.5">
+                        <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] font-medium">
+                          {isCompleted ? (
+                            <span className="text-emerald-500 font-bold flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> Tamamlandı
+                            </span>
+                          ) : savedSecs > 0 ? (
+                            <span className="text-amber-500 font-bold flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> {formatDuration(savedSecs)}
+                            </span>
+                          ) : (
+                            <span className="text-zinc-400 font-bold">Başlatıldı</span>
+                          )}
+                          <span className={isCompleted ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
+                            %{pct}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* GRID MODE */
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {(isHistoryExpanded ? displayHistoryList : displayHistoryList.slice(0, 6)).map(({ episode: ep, entry }) => {
+                    const savedSecs = entry?.timeSeconds || 0;
+                    const dur = ep.durationSeconds || entry?.durationSeconds || 0;
+                    const isCompleted = Boolean(entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
+                    const pct = isCompleted ? 100 : (dur > 0 && savedSecs > 0 ? Math.min(99, Math.round((savedSecs / dur) * 100)) : 0);
+                    const isThisPlaying = currentEpisodeId === ep.id && isPlaying;
+
+                    return (
+                      <div
+                        key={ep.id}
+                        onClick={() => onPlayEpisode(ep)}
+                        className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all relative group shadow-sm ${
+                          isThisPlaying
+                            ? 'bg-amber-500/10 border-amber-500/50'
+                            : isCompleted
+                            ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40'
+                            : 'bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border-zinc-200 dark:border-zinc-800'
+                        }`}
+                      >
+                        <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-zinc-800">
+                          <img
+                            src={ep.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'}
+                            alt={ep.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'; }}
+                          />
+                          <div className="absolute inset-0 bg-zinc-950/40 flex items-center justify-center">
+                            {isThisPlaying ? (
+                              <Pause className="w-5 h-5 text-amber-400 fill-current" />
+                            ) : isCompleted ? (
+                              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                            ) : (
+                              <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex-1 min-w-0 pr-6 space-y-1">
+                          <h4 className="text-xs font-bold text-zinc-900 dark:text-white line-clamp-1 group-hover:text-amber-500 transition-colors">
+                            {ep.title}
+                          </h4>
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1">
+                            {ep.showTitle || 'Podcast'}
+                          </p>
+                          <div className="space-y-1">
+                            <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <div className="flex justify-between text-[9px] font-medium">
+                              {isCompleted ? (
+                                <span className="text-emerald-500 font-bold flex items-center gap-1">
+                                  <CheckCircle2 className="w-2.5 h-2.5" /> Tamamlandı
+                                </span>
+                              ) : savedSecs > 0 ? (
+                                <span className="text-amber-500 font-bold">
+                                  {formatDuration(savedSecs)} dinlendi
+                                </span>
+                              ) : (
+                                <span className="text-zinc-400 font-bold">Başlatıldı</span>
+                              )}
+                              <span className={isCompleted ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>%{pct}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={(e) => handleRemoveHistoryItem(ep.id, e)}
+                          className="absolute top-2 right-2 p-1 rounded-lg bg-zinc-900/80 hover:bg-red-500 text-zinc-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all z-10 cursor-pointer"
+                          title="Geçmişten Kaldır"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {displayHistoryList.length > 6 && (
+                  <div className="text-center pt-2">
+                    <button
+                      onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                      className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {isHistoryExpanded ? (
+                        <>Daralt</>
+                      ) : (
+                        <>Tümünü Göster ({displayHistoryList.length} öge)</>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
@@ -1267,427 +1690,6 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                     </>
                   )}
                 </button>
-              </div>
-            )}
-          </section>
-
-          {/* Quick Resume & Podcast History Widget */}
-          <section className="space-y-6 pt-6 border-t border-zinc-200 dark:border-zinc-800/80">
-            {/* Header & Controls Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 dark:bg-amber-500/20">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg md:text-xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                    Dinleme Geçmişi ve Kaldığın Yerler
-                  </h2>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Bölümlere kaldığınız dakikadan devam edebilir veya geçmişi yönetebilirsiniz.
-                  </p>
-                </div>
-              </div>
-
-              {savedHistoryList.length > 0 && (
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  {/* Layout toggle */}
-                  <div className="flex items-center p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700/60">
-                    <button
-                      onClick={() => setHistoryLayout('carousel')}
-                      className={`p-1.5 rounded-lg text-xs font-semibold transition-all ${
-                        historyLayout === 'carousel'
-                          ? 'bg-amber-500 text-zinc-950 shadow-sm'
-                          : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-                      }`}
-                      title="Yatay Kaydırıcı Görünümü"
-                    >
-                      <List className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setHistoryLayout('grid')}
-                      className={`p-1.5 rounded-lg text-xs font-semibold transition-all ${
-                        historyLayout === 'grid'
-                          ? 'bg-amber-500 text-zinc-950 shadow-sm'
-                          : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-                      }`}
-                      title="Kompakt Izgara Görünümü"
-                    >
-                      <LayoutGrid className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={handleClearAllHistory}
-                    className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
-                    title="Tüm dinleme geçmişini sıfırla"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Sıfırla</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {savedHistoryList.length === 0 ? (
-              <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 text-center space-y-2 shadow-sm">
-                <Clock className="w-8 h-8 text-zinc-400 mx-auto opacity-50" />
-                <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                  Henüz dinlenmiş podcast bölümünüz bulunmuyor
-                </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-md mx-auto">
-                  Bir podcast bölümü dinlemeye başladığınızda, kaldığınız süre ve tamamlanma oranınız otomatik olarak burada listelenir.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                {/* Featured "Son Kaldığın Bölüm" Hero Resume Card (If active in-progress exists) */}
-                {latestResumeItem && historyFilter !== 'completed' && (
-                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent dark:from-amber-500/20 dark:via-zinc-900/90 dark:to-zinc-900/60 border border-amber-500/30 p-4 md:p-5 shadow-sm group">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
-                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 shadow-md border border-amber-500/20">
-                          <img
-                            src={latestResumeItem.episode.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'}
-                            alt={latestResumeItem.episode.title}
-                            className="w-full h-full object-cover"
-                            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'; }}
-                          />
-                          <div className="absolute inset-0 bg-zinc-950/40 flex items-center justify-center">
-                            {currentEpisodeId === latestResumeItem.episode.id && isPlaying ? (
-                              <Pause className="w-7 h-7 text-amber-400 fill-current" />
-                            ) : (
-                              <Play className="w-7 h-7 text-white fill-current ml-0.5" />
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-md bg-amber-500 text-zinc-950 flex items-center gap-1">
-                              <RotateCcw className="w-3 h-3" /> Son Kaldığın Yer
-                            </span>
-                            <span className="text-xs text-amber-500 font-bold">
-                              %{Math.min(99, Math.round(((latestResumeItem.entry?.timeSeconds || 0) / (latestResumeItem.episode.durationSeconds || latestResumeItem.entry?.durationSeconds || 1)) * 100))}
-                            </span>
-                          </div>
-
-                          <h3 className="text-sm md:text-base font-bold text-zinc-900 dark:text-white truncate">
-                            {latestResumeItem.episode.title}
-                          </h3>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                            {latestResumeItem.episode.showTitle || 'Podcast'}
-                          </p>
-
-                          {/* Progress bar */}
-                          <div className="pt-1 space-y-1 max-w-md">
-                            <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-amber-500 rounded-full transition-all"
-                                style={{
-                                  width: `${Math.min(99, Math.round(((latestResumeItem.entry?.timeSeconds || 0) / (latestResumeItem.episode.durationSeconds || latestResumeItem.entry?.durationSeconds || 1)) * 100))}%`
-                                }}
-                              />
-                            </div>
-                            <div className="flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
-                              <span>Kaldığın Süre: {formatDuration(latestResumeItem.entry?.timeSeconds || 0)}</span>
-                              {latestResumeItem.episode.durationSeconds ? (
-                                <span>Kalan: {formatDuration(Math.max(0, latestResumeItem.episode.durationSeconds - (latestResumeItem.entry?.timeSeconds || 0)))}</span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-amber-500/20">
-                        <button
-                          onClick={() => onPlayEpisode(latestResumeItem.episode)}
-                          className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-amber-500/20 transition-all cursor-pointer"
-                        >
-                          {currentEpisodeId === latestResumeItem.episode.id && isPlaying ? (
-                            <>
-                              <Pause className="w-4 h-4 fill-current" />
-                              <span>Duraklat</span>
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-4 h-4 fill-current" />
-                              <span>Devam Et ({formatDuration(latestResumeItem.entry?.timeSeconds || 0)})</span>
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={(e) => handleRemoveHistoryItem(latestResumeItem.episode.id, e)}
-                          className="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 hover:bg-red-500/10 hover:text-red-500 text-zinc-400 transition-colors cursor-pointer"
-                          title="Geçmişten Kaldır"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Filter Tabs */}
-                <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/80 pb-2">
-                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-                    <button
-                      onClick={() => setHistoryFilter('in-progress')}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                        historyFilter === 'in-progress'
-                          ? 'bg-amber-500 text-zinc-950 shadow-sm'
-                          : 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Kaldığım Yerler ({inProgressList.length})</span>
-                    </button>
-
-                    <button
-                      onClick={() => setHistoryFilter('completed')}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                        historyFilter === 'completed'
-                          ? 'bg-emerald-500 text-zinc-950 shadow-sm'
-                          : 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Tamamlananlar ({completedList.length})</span>
-                    </button>
-
-                    <button
-                      onClick={() => setHistoryFilter('all')}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                        historyFilter === 'all'
-                          ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm'
-                          : 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <Layers className="w-3.5 h-3.5" />
-                      <span>Tüm Geçmiş ({savedHistoryList.length})</span>
-                    </button>
-                  </div>
-
-                  {/* Carousel navigation arrows */}
-                  {historyLayout === 'carousel' && displayHistoryList.length > 2 && (
-                    <div className="hidden sm:flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => scrollHistoryCarousel('left')}
-                        className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-amber-500 hover:text-zinc-950 transition-colors cursor-pointer"
-                        title="Sola Kaydır"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => scrollHistoryCarousel('right')}
-                        className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-amber-500 hover:text-zinc-950 transition-colors cursor-pointer"
-                        title="Sağa Kaydır"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Items View (Carousel or Grid) */}
-                {displayHistoryList.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-zinc-500 dark:text-zinc-400 italic bg-zinc-50 dark:bg-zinc-900/40 rounded-xl border border-zinc-200 dark:border-zinc-800/50">
-                    {historyFilter === 'in-progress' && 'Yarıda kalmış podcast bölümü bulunmuyor.'}
-                    {historyFilter === 'completed' && 'Tamamlanmış podcast bölümü bulunmuyor.'}
-                    {historyFilter === 'all' && 'Geçmiş listenizde hiç bölüm bulunmuyor.'}
-                  </div>
-                ) : historyLayout === 'carousel' ? (
-                  /* CAROUSEL MODE */
-                  <div
-                    ref={historyCarouselRef}
-                    className="flex gap-3.5 overflow-x-auto pb-3 pt-1 scrollbar-none snap-x scroll-smooth"
-                  >
-                    {displayHistoryList.map(({ episode: ep, entry }) => {
-                      const savedSecs = entry?.timeSeconds || 0;
-                      const dur = ep.durationSeconds || entry?.durationSeconds || 0;
-                      const isCompleted = Boolean(entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
-                      const pct = isCompleted ? 100 : (dur > 0 && savedSecs > 0 ? Math.min(99, Math.round((savedSecs / dur) * 100)) : 0);
-                      const isThisPlaying = currentEpisodeId === ep.id && isPlaying;
-
-                      return (
-                        <div
-                          key={ep.id}
-                          onClick={() => onPlayEpisode(ep)}
-                          className={`w-64 md:w-72 shrink-0 snap-start flex flex-col justify-between p-3.5 rounded-2xl border cursor-pointer transition-all relative group shadow-sm ${
-                            isThisPlaying
-                              ? 'bg-amber-500/10 border-amber-500/50 shadow-amber-500/10'
-                              : isCompleted
-                              ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40'
-                              : 'bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border-zinc-200 dark:border-zinc-800'
-                          }`}
-                        >
-                          {/* Top right delete x button */}
-                          <button
-                            onClick={(e) => handleRemoveHistoryItem(ep.id, e)}
-                            className="absolute top-2.5 right-2.5 p-1 rounded-lg bg-zinc-900/80 hover:bg-red-500 text-zinc-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all z-10 cursor-pointer"
-                            title="Geçmişten Kaldır"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-
-                          <div className="flex items-center gap-3">
-                            <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-zinc-800">
-                              <img
-                                src={ep.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'}
-                                alt={ep.title}
-                                className="w-full h-full object-cover"
-                                onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'; }}
-                              />
-                              <div className="absolute inset-0 bg-zinc-950/40 flex items-center justify-center">
-                                {isThisPlaying ? (
-                                  <Pause className="w-5 h-5 text-amber-400 fill-current" />
-                                ) : isCompleted ? (
-                                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                                ) : (
-                                  <Play className="w-5 h-5 text-white fill-current ml-0.5" />
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="min-w-0 flex-1 pr-4">
-                              <h4 className="text-xs font-bold text-zinc-900 dark:text-white line-clamp-1 group-hover:text-amber-500 transition-colors">
-                                {ep.title}
-                              </h4>
-                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1">
-                                {ep.showTitle || 'Podcast'}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 space-y-1.5">
-                            <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] font-medium">
-                              {isCompleted ? (
-                                <span className="text-emerald-500 font-bold flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3" /> Tamamlandı
-                                </span>
-                              ) : savedSecs > 0 ? (
-                                <span className="text-amber-500 font-bold flex items-center gap-1">
-                                  <Clock className="w-3 h-3" /> {formatDuration(savedSecs)}
-                                </span>
-                              ) : (
-                                <span className="text-zinc-400 font-bold">Başlatıldı</span>
-                              )}
-                              <span className={isCompleted ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
-                                %{pct}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  /* GRID MODE */
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                      {(isHistoryExpanded ? displayHistoryList : displayHistoryList.slice(0, 6)).map(({ episode: ep, entry }) => {
-                        const savedSecs = entry?.timeSeconds || 0;
-                        const dur = ep.durationSeconds || entry?.durationSeconds || 0;
-                        const isCompleted = Boolean(entry?.completed || (dur > 0 && savedSecs >= dur * 0.92));
-                        const pct = isCompleted ? 100 : (dur > 0 && savedSecs > 0 ? Math.min(99, Math.round((savedSecs / dur) * 100)) : 0);
-                        const isThisPlaying = currentEpisodeId === ep.id && isPlaying;
-
-                        return (
-                          <div
-                            key={ep.id}
-                            onClick={() => onPlayEpisode(ep)}
-                            className={`flex items-center gap-3 p-3 rounded-2xl border cursor-pointer transition-all relative group shadow-sm ${
-                              isThisPlaying
-                                ? 'bg-amber-500/10 border-amber-500/50'
-                                : isCompleted
-                                ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40'
-                                : 'bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border-zinc-200 dark:border-zinc-800'
-                            }`}
-                          >
-                            <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-zinc-800">
-                              <img
-                                src={ep.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'}
-                                alt={ep.title}
-                                className="w-full h-full object-cover"
-                                onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=200&q=80'; }}
-                              />
-                              <div className="absolute inset-0 bg-zinc-950/40 flex items-center justify-center">
-                                {isThisPlaying ? (
-                                  <Pause className="w-5 h-5 text-amber-400 fill-current" />
-                                ) : isCompleted ? (
-                                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                                ) : (
-                                  <Play className="w-5 h-5 text-white fill-current ml-0.5" />
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex-1 min-w-0 pr-6 space-y-1">
-                              <h4 className="text-xs font-bold text-zinc-900 dark:text-white line-clamp-1 group-hover:text-amber-500 transition-colors">
-                                {ep.title}
-                              </h4>
-                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 line-clamp-1">
-                                {ep.showTitle || 'Podcast'}
-                              </p>
-                              <div className="space-y-1">
-                                <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                                    style={{ width: `${pct}%` }}
-                                  />
-                                </div>
-                                <div className="flex justify-between text-[9px] font-medium">
-                                  {isCompleted ? (
-                                    <span className="text-emerald-500 font-bold flex items-center gap-1">
-                                      <CheckCircle2 className="w-2.5 h-2.5" /> Tamamlandı
-                                    </span>
-                                  ) : savedSecs > 0 ? (
-                                    <span className="text-amber-500 font-bold">
-                                      {formatDuration(savedSecs)} dinlendi
-                                    </span>
-                                  ) : (
-                                    <span className="text-zinc-400 font-bold">Başlatıldı</span>
-                                  )}
-                                  <span className={isCompleted ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>%{pct}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={(e) => handleRemoveHistoryItem(ep.id, e)}
-                              className="absolute top-2 right-2 p-1 rounded-lg bg-zinc-900/80 hover:bg-red-500 text-zinc-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all z-10 cursor-pointer"
-                              title="Geçmişten Kaldır"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {displayHistoryList.length > 6 && (
-                      <div className="text-center pt-2">
-                        <button
-                          onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
-                          className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer"
-                        >
-                          {isHistoryExpanded ? (
-                            <>Daralt</>
-                          ) : (
-                            <>Tümünü Göster ({displayHistoryList.length} öge)</>
-                          )}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             )}
           </section>

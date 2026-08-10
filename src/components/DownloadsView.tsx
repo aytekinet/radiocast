@@ -23,7 +23,8 @@ import {
   clearAllDownloadedEpisodes, 
   formatBytes,
   getActiveDownloadsMap,
-  ActiveDownloadState
+  ActiveDownloadState,
+  cancelDownloadEpisode
 } from '../services/offlineStorage';
 import { audioEngine, PlaybackStatus } from '../services/audioEngine';
 
@@ -240,10 +241,15 @@ export const DownloadsView: React.FC<DownloadsViewProps> = ({
                   </div>
                 </div>
 
-                <div className="w-full sm:w-48 shrink-0 space-y-1">
-                  <div className="flex justify-between text-[11px] font-bold text-amber-600 dark:text-amber-400">
-                    <span>İndiriliyor...</span>
-                    <span>%{dl.progressPct}</span>
+                <div className="w-full sm:w-56 shrink-0 space-y-1">
+                  <div className="flex justify-between items-center text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                    <span>İndiriliyor... %{dl.progressPct}</span>
+                    <button
+                      onClick={() => cancelDownloadEpisode(dl.episodeId)}
+                      className="px-2 py-0.5 rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-bold transition-all cursor-pointer"
+                    >
+                      Durdur / İptal
+                    </button>
                   </div>
                   <div className="w-full h-2 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
                     <div 
