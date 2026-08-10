@@ -298,10 +298,12 @@ export async function downloadPodcastEpisode(
 
   const rawUrl = (episode.audioUrl || '').trim().replace(/&amp;/g, '&');
   const cleanUrl = rawUrl.startsWith('http://') ? rawUrl.replace(/^http:\/\//i, 'https://') : rawUrl;
+  const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(cleanUrl)}`;
+  const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`;
   const proxyUrl = rawUrl.startsWith('/api/') ? rawUrl : `/api/radio/proxy?url=${encodeURIComponent(rawUrl)}`;
   
-  // Always try proxyUrl FIRST so browser XHR downloads bypass CORS restrictions on third-party podcast hosting CDNs
-  const candidateUrls = [proxyUrl, cleanUrl, rawUrl];
+  // Prioritize direct CDN URLs & client CORS proxies to bypass Vercel 10s serverless function timeout
+  const candidateUrls = [cleanUrl, rawUrl, corsProxyUrl, allOriginsUrl, proxyUrl];
   
   const uniqueCandidateUrls = candidateUrls.filter((u, i, self) => u && self.indexOf(u) === i);
 

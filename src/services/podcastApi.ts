@@ -167,11 +167,16 @@ export async function fetchITunesPodcastsDirect(query: string, country = 'TR', l
             publisher: (item.artistName || 'Yayıncı').trim(),
             coverUrl: item.artworkUrl600 || item.artworkUrl100 || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=400&q=80',
             category: item.primaryGenreName || 'Podcast',
-            description: `${item.artistName || 'Yayıncı'} - ${item.primaryGenreName || 'Türkçe'} podcast serisi.`,
+            description: `${item.artistName || 'Yayıncı'} - ${item.primaryGenreName || 'Podcast'} serisi.`,
             feedUrl: item.feedUrl,
             releaseDateMillis: item.releaseDate ? new Date(item.releaseDate).getTime() : 0,
             episodes: []
           }));
+
+        // If specific search query provided, return all iTunes results matching query
+        if (query.trim().length > 0) {
+          return parsedShows;
+        }
 
         return parsedShows.filter(isTurkishPodcastShow);
       }
@@ -191,8 +196,8 @@ export interface PodcastCatalogResponse {
   hasMore: boolean;
 }
 
-function addOrMergePodcast(map: Map<string, PodcastShow>, p: PodcastShow) {
-  if (!isTurkishPodcastShow(p)) return;
+function addOrMergePodcast(map: Map<string, PodcastShow>, p: PodcastShow, skipTurkishCheck = false) {
+  if (!skipTurkishCheck && !isTurkishPodcastShow(p)) return;
   const key = (p.feedUrl || p.title).toLowerCase().trim();
   const existing = map.get(key);
   if (!existing) {
@@ -228,7 +233,7 @@ export async function fetchAllClientPodcasts(query = '', category = 'all'): Prom
 
     const mergedMap = new Map<string, PodcastShow>();
     for (const p of [...directResults, ...localMatches]) {
-      addOrMergePodcast(mergedMap, p);
+      addOrMergePodcast(mergedMap, p, true); // skip turkish check for direct user search
     }
     const results = Array.from(mergedMap.values());
     results.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
@@ -337,12 +342,12 @@ export async function fetchPodcastCatalog(params: {
           episodes: []
         }));
 
-        const turkishOnly = shows.filter(isTurkishPodcastShow);
+        const filteredItems = query ? shows : shows.filter(isTurkishPodcastShow);
 
         return {
-          items: turkishOnly,
-          count: data.count || turkishOnly.length,
-          total: data.total || turkishOnly.length,
+          items: filteredItems,
+          count: data.count || filteredItems.length,
+          total: data.total || filteredItems.length,
           limit: data.limit || limit,
           offset: data.offset || offset,
           hasMore: data.hasMore ?? false
