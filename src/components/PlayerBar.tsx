@@ -239,7 +239,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
 
   if (!currentItem) {
     return (
-      <div className="fixed bottom-14 md:bottom-3 inset-x-2 sm:inset-x-4 max-w-5xl mx-auto z-30 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl px-4 py-2.5 shadow-xl dark:shadow-2xl shrink-0 select-none flex items-center justify-between gap-3 transition-all duration-300">
+      <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-3 inset-x-2 sm:inset-x-4 max-w-5xl mx-auto z-40 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl px-4 py-2.5 shadow-2xl shrink-0 select-none flex items-center justify-between gap-3 transition-all duration-300">
         <div className="flex items-center space-x-3 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center text-zinc-950 font-black shadow-md shrink-0">
             <Radio className="w-4 h-4 animate-pulse text-zinc-950" />
@@ -371,7 +371,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
     <>
       {/* Sticky Bottom Mini Player Bar (Hidden when player is expanded fullscreen) */}
       {!isExpanded && (
-        <div className="fixed bottom-14 md:bottom-3 inset-x-2 sm:inset-x-4 max-w-5xl mx-auto z-30 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl shadow-xl dark:shadow-2xl shrink-0 select-none transition-all duration-300 overflow-hidden">
+        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-3 inset-x-2 sm:inset-x-4 max-w-5xl mx-auto z-40 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl shadow-2xl shrink-0 select-none transition-all duration-300 overflow-hidden">
           {/* Top 2px Progress Indicator Bar for Podcasts */}
           {isPodcast && (
             <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 relative">
@@ -428,13 +428,13 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
               </div>
             </div>
 
-            {/* Right: Clean Controls & Expand Button */}
-            <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+            {/* Right: Clean Controls: [Heart/Download] -> [Geri] -> [Duraklat/Oynat] -> [İleri] -> [Tam Ekran] */}
+            <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
               {/* Download Button on Mini Player for Podcasts */}
               {isPodcast && (
                 <button
                   onClick={handleDownloadToggle}
-                  className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer"
+                  className="p-1.5 sm:p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer hidden xs:flex"
                   title={
                     activeDownload
                       ? `İndiriliyor: %${activeDownload.progressPct.toFixed(0)}`
@@ -460,20 +460,34 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                     e.stopPropagation();
                     onToggleFavorite(favoriteStationTarget);
                   }}
-                  className="text-zinc-400 hover:text-rose-500 transition-colors p-1.5 shrink-0 active:scale-90 cursor-pointer"
+                  className="text-zinc-400 hover:text-rose-500 transition-colors p-1.5 shrink-0 active:scale-90 cursor-pointer hidden xs:flex"
                   title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
                 >
                   <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
                 </button>
               )}
 
-              {/* Play / Pause Main Button */}
+              {/* Geri (Önceki) Button */}
+              {onPrevious && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPrevious();
+                  }}
+                  className="p-1.5 sm:p-2 rounded-xl text-zinc-700 dark:text-zinc-200 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all active:scale-90 cursor-pointer"
+                  title={isPodcast ? 'Önceki Bölüm' : 'Önceki Radyo'}
+                >
+                  <SkipBack className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                </button>
+              )}
+
+              {/* Play / Pause Main Button (Duraklat / Oynat) */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onPlayPause();
                 }}
-                className={`p-2.5 sm:p-3 rounded-2xl transition-all shadow-md active:scale-95 cursor-pointer ${
+                className={`p-2 sm:p-2.5 rounded-2xl transition-all shadow-md active:scale-95 cursor-pointer ${
                   status === 'playing'
                     ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold shadow-amber-500/20'
                     : 'bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-950 font-bold'
@@ -489,10 +503,24 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                 )}
               </button>
 
+              {/* İleri (Sonraki) Button */}
+              {onNext && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNext();
+                  }}
+                  className="p-1.5 sm:p-2 rounded-xl text-zinc-700 dark:text-zinc-200 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all active:scale-90 cursor-pointer"
+                  title={isPodcast ? 'Sonraki Bölüm' : 'Sonraki Radyo'}
+                >
+                  <SkipForward className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                </button>
+              )}
+
               {/* Expand Fullscreen Button */}
               <button
                 onClick={() => setIsExpanded(true)}
-                className="p-2 sm:p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-bold transition-all active:scale-95 cursor-pointer ml-1"
+                className="p-1.5 sm:p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-bold transition-all active:scale-95 cursor-pointer ml-0.5"
                 title="Tam Ekran Çalar"
               >
                 <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -505,7 +533,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
       {/* FULL-SCREEN OVERLAY PLAYER (RESPONSIVE, FULL VIEWPORT, PERFECTLY ISOLATED) */}
       {isExpanded &&
         createPortal(
-          <div className="fixed inset-0 z-[9999] bg-slate-950 text-white flex flex-col justify-between px-4 sm:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] overflow-y-auto no-scrollbar w-screen h-screen min-h-[100dvh] max-h-[100dvh] select-none touch-none overscroll-none animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-[9000] bg-slate-950 text-white flex flex-col justify-between px-4 sm:px-6 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] overflow-y-auto no-scrollbar w-screen h-screen min-h-[100dvh] max-h-[100dvh] select-none touch-none overscroll-none animate-in fade-in duration-200">
             {/* Ambient Artwork Glow */}
             {coverUrl && !imgError && (
               <div 

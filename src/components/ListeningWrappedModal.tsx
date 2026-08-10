@@ -135,7 +135,7 @@ export const ListeningWrappedModal: React.FC<ListeningWrappedModalProps> = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-5 border-b border-zinc-800 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-zinc-900 to-zinc-900">

@@ -312,82 +312,102 @@ export async function downloadPodcastEpisode(
   try {
     for (const fetchUrl of candidateUrls) {
       if (controller.signal.aborted) break;
+      
       try {
-        const response = await fetch(fetchUrl, { signal: controller.signal });
-        if (!response.ok) {
-          lastErr = `HTTP ${response.status} ${response.statusText}`;
-          continue;
-        }
+        // Use XMLHttpRequest for solid, cross-platform progress and arraybuffer/blob handling on iOS Safari
+        const downloadedResult = await new Promise<{ blob: Blob; size: number }>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', fetchUrl, true);
+          const isIOSDevice = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent || '');
+          xhr.responseType = isIOSDevice ? 'arraybuffer' : 'blob';
 
-        const contentLengthHeader = response.headers.get('content-length');
-        totalSize = contentLengthHeader ? parseInt(contentLengthHeader, 10) || 0 : 0;
+          const onAbort = () => {
+            xhr.abort();
+            reject(new Error('İndirme iptal edildi'));
+          };
 
-        let streamSuccess = false;
-        const chunks: Uint8Array[] = [];
-        let receivedBytes = 0;
+          if (controller.signal.aborted) {
+            return reject(new Error('İndirme iptal edildi'));
+          }
 
-        // Try streaming response.body if available
-        if (response.body && typeof response.body.getReader === 'function') {
-          try {
-            const reader = response.body.getReader();
-            while (true) {
-              if (controller.signal.aborted) break;
-              const { done, value } = await reader.read();
-              if (done) {
-                streamSuccess = true;
-                break;
+          controller.signal.addEventListener('abort', onAbort);
+
+          xhr.onprogress = (e) => {
+            if (controller.signal.aborted) return;
+            const loaded = e.loaded || 0;
+            const total = e.lengthComputable && e.total > 0 ? e.total : 0;
+            const pct = total > 0 ? Math.min(99, Math.round((loaded / total) * 100)) : 50;
+
+            const progressState: ActiveDownloadState = {
+              episodeId,
+              episode,
+              progressPct: pct,
+              downloadedBytes: loaded,
+              totalBytes: total || loaded
+            };
+
+            activeDownloads.set(episodeId, progressState);
+            notifyDownloadProgress(episodeId, progressState);
+            if (onProgress) onProgress(progressState);
+          };
+
+          xhr.onload = () => {
+            controller.signal.removeEventListener('abort', onAbort);
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const contentType = xhr.getResponseHeader('content-type') || 'audio/mpeg';
+              if (xhr.response instanceof ArrayBuffer) {
+                const b = new Blob([xhr.response], { type: contentType });
+                resolve({ blob: b, size: b.size });
+              } else if (xhr.response instanceof Blob) {
+                resolve({ blob: xhr.response, size: xhr.response.size });
+              } else {
+                reject(new Error('Geçersiz indirme verisi'));
               }
-
-              chunks.push(value);
-              receivedBytes += value.length;
-
-              const pct = totalSize > 0 ? Math.min(99, Math.round((receivedBytes / totalSize) * 100)) : 50;
-
-              const progressState: ActiveDownloadState = {
-                episodeId,
-                episode,
-                progressPct: pct,
-                downloadedBytes: receivedBytes,
-                totalBytes: totalSize || receivedBytes
-              };
-
-              activeDownloads.set(episodeId, progressState);
-              notifyDownloadProgress(episodeId, progressState);
-              if (onProgress) onProgress(progressState);
+            } else {
+              reject(new Error(`HTTP ${xhr.status} ${xhr.statusText}`));
             }
-          } catch (streamErr) {
-            console.warn('Stream reader failed or incomplete, trying direct blob/arrayBuffer fallback:', streamErr);
-          }
-        }
+          };
 
-        if (streamSuccess && chunks.length > 0) {
-          blob = new Blob(chunks, { type: response.headers.get('content-type') || 'audio/mpeg' });
-          totalSize = blob.size;
+          xhr.onerror = () => {
+            controller.signal.removeEventListener('abort', onAbort);
+            reject(new Error('Ağ hatası'));
+          };
+
+          xhr.ontimeout = () => {
+            controller.signal.removeEventListener('abort', onAbort);
+            reject(new Error('Zaman aşımı'));
+          };
+
+          xhr.send();
+        });
+
+        if (downloadedResult && downloadedResult.blob && downloadedResult.blob.size > 0) {
+          blob = downloadedResult.blob;
+          totalSize = downloadedResult.size;
           break;
-        } else if (!controller.signal.aborted) {
-          // Direct Blob or ArrayBuffer fetch fallback (Crucial for iOS Safari / WebKit)
-          try {
-            const directBlob = await response.blob();
-            if (directBlob && directBlob.size > 0) {
-              blob = directBlob;
-              totalSize = blob.size;
-              break;
-            }
-          } catch {
-            const buf = await response.arrayBuffer();
-            if (buf && buf.byteLength > 0) {
-              blob = new Blob([buf], { type: response.headers.get('content-type') || 'audio/mpeg' });
-              totalSize = blob.size;
-              break;
-            }
-          }
         }
-      } catch (err: any) {
-        if (err?.name === 'AbortError' || controller.signal.aborted) {
+      } catch (xhrErr: any) {
+        if (controller.signal.aborted) {
           lastErr = 'İndirme iptal edildi';
           break;
         }
-        lastErr = err?.message || 'İndirme hatası';
+
+        // Direct Fetch Fallback if XHR fails
+        try {
+          const res = await fetch(fetchUrl, { signal: controller.signal });
+          if (res.ok) {
+            const directBlob = await res.blob();
+            if (directBlob && directBlob.size > 0) {
+              blob = directBlob;
+              totalSize = directBlob.size;
+              break;
+            }
+          } else {
+            lastErr = `HTTP ${res.status}`;
+          }
+        } catch (fetchErr: any) {
+          lastErr = fetchErr?.message || xhrErr?.message || 'İndirme hatası';
+        }
       }
     }
   } finally {

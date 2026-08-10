@@ -328,7 +328,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
               <div
                 ref={categoryScrollRef}
                 onWheel={handleCategoryWheel}
-                className="flex items-center space-x-2 overflow-x-auto py-1 px-8 sm:px-9 scroll-smooth touch-pan-x whitespace-nowrap scrollbar-thin scrollbar-thumb-amber-500/30 scrollbar-track-transparent select-none"
+                className="flex items-center space-x-2 overflow-x-auto py-1 px-8 sm:px-9 scroll-smooth touch-pan-x whitespace-nowrap scrollbar-thin scrollbar-thumb-amber-500/30 scrollbar-track-transparent select-none max-w-full overscroll-x-contain"
               >
                 {GENRE_CATEGORIES.map((cat) => {
                   const isSelected = selectedCategory === cat.id;
@@ -374,7 +374,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3 overflow-x-auto pb-2 scrollbar-none">
+                <div className="flex items-center space-x-3 overflow-x-auto pb-2 scrollbar-none max-w-full touch-pan-x overscroll-x-contain">
                   {recentRadioStations.map((st) => {
                     const isThisPlaying = (currentStation?.id || currentStation?.stationuuid) === (st.id || st.stationuuid) && isPlaying;
                     return (

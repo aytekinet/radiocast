@@ -11,7 +11,7 @@ export const IOSInstallGuideModal: React.FC<IOSInstallGuideModalProps> = ({ isOp
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
       <div 
         className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-amber-500/30 p-6 shadow-2xl space-y-6 text-slate-900 dark:text-slate-100 overflow-hidden"
         onClick={(e) => e.stopPropagation()}

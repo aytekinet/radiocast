@@ -1300,8 +1300,8 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
             )}
 
             {/* Filter Tabs */}
-            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/80 pb-2">
-              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/80 pb-2 max-w-full overflow-hidden">
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-full touch-pan-x overscroll-x-contain">
                 <button
                   onClick={() => setHistoryFilter('in-progress')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
@@ -1371,7 +1371,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
               /* CAROUSEL MODE */
               <div
                 ref={historyCarouselRef}
-                className="flex gap-3.5 overflow-x-auto pb-3 pt-1 scrollbar-none snap-x scroll-smooth"
+                className="flex gap-3.5 overflow-x-auto pb-3 pt-1 scrollbar-none snap-x scroll-smooth max-w-full touch-pan-x overscroll-x-contain"
               >
                 {displayHistoryList.map(({ episode: ep, entry }) => {
                   const savedSecs = entry?.timeSeconds || 0;

@@ -82,7 +82,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   const hasResults = matchingStations.length > 0 || matchingPodcasts.length > 0 || matchingCountries.length > 0;
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-zinc-950/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[10000] flex items-start justify-center pt-16 sm:pt-24 px-4 bg-zinc-950/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
         className="w-full max-w-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
         onClick={e => e.stopPropagation()}

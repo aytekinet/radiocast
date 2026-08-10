@@ -298,12 +298,14 @@ export default function App() {
     } else if (currentItem?.type === 'radio') {
       const currentStation = currentItem.radio;
       if (!currentStation) return;
-      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : stations;
+      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
       if (list.length > 0) {
         const idx = list.findIndex((s) => (s.id || s.stationuuid) === (currentStation.id || currentStation.stationuuid));
         if (idx !== -1 && idx < list.length - 1) {
           audioEngine.playStation(list[idx + 1]);
-        } else if (idx !== -1) {
+        } else if (idx !== -1 && idx === list.length - 1) {
+          audioEngine.playStation(list[0]);
+        } else {
           audioEngine.playStation(list[0]);
         }
       }
@@ -318,18 +320,22 @@ export default function App() {
           audioEngine.playPodcastEpisode(podcastEpisodesList[idx - 1]);
         } else if (idx === 0) {
           audioEngine.playPodcastEpisode(podcastEpisodesList[podcastEpisodesList.length - 1]);
+        } else {
+          audioEngine.playPodcastEpisode(podcastEpisodesList[0]);
         }
       }
     } else if (currentItem?.type === 'radio') {
       const currentStation = currentItem.radio;
       if (!currentStation) return;
-      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : stations;
+      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
       if (list.length > 0) {
         const idx = list.findIndex((s) => (s.id || s.stationuuid) === (currentStation.id || currentStation.stationuuid));
         if (idx > 0) {
           audioEngine.playStation(list[idx - 1]);
         } else if (idx === 0) {
           audioEngine.playStation(list[list.length - 1]);
+        } else {
+          audioEngine.playStation(list[0]);
         }
       }
     }

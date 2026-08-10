@@ -663,7 +663,7 @@ function rewriteM3u8Playlist(manifestText: string, baseUrl: string): string {
 }
 
 function proxyAudioStream(targetUrl: string, req: express.Request, res: express.Response, redirectCount = 0) {
-  if (redirectCount > 3) {
+  if (redirectCount > 12) {
     return res.status(502).json({ error: 'Too many redirects' });
   }
 
@@ -681,12 +681,16 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
   const client = parsed.protocol === 'https:' ? https : http;
 
   const requestHeaders: Record<string, string> = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
     'Accept': '*/*',
     'Icy-MetaData': '1',
     'Referer': `${parsed.protocol}//${parsed.hostname}/`,
     'Origin': `${parsed.protocol}//${parsed.hostname}`
   };
+
+  if (req.headers['range']) {
+    requestHeaders['Range'] = req.headers['range'] as string;
+  }
 
   const options: https.RequestOptions = {
     hostname: parsed.hostname,
@@ -695,7 +699,7 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
     method: 'GET',
     headers: requestHeaders,
     rejectUnauthorized: false, // Allow radios with self-signed or expired SSL certs
-    timeout: 10000
+    timeout: 15000
   };
 
   const proxyReq = client.request(options, (upstreamRes) => {
@@ -738,7 +742,7 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
 
     const hopByHopHeaders = new Set([
       'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
-      'te', 'trailers', 'transfer-encoding', 'upgrade', 'set-cookie', 'content-length'
+      'te', 'trailers', 'transfer-encoding', 'upgrade', 'set-cookie'
     ]);
 
     for (const [key, value] of Object.entries(upstreamRes.headers)) {
