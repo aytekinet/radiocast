@@ -762,7 +762,7 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
       res.setHeader('Content-Length', upstreamRes.headers['content-length']);
     }
 
-    if (!currentCT || currentCT.includes('text/html') || currentCT.includes('text/plain') || currentCT.includes('octet-stream')) {
+    if (!currentCT || currentCT.includes('octet-stream')) {
       if (targetUrl.includes('aac')) {
         res.setHeader('Content-Type', 'audio/aac');
       } else {

@@ -296,7 +296,7 @@ export async function downloadPodcastEpisode(
   notifyDownloadProgress(episodeId, initialState);
   if (onProgress) onProgress(initialState);
 
-  const rawUrl = (episode.audioUrl || '').trim();
+  const rawUrl = (episode.audioUrl || '').trim().replace(/&amp;/g, '&');
   const cleanUrl = rawUrl.startsWith('http://') ? rawUrl.replace(/^http:\/\//i, 'https://') : rawUrl;
   const proxyUrl = rawUrl.startsWith('/api/') ? rawUrl : `/api/radio/proxy?url=${encodeURIComponent(rawUrl)}`;
   const candidateUrls = [
@@ -337,7 +337,9 @@ export async function downloadPodcastEpisode(
             if (controller.signal.aborted) return;
             const loaded = e.loaded || 0;
             const total = e.lengthComputable && e.total > 0 ? e.total : 0;
-            const pct = total > 0 ? Math.min(99, Math.round((loaded / total) * 100)) : 50;
+            const pct = total > 0 
+              ? Math.min(99, Math.round((loaded / total) * 100)) 
+              : Math.min(98, Math.round((loaded / (20 * 1024 * 1024)) * 100));
 
             const progressState: ActiveDownloadState = {
               episodeId,
@@ -355,15 +357,25 @@ export async function downloadPodcastEpisode(
           xhr.onload = () => {
             controller.signal.removeEventListener('abort', onAbort);
             if (xhr.status >= 200 && xhr.status < 300) {
-              const contentType = xhr.getResponseHeader('content-type') || 'audio/mpeg';
-              if (xhr.response instanceof ArrayBuffer) {
-                const b = new Blob([xhr.response], { type: contentType });
-                resolve({ blob: b, size: b.size });
-              } else if (xhr.response instanceof Blob) {
-                resolve({ blob: xhr.response, size: xhr.response.size });
-              } else {
-                reject(new Error('Geçersiz indirme verisi'));
+              const contentType = (xhr.getResponseHeader('content-type') || '').toLowerCase();
+              if (contentType.includes('text/html') || contentType.includes('application/json')) {
+                reject(new Error('Gelen yanıt ses dosyası değil (Web sayfası döndü)'));
+                return;
               }
+
+              let resultBlob: Blob | null = null;
+              if (xhr.response instanceof ArrayBuffer) {
+                resultBlob = new Blob([xhr.response], { type: contentType || 'audio/mpeg' });
+              } else if (xhr.response instanceof Blob) {
+                resultBlob = xhr.response;
+              }
+
+              if (!resultBlob || resultBlob.size < 2000) {
+                reject(new Error('İndirilen ses verisi çok küçük veya geçersiz'));
+                return;
+              }
+
+              resolve({ blob: resultBlob, size: resultBlob.size });
             } else {
               reject(new Error(`HTTP ${xhr.status} ${xhr.statusText}`));
             }

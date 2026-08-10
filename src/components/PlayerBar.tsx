@@ -23,7 +23,8 @@ import {
   X,
   DownloadCloud,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Zap
 } from 'lucide-react';
 import { RadioStation, PlayableItem, ThemePalette, Playlist, PodcastEpisode } from '../types';
 import { PlaybackStatus, audioEngine } from '../services/audioEngine';
@@ -497,6 +498,20 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                 </button>
               )}
 
+              {/* Geri (-10s) Button for Podcast */}
+              {isPodcast && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSkip(-10);
+                  }}
+                  className="p-1.5 sm:p-2 rounded-xl text-zinc-700 dark:text-zinc-200 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all active:scale-90 cursor-pointer hidden xs:flex"
+                  title="10 saniye geri sar"
+                >
+                  <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
+
               {/* Geri (Önceki) Button */}
               {onPrevious && (
                 <button
@@ -544,6 +559,20 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                   title={isPodcast ? 'Sonraki Bölüm' : 'Sonraki Radyo'}
                 >
                   <SkipForward className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                </button>
+              )}
+
+              {/* İleri (+30s) Button for Podcast */}
+              {isPodcast && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSkip(30);
+                  }}
+                  className="p-1.5 sm:p-2 rounded-xl text-zinc-700 dark:text-zinc-200 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all active:scale-90 cursor-pointer hidden xs:flex"
+                  title="30 saniye ileri sar"
+                >
+                  <RotateCw className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               )}
 
@@ -732,19 +761,72 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                 </div>
               )}
 
+              {/* Secondary Quick Action Bar for Podcast (Speed, Download, Timer) */}
+              {isPodcast && (
+                <div className="flex items-center justify-center gap-3 py-1">
+                  <button
+                    onClick={handleNextRate}
+                    className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-400 text-xs font-black font-mono transition-all active:scale-95 cursor-pointer flex items-center gap-1 shadow"
+                    title="Oynatma Hızı"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
+                    <span>{playbackRate}x Hız</span>
+                  </button>
+
+                  <button
+                    onClick={handleDownloadToggle}
+                    className={`px-3 py-1.5 rounded-xl border transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs font-semibold shadow ${
+                      isDownloaded
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                        : activeDownload
+                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                        : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
+                    }`}
+                    title={
+                      activeDownload
+                        ? `İndiriliyor: %${activeDownload.progressPct.toFixed(0)}`
+                        : isDownloaded
+                        ? 'Cihazda İndirilmiş (Silmek İçin Tıkla)'
+                        : 'Çevrimdışı Dinlemek İçin İndir'
+                    }
+                  >
+                    {activeDownload ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                        <span>%{activeDownload.progressPct.toFixed(0)}</span>
+                      </>
+                    ) : isDownloaded ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 fill-emerald-500/20" />
+                        <span>İndirildi</span>
+                      </>
+                    ) : (
+                      <>
+                        <DownloadCloud className="w-3.5 h-3.5" />
+                        <span>İndir</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
               {/* PERFECT 5-SLOT SYMMETRICAL CONTROL ROW - Play/Pause is ALWAYS strictly in Slot 3 (DEAD CENTER) */}
               <div className="grid grid-cols-5 items-center justify-items-center w-full gap-1 sm:gap-2 px-1">
                 
-                {/* SLOT 1 (FAR LEFT): Speed Rate for Podcast OR Stop Button for Radio */}
+                {/* SLOT 1 (FAR LEFT): Önceki Bölüm (Podcast) OR Stop Button (Radio) */}
                 <div className="flex items-center justify-center">
                   {isPodcast ? (
-                    <button
-                      onClick={handleNextRate}
-                      className="w-9 h-9 xs:w-10 xs:h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-400 text-xs font-black font-mono transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-md"
-                      title="Oynatma Hızı"
-                    >
-                      {playbackRate}x
-                    </button>
+                    onPrevious ? (
+                      <button
+                        onClick={onPrevious}
+                        className="w-9 h-9 xs:w-10 xs:h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 hover:text-amber-400 transition-all active:scale-90 cursor-pointer flex items-center justify-center shadow-md"
+                        title="Önceki Bölüm"
+                      >
+                        <SkipBack className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                      </button>
+                    ) : (
+                      <div className="w-9 h-9 xs:w-10 xs:h-10 sm:w-12 sm:h-12" />
+                    )
                   ) : (
                     <button
                       onClick={onStop}
@@ -823,37 +905,20 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                   )}
                 </div>
 
-                {/* SLOT 5 (FAR RIGHT): Offline Download Button for Podcast OR Favorite for Radio */}
+                {/* SLOT 5 (FAR RIGHT): Sonraki Bölüm (Podcast) OR Favorite (Radio) */}
                 <div className="flex items-center justify-center">
                   {isPodcast ? (
-                    <button
-                      onClick={handleDownloadToggle}
-                      className={`w-9 h-9 xs:w-10 xs:h-10 sm:w-12 sm:h-12 rounded-2xl border transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-md ${
-                        isDownloaded
-                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                          : activeDownload
-                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                          : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
-                      }`}
-                      title={
-                        activeDownload
-                          ? `İndiriliyor: %${activeDownload.progressPct.toFixed(0)}`
-                          : isDownloaded
-                          ? 'Cihazda İndirilmiş (Silmek İçin Tıkla)'
-                          : 'Çevrimdışı Dinlemek İçin İndir'
-                      }
-                    >
-                      {activeDownload ? (
-                        <div className="flex flex-col items-center justify-center">
-                          <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-amber-400" />
-                          <span className="text-[8px] sm:text-[9px] font-mono font-bold">{activeDownload.progressPct.toFixed(0)}%</span>
-                        </div>
-                      ) : isDownloaded ? (
-                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 fill-emerald-500/20" />
-                      ) : (
-                        <DownloadCloud className="w-4 h-4 sm:w-5 sm:h-5" />
-                      )}
-                    </button>
+                    onNext ? (
+                      <button
+                        onClick={onNext}
+                        className="w-9 h-9 xs:w-10 xs:h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 hover:text-amber-400 transition-all active:scale-90 cursor-pointer flex items-center justify-center shadow-md"
+                        title="Sonraki Bölüm"
+                      >
+                        <SkipForward className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                      </button>
+                    ) : (
+                      <div className="w-9 h-9 xs:w-10 xs:h-10 sm:w-12 sm:h-12" />
+                    )
                   ) : favoriteStationTarget ? (
                     <button
                       onClick={() => onToggleFavorite(favoriteStationTarget)}

@@ -133,6 +133,20 @@ const VirtualizedStationGrid: React.FC<VirtualizedStationGridProps> = React.memo
     });
   }
 
+  // Safety fallback: if visibleRows is empty due to initial mount scroll offset but stations exist, render initial batch
+  if (visibleRows.length === 0 && stations.length > 0) {
+    const fallbackEnd = Math.min(totalRows - 1, 10);
+    for (let r = 0; r <= fallbackEnd; r++) {
+      const startIdx = r * columns;
+      const rowStations = stations.slice(startIdx, startIdx + columns);
+      visibleRows.push({
+        rowIndex: r,
+        top: r * ROW_HEIGHT,
+        stations: rowStations
+      });
+    }
+  }
+
   return (
     <div ref={containerRef} style={{ height: Math.max(totalHeight, 180), position: 'relative' }} className="w-full">
       {visibleRows.map((row) => (
