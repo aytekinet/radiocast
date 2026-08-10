@@ -810,31 +810,6 @@ app.get('/api/radio/servers', async (req, res) => {
   }
 });
 
-app.get('/api/radio/countries', async (req, res) => {
-  const cached = getFromCache<any[]>('radio_countries');
-  if (cached) return res.json(cached);
-
-  try {
-    const data = await fetchRadioBrowser<any[]>('/json/countries?hidebroken=true&order=stationcount&reverse=true&limit=300');
-    if (Array.isArray(data)) {
-      const countries = data
-        .filter(c => (c.name || c.iso_3166_1) && typeof c.stationcount === 'number' && c.stationcount > 0)
-        .map(c => ({
-          code: (c.iso_3166_1 || '').toUpperCase(),
-          iso_3166_1: (c.iso_3166_1 || '').toUpperCase(),
-          name: c.name || c.iso_3166_1,
-          stationCount: c.stationcount,
-          stationcount: c.stationcount
-        }));
-      setToCache('radio_countries', countries, 6 * 60 * 60 * 1000);
-      return res.json(countries);
-    }
-    res.json([]);
-  } catch {
-    res.status(502).json({ error: 'Failed to fetch country codes' });
-  }
-});
-
 app.get('/api/radio/stations', (req, res) => unifiedRadioStations(req, res));
 app.get('/api/radio/search', (req, res) => unifiedRadioSearch(req, res));
 app.get('/api/radio/countries', (req, res) => unifiedRadioCountries(req, res));

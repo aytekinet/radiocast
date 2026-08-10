@@ -1,12 +1,21 @@
 import { CURATED_TURKISH_PODCASTS } from '../../data/curatedTurkishPodcasts';
+import GENERATED_CATALOG from '../../data/generatedPodcastCatalog.json';
 import { fetchPodcastIndexTrending, fetchPodcastIndexRecent, searchPodcastIndexByTerm } from './podcastIndexClient';
-import { fetchMultiKeywordApplePodcasts, fetchApplePodcastsByKeyword } from './applePodcastClient';
+import { fetchApplePodcastsByKeyword } from './applePodcastClient';
 import { buildUnifiedPodcastCatalog, WebPodcast } from './podcastDeduplicator';
 import { getFromCache, setToCache } from '../cache';
 
 let globalCatalogMemory: WebPodcast[] = [];
 let lastCatalogBuildTime = 0;
 const CATALOG_REBUILD_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+function getStaticBaseCatalog(): WebPodcast[] {
+  return buildUnifiedPodcastCatalog(
+    CURATED_TURKISH_PODCASTS,
+    [],
+    GENERATED_CATALOG as any[]
+  );
+}
 
 export async function getOrBuildPodcastCatalog(forceRefresh = false): Promise<WebPodcast[]> {
   const now = Date.now();
@@ -21,32 +30,41 @@ export async function getOrBuildPodcastCatalog(forceRefresh = false): Promise<We
     return globalCatalogMemory;
   }
 
-  console.info('[podcast-catalog] Building multi-source Turkish podcast catalog...');
-
-  const [piTrending, piRecent, appleItems] = await Promise.allSettled([
-    fetchPodcastIndexTrending('tr', 100),
-    fetchPodcastIndexRecent('tr', 100),
-    fetchMultiKeywordApplePodcasts()
-  ]);
-
-  const piTrendingList = piTrending.status === 'fulfilled' ? piTrending.value : [];
-  const piRecentList = piRecent.status === 'fulfilled' ? piRecent.value : [];
-  const appleList = appleItems.status === 'fulfilled' ? appleItems.value : [];
-
-  const combinedPiItems = [...piTrendingList, ...piRecentList];
-
-  const unifiedCatalog = buildUnifiedPodcastCatalog(
-    CURATED_TURKISH_PODCASTS,
-    combinedPiItems,
-    appleList
-  );
-
-  globalCatalogMemory = unifiedCatalog;
+  // Pre-seed memory with static base catalog so calls never return empty or timeout
+  globalCatalogMemory = getStaticBaseCatalog();
   lastCatalogBuildTime = now;
 
-  setToCache('podcast_global_catalog_v3', globalCatalogMemory, CATALOG_REBUILD_INTERVAL_MS);
-  console.info(`[podcast-catalog] Catalog ready with ${globalCatalogMemory.length} Turkish podcasts.`);
+  console.info('[podcast-catalog] Building multi-source Turkish podcast catalog with fast timeout...');
 
+  try {
+    const fetchPromise = Promise.allSettled([
+      fetchPodcastIndexTrending('tr', 60),
+      fetchPodcastIndexRecent('tr', 60)
+    ]);
+
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+    const result = await Promise.race([fetchPromise, timeoutPromise]);
+
+    if (Array.isArray(result)) {
+      const piTrending = result[0]?.status === 'fulfilled' ? result[0].value : [];
+      const piRecent = result[1]?.status === 'fulfilled' ? result[1].value : [];
+
+      if (piTrending.length > 0 || piRecent.length > 0) {
+        const unifiedCatalog = buildUnifiedPodcastCatalog(
+          CURATED_TURKISH_PODCASTS,
+          [...piTrending, ...piRecent],
+          GENERATED_CATALOG as any[]
+        );
+        if (unifiedCatalog.length > 0) {
+          globalCatalogMemory = unifiedCatalog;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[podcast-catalog] Remote build error, using static catalog base:', err);
+  }
+
+  setToCache('podcast_global_catalog_v3', globalCatalogMemory, CATALOG_REBUILD_INTERVAL_MS);
   return globalCatalogMemory;
 }
 
