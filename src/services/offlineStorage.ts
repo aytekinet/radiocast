@@ -299,18 +299,20 @@ export async function downloadPodcastEpisode(
   const rawUrl = (episode.audioUrl || '').trim().replace(/&amp;/g, '&');
   const cleanUrl = rawUrl.startsWith('http://') ? rawUrl.replace(/^http:\/\//i, 'https://') : rawUrl;
   const proxyUrl = rawUrl.startsWith('/api/') ? rawUrl : `/api/radio/proxy?url=${encodeURIComponent(rawUrl)}`;
-  const candidateUrls = [
-    proxyUrl,
-    cleanUrl,
-    rawUrl
-  ].filter((u, i, self) => u && self.indexOf(u) === i);
+  
+  // Smart candidate URLs order: Direct HTTPS first for maximum speed & CORS compatibility, proxy as fallback
+  const candidateUrls = cleanUrl.startsWith('https://')
+    ? [cleanUrl, proxyUrl, rawUrl]
+    : [proxyUrl, cleanUrl, rawUrl];
+  
+  const uniqueCandidateUrls = candidateUrls.filter((u, i, self) => u && self.indexOf(u) === i);
 
   let blob: Blob | null = null;
   let totalSize = 0;
   let lastErr = '';
 
   try {
-    for (const fetchUrl of candidateUrls) {
+    for (const fetchUrl of uniqueCandidateUrls) {
       if (controller.signal.aborted) break;
       
       try {
@@ -337,9 +339,12 @@ export async function downloadPodcastEpisode(
             if (controller.signal.aborted) return;
             const loaded = e.loaded || 0;
             const total = e.lengthComputable && e.total > 0 ? e.total : 0;
-            const pct = total > 0 
-              ? Math.min(99, Math.round((loaded / total) * 100)) 
-              : Math.min(98, Math.round((loaded / (20 * 1024 * 1024)) * 100));
+            let pct = 0;
+            if (total > 50000) {
+              pct = Math.min(99, Math.round((loaded / total) * 100));
+            } else {
+              pct = Math.min(95, Math.round((loaded / (25 * 1024 * 1024)) * 100));
+            }
 
             const progressState: ActiveDownloadState = {
               episodeId,

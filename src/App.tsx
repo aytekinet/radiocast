@@ -459,10 +459,13 @@ export default function App() {
 
   // Load Radio Stations when filters or search change
   const fetchStationsData = useCallback(async (pageNum = 1, append = false) => {
+    const isDefaultTurkeyView = !searchQuery.trim() && selectedCountry === 'TR';
+
     try {
       if (append) {
         setIsLoadingMore(true);
-      } else {
+      } else if (!isDefaultTurkeyView) {
+        // Only trigger full loading state if not default Turkey view (which already has instant local stations)
         setIsLoading(true);
       }
 
@@ -486,16 +489,18 @@ export default function App() {
 
       if (append) {
         setStations((prev) => {
-          const existingUuids = new Set(prev.map((s) => s.stationuuid));
-          const uniqueNew = list.filter((s) => !existingUuids.has(s.stationuuid));
+          const existingUuids = new Set(prev.map((s) => s.stationuuid || s.id));
+          const uniqueNew = list.filter((s) => !existingUuids.has(s.stationuuid || s.id));
           return [...prev, ...uniqueNew];
         });
       } else {
-        setStations(list);
+        if (list.length > 0) {
+          setStations(list);
+        }
       }
     } catch (err) {
       console.error('Radio stations load error:', err);
-      showToast('Radyo istasyonları yüklenirken bir hata oluştu.');
+      // Keep existing ALL_TURKISH_STATIONS intact if network fails
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
