@@ -181,6 +181,36 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
   }, [currentItem, status]);
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const isExpandedRef = React.useRef(isExpanded);
+  isExpandedRef.current = isExpanded;
+
+  const handleSetExpanded = React.useCallback((expanded: boolean) => {
+    if (expanded === isExpandedRef.current) return;
+    setIsExpanded(expanded);
+    if (expanded) {
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(
+          { ...window.history.state, overlay: 'player' },
+          '',
+          window.location.hash || '#discover'
+        );
+      }
+    } else {
+      if (typeof window !== 'undefined' && window.history && window.history.state?.overlay === 'player') {
+        window.history.back();
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (isExpandedRef.current && e.state?.overlay !== 'player') {
+        setIsExpanded(false);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     if (!currentItem) {
@@ -385,7 +415,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
           <div className="px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2">
             {/* Left: Artwork & Info (Tap anywhere on left side to Expand Fullscreen Player) */}
             <div 
-              onClick={() => setIsExpanded(true)}
+              onClick={() => handleSetExpanded(true)}
               className="flex items-center space-x-2.5 min-w-0 flex-1 cursor-pointer group py-0.5"
               title="Tam Ekran Çalara Geç"
             >
@@ -519,7 +549,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
 
               {/* Expand Fullscreen Button */}
               <button
-                onClick={() => setIsExpanded(true)}
+                onClick={() => handleSetExpanded(true)}
                 className="p-1.5 sm:p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-bold transition-all active:scale-95 cursor-pointer ml-0.5"
                 title="Tam Ekran Çalar"
               >
@@ -545,7 +575,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
             {/* Top Bar Navigation */}
             <div className="flex items-center justify-between w-full max-w-lg mx-auto pt-1 shrink-0 gap-2">
               <button
-                onClick={() => setIsExpanded(false)}
+                onClick={() => handleSetExpanded(false)}
                 className="p-2 sm:p-2.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-all cursor-pointer active:scale-95 shadow-md flex items-center gap-1 shrink-0"
                 title="Çaları Daralt"
               >
@@ -583,7 +613,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                   <Timer className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button
-                  onClick={() => setIsExpanded(false)}
+                  onClick={() => handleSetExpanded(false)}
                   className="p-2 sm:p-2.5 rounded-2xl bg-slate-900/90 hover:bg-red-500/20 text-slate-300 hover:text-red-400 border border-slate-800 transition-all cursor-pointer active:scale-95 shadow-md"
                   title="Kapat"
                 >

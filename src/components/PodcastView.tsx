@@ -434,6 +434,8 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
     setSelectedShow(null);
     if (typeof window !== 'undefined' && window.history) {
       if (window.location.hash.includes('podcasts/')) {
+        window.history.back();
+      } else {
         window.history.pushState({ tab: 'podcasts' }, '', '#podcasts');
       }
     }

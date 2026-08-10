@@ -145,14 +145,29 @@ export default function App() {
 
       if (validTabs.includes(target)) {
         setActiveTab(target);
+      } else {
+        setActiveTab('discover');
       }
     };
+
+    if (typeof window !== 'undefined' && window.history) {
+      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+      const rawTarget = hash.split('/')[0];
+      const initialTab = validTabs.includes(rawTarget) ? rawTarget : 'discover';
+      if (!window.history.state || !window.history.state.tab) {
+        window.history.replaceState({ tab: initialTab }, '', window.location.hash || `#${initialTab}`);
+      }
+    }
 
     syncFromLocation();
 
     const handlePopState = (event: PopStateEvent) => {
-      if (event.state && event.state.tab && validTabs.includes(event.state.tab)) {
-        setActiveTab(event.state.tab);
+      const state = event.state;
+      if (state?.overlay !== 'search') {
+        setIsSearchModalOpen(false);
+      }
+      if (state && state.tab && validTabs.includes(state.tab)) {
+        setActiveTab(state.tab);
       } else {
         syncFromLocation();
       }
@@ -570,15 +585,16 @@ export default function App() {
   }, []);
 
   const handleOpenPodcastShowFromFav = useCallback((show: PodcastShow) => {
+    changeTab('podcasts', false);
     if (typeof window !== 'undefined' && window.history) {
-      window.history.pushState({ tab: 'podcasts', podcastShow: show }, '', '#podcasts');
+      const showId = show.id || show.feedUrl || show.title;
+      window.history.pushState({ tab: 'podcasts', podcastShow: show }, '', `#podcasts/${encodeURIComponent(showId)}`);
     }
-    changeTab('podcasts');
     window.dispatchEvent(new CustomEvent('openPodcastShow', { detail: { show } }));
   }, [changeTab]);
 
   const handleNavigateToPodcastShow = useCallback((episode: PodcastEpisode) => {
-    changeTab('podcasts');
+    changeTab('podcasts', false);
 
     const curatedMatch = CURATED_TURKISH_PODCASTS.find(
       p => p.id === episode.showId || p.title.toLowerCase() === (episode.showTitle || '').toLowerCase()
@@ -609,7 +625,8 @@ export default function App() {
     }
 
     if (typeof window !== 'undefined' && window.history) {
-      window.history.pushState({ tab: 'podcasts', podcastShow: targetShow }, '', '#podcasts');
+      const showId = targetShow.id || targetShow.feedUrl || targetShow.title;
+      window.history.pushState({ tab: 'podcasts', podcastShow: targetShow }, '', `#podcasts/${encodeURIComponent(showId)}`);
     }
     window.dispatchEvent(new CustomEvent('openPodcastShow', { detail: { show: targetShow } }));
   }, [changeTab]);
