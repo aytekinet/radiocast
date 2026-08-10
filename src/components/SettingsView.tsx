@@ -11,7 +11,10 @@ import {
   ExternalLink,
   Download,
   Upload,
-  Check
+  Check,
+  Smartphone,
+  Share,
+  SquarePlus
 } from 'lucide-react';
 import { AppSettings } from '../types';
 import { exportUserData, importUserData } from '../services/storage';
@@ -21,13 +24,23 @@ interface SettingsViewProps {
   onUpdateSettings: (newSettings: Partial<AppSettings>) => void;
   onResetAllData: () => void;
   onNavigate?: (tab: string) => void;
+  onOpenIOSGuide?: () => void;
+  onInstallPWA?: () => void;
+  isIOS?: boolean;
+  isStandalone?: boolean;
+  hasDeferredPrompt?: boolean;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
   onUpdateSettings,
   onResetAllData,
-  onNavigate
+  onNavigate,
+  onOpenIOSGuide,
+  onInstallPWA,
+  isIOS,
+  isStandalone,
+  hasDeferredPrompt
 }) => {
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +99,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
           Görünüm, ses akış kalitesi ve bağlantılar
         </p>
+      </div>
+
+      {/* Mobil Uygulama Kurulum Kartı */}
+      <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 p-5 rounded-2xl border border-amber-500/30 space-y-3 shadow-sm transition-colors">
+        <div className="flex items-center space-x-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+          <Smartphone className="w-4 h-4" />
+          <span>Mobil & Masaüstü Uygulama Kurulumu (PWA)</span>
+        </div>
+        <p className="text-zinc-700 dark:text-zinc-300 text-xs leading-relaxed">
+          RadioCast'i cihazınıza yükleyerek internetiniz koptuğunda indirilen podcast'leri kesintisiz dinleyebilir ve uygulamayı doğrudan ana ekranınızdan başlatabilirsiniz.
+        </p>
+
+        {isStandalone ? (
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+            <Check className="w-4 h-4" />
+            <span>RadioCast uygulamanız ana ekranınıza başarıyla yüklenmiş durumda!</span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            {hasDeferredPrompt && onInstallPWA && (
+              <button
+                onClick={onInstallPWA}
+                className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span>Tek Tıkla Yükle (Android / Chrome)</span>
+              </button>
+            )}
+
+            {onOpenIOSGuide && (
+              <button
+                onClick={onOpenIOSGuide}
+                className="px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
+              >
+                <Share className="w-4 h-4 text-amber-400" />
+                <span>iPhone / iPad Yükleme Rehberi (Safari)</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Yasal & Telif Hakları Politikaları */}

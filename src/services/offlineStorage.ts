@@ -5,7 +5,9 @@ export interface DownloadedEpisodeRecord {
   episode: PodcastEpisode;
   sizeBytes: number;
   downloadedAt: number;
-  blob: Blob;
+  blob?: Blob;
+  arrayBuffer?: ArrayBuffer;
+  mimeType?: string;
 }
 
 export interface ActiveDownloadState {
@@ -157,9 +159,16 @@ export async function getDownloadedRecord(episodeId: string): Promise<Downloaded
  */
 export async function getOfflineAudioUrl(episodeId: string): Promise<string | null> {
   const record = await getDownloadedRecord(episodeId);
-  if (!record || !record.blob) return null;
+  if (!record) return null;
   try {
-    return URL.createObjectURL(record.blob);
+    let finalBlob: Blob | null = null;
+    if (record.blob && record.blob instanceof Blob && record.blob.size > 0) {
+      finalBlob = record.blob;
+    } else if (record.arrayBuffer && record.arrayBuffer.byteLength > 0) {
+      finalBlob = new Blob([record.arrayBuffer], { type: record.mimeType || 'audio/mpeg' });
+    }
+    if (!finalBlob) return null;
+    return URL.createObjectURL(finalBlob);
   } catch (err) {
     console.error('Failed to create ObjectURL for offline blob', err);
     return null;
@@ -179,7 +188,7 @@ export async function getAllDownloadedEpisodes(): Promise<{ episode: PodcastEpis
       req.onsuccess = () => {
         const results = (req.result || []).map((item: DownloadedEpisodeRecord) => ({
           episode: item.episode,
-          sizeBytes: item.sizeBytes || item.blob?.size || 0,
+          sizeBytes: item.sizeBytes || item.blob?.size || item.arrayBuffer?.byteLength || 0,
           downloadedAt: item.downloadedAt || Date.now()
         }));
         results.sort((a, b) => b.downloadedAt - a.downloadedAt);
@@ -381,24 +390,56 @@ export async function downloadPodcastEpisode(
     return false;
   }
 
-  // Save blob to IndexedDB
+  // Save blob or arrayBuffer to IndexedDB
   try {
     const db = await getDB();
-    const record: DownloadedEpisodeRecord = {
-      id: episodeId,
-      episode,
-      sizeBytes: totalSize,
-      downloadedAt: Date.now(),
-      blob
-    };
+    const mimeType = blob.type || 'audio/mpeg';
 
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.put(record);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
+    let savedSuccessfully = false;
+
+    // First attempt: Store directly as Blob
+    try {
+      const record: DownloadedEpisodeRecord = {
+        id: episodeId,
+        episode,
+        sizeBytes: totalSize,
+        downloadedAt: Date.now(),
+        blob,
+        mimeType
+      };
+
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.put(record);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+      savedSuccessfully = true;
+    } catch (blobSaveErr) {
+      console.warn('Direct Blob put failed in IndexedDB (common on iOS Safari), trying ArrayBuffer fallback:', blobSaveErr);
+    }
+
+    // Second attempt: Convert to ArrayBuffer for iOS Safari compatibility
+    if (!savedSuccessfully) {
+      const arrayBuffer = await blob.arrayBuffer();
+      const record: DownloadedEpisodeRecord = {
+        id: episodeId,
+        episode,
+        sizeBytes: totalSize,
+        downloadedAt: Date.now(),
+        arrayBuffer,
+        mimeType
+      };
+
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.put(record);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    }
 
     const finishState: ActiveDownloadState = {
       episodeId,
@@ -415,7 +456,7 @@ export async function downloadPodcastEpisode(
 
     return true;
   } catch (err: any) {
-    console.error('Failed to store blob in IndexedDB:', err);
+    console.error('Failed to store episode in IndexedDB:', err);
     activeDownloads.delete(episodeId);
     notifyDownloadProgress(episodeId, {
       episodeId,
@@ -423,7 +464,7 @@ export async function downloadPodcastEpisode(
       progressPct: 0,
       downloadedBytes: 0,
       totalBytes: 0,
-      error: 'Yerel depolama alanına kaydedilemedi.'
+      error: 'Yerel depolama alanına kaydedilemedi: ' + (err?.message || 'iOS Hafıza Hatası')
     });
     return false;
   }

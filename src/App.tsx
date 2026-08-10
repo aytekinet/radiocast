@@ -42,7 +42,8 @@ import { DownloadsView } from './components/DownloadsView';
 import { SleepTimerModal } from './components/SleepTimerModal';
 import { LegalView, LegalPageType } from './components/LegalView';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
-import { WifiOff, DownloadCloud, Smartphone } from 'lucide-react';
+import { IOSInstallGuideModal } from './components/IOSInstallGuideModal';
+import { WifiOff, DownloadCloud, Smartphone, Share, X, SquarePlus, ChevronRight } from 'lucide-react';
 
 export default function App() {
   // Navigation & Settings
@@ -76,7 +77,13 @@ export default function App() {
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  // Online status & PWA install prompt listeners
+  // iOS & PWA Install Guide state
+  const [isIOS, setIsIOS] = useState<boolean>(false);
+  const [isStandalone, setIsStandalone] = useState<boolean>(false);
+  const [isIOSModalOpen, setIsIOSModalOpen] = useState<boolean>(false);
+  const [iosGuideDismissed, setIosGuideDismissed] = useState<boolean>(false);
+
+  // Online status & PWA install prompt & iOS environment detection
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -84,6 +91,17 @@ export default function App() {
       e.preventDefault();
       setDeferredPrompt(e);
     };
+
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+      const userAgent = navigator.userAgent || '';
+      const iosDevice = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+      const standaloneMode = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+      const dismissed = localStorage.getItem('pwa_ios_guide_dismissed') === 'true';
+
+      setIsIOS(iosDevice);
+      setIsStandalone(standaloneMode);
+      setIosGuideDismissed(dismissed);
+    }
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -95,6 +113,15 @@ export default function App() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
     };
   }, []);
+
+  const handleDismissIOSGuide = () => {
+    setIosGuideDismissed(true);
+    try {
+      localStorage.setItem('pwa_ios_guide_dismissed', 'true');
+    } catch {
+      // ignore
+    }
+  };
 
   const handleInstallPWA = async () => {
     if (!deferredPrompt) return;
@@ -815,7 +842,7 @@ export default function App() {
             </div>
           )}
 
-          {/* PWA Install Banner Prompt */}
+          {/* PWA Install Banner Prompt (Android / Desktop Chrome) */}
           {deferredPrompt && (
             <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-amber-500/30 text-zinc-900 dark:text-zinc-100 text-xs font-bold flex flex-wrap items-center justify-between gap-3 shadow-md">
               <div className="flex items-center space-x-2.5">
@@ -834,6 +861,42 @@ export default function App() {
                 <DownloadCloud className="w-4 h-4" />
                 <span>Uygulamayı Yükle</span>
               </button>
+            </div>
+          )}
+
+          {/* iOS Install Banner Guide (iPhone / Safari) */}
+          {isIOS && !isStandalone && !iosGuideDismissed && !deferredPrompt && (
+            <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-rose-500/10 to-purple-500/20 border border-amber-500/40 text-zinc-900 dark:text-zinc-100 text-xs font-bold flex flex-wrap items-center justify-between gap-3 shadow-md relative group">
+              <div className="flex items-center space-x-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-500 shrink-0">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="block font-bold text-xs md:text-sm text-amber-600 dark:text-amber-400">
+                    iPhone Ana Ekranına Yükleyin
+                  </span>
+                  <span className="font-normal text-[11px] text-zinc-600 dark:text-zinc-300">
+                    Safari'nin "Paylaş" butonuna basıp <b>"Ana Ekrana Ekle"</b> seçerek telefonunuza indirebilirsiniz.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsIOSModalOpen(true)}
+                  className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-extrabold text-xs shrink-0 cursor-pointer shadow-sm active:scale-95 transition-all flex items-center space-x-1.5"
+                >
+                  <Share className="w-3.5 h-3.5" />
+                  <span>Nasıl Yüklenir?</span>
+                </button>
+                <button
+                  onClick={handleDismissIOSGuide}
+                  className="p-2 rounded-xl bg-zinc-200/60 dark:bg-zinc-800/80 hover:bg-red-500/20 text-zinc-500 hover:text-red-500 transition-colors cursor-pointer"
+                  title="Kapat"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
 
@@ -945,6 +1008,11 @@ export default function App() {
               onUpdateSettings={updateSettings}
               onResetAllData={handleResetAllData}
               onNavigate={changeTab}
+              onOpenIOSGuide={() => setIsIOSModalOpen(true)}
+              onInstallPWA={handleInstallPWA}
+              isIOS={isIOS}
+              isStandalone={isStandalone}
+              hasDeferredPrompt={!!deferredPrompt}
             />
           </div>
 
@@ -1001,6 +1069,12 @@ export default function App() {
           setSearchQuery('');
           changeTab('discover');
         }}
+      />
+
+      {/* iOS Safari PWA Installation Guide Modal */}
+      <IOSInstallGuideModal
+        isOpen={isIOSModalOpen}
+        onClose={() => setIsIOSModalOpen(false)}
       />
     </div>
   );

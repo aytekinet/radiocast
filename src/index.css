@@ -2,6 +2,23 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+/* Global viewport overflow containment & touch constraints for mobile stability */
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden !important;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: none;
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+}
+
 /* Light theme body defaults */
 html.light {
   color-scheme: light;

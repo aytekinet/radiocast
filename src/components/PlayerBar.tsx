@@ -16,11 +16,24 @@ import {
   Check,
   SkipBack,
   SkipForward,
-  Share2
+  Share2,
+  ChevronDown,
+  Maximize2,
+  X,
+  DownloadCloud,
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 import { RadioStation, PlayableItem, ThemePalette, Playlist, PodcastEpisode } from '../types';
 import { PlaybackStatus, audioEngine } from '../services/audioEngine';
 import { AudioVisualizer } from './AudioVisualizer';
+import { 
+  downloadPodcastEpisode, 
+  deleteDownloadedEpisode, 
+  isEpisodeDownloaded, 
+  getActiveDownloadsMap,
+  ActiveDownloadState
+} from '../services/offlineStorage';
 
 interface PlayerBarProps {
   currentItem: PlayableItem | null;
@@ -166,9 +179,66 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
     }
   }, [currentItem, status]);
 
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!currentItem) {
+      setIsExpanded(false);
+    }
+  }, [currentItem]);
+
+  // Download State Management for Podcast Episodes
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const [activeDownload, setActiveDownload] = useState<ActiveDownloadState | null>(null);
+
+  const episodeId = currentItem?.type === 'podcast' ? currentItem.podcastEpisode?.id : null;
+
+  const syncDownloadState = React.useCallback(async () => {
+    if (!episodeId) {
+      setIsDownloaded(false);
+      setActiveDownload(null);
+      return;
+    }
+    try {
+      const downloaded = await isEpisodeDownloaded(episodeId);
+      setIsDownloaded(downloaded);
+
+      const activeMap = getActiveDownloadsMap();
+      setActiveDownload(activeMap.get(episodeId) || null);
+    } catch {
+      // ignore
+    }
+  }, [episodeId]);
+
+  useEffect(() => {
+    syncDownloadState();
+
+    const handleOfflineChange = () => syncDownloadState();
+    const handleProgressChange = () => syncDownloadState();
+
+    window.addEventListener('offlineEpisodesChanged', handleOfflineChange);
+    window.addEventListener('downloadProgressChanged', handleProgressChange);
+
+    return () => {
+      window.removeEventListener('offlineEpisodesChanged', handleOfflineChange);
+      window.removeEventListener('downloadProgressChanged', handleProgressChange);
+    };
+  }, [syncDownloadState]);
+
+  useEffect(() => {
+    if (isExpanded) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isExpanded]);
+
   if (!currentItem) {
     return (
-      <div className="fixed bottom-14 md:bottom-4 left-1/2 -translate-x-1/2 w-[96%] sm:w-[92%] max-w-5xl z-30 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl px-4 py-2.5 shadow-xl dark:shadow-2xl shrink-0 select-none flex items-center justify-between gap-3 transition-all duration-300">
+      <div className="fixed bottom-14 md:bottom-3 inset-x-2 sm:inset-x-4 max-w-5xl mx-auto z-30 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl px-4 py-2.5 shadow-xl dark:shadow-2xl shrink-0 select-none flex items-center justify-between gap-3 transition-all duration-300">
         <div className="flex items-center space-x-3 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center text-zinc-950 font-black shadow-md shrink-0">
             <Radio className="w-4 h-4 animate-pulse text-zinc-950" />
@@ -186,7 +256,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
         <div className="flex items-center space-x-2 shrink-0">
           <button
             onClick={onOpenSleepTimer}
-            className="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white text-xs flex items-center space-x-1.5 active:scale-95 transition-all"
+            className="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white text-xs flex items-center space-x-1.5 active:scale-95 transition-all cursor-pointer"
           >
             <Timer className="w-3.5 h-3.5 text-amber-500" />
             <span className="hidden sm:inline">Uyku Zamanlayıcı</span>
@@ -196,26 +266,49 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
     );
   }
 
-  const isPodcast = currentItem.type === 'podcast';
-  const radio = currentItem.radio;
-  const podcast = currentItem.podcastEpisode;
+  const handleDownloadToggle = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!currentItem?.podcastEpisode) return;
+    const ep = currentItem.podcastEpisode;
+    
+    if (isDownloaded) {
+      if (confirm(`"${ep.title}" bölümünü yerel hafızadan silmek istiyor musunuz?`)) {
+        await deleteDownloadedEpisode(ep.id);
+        await syncDownloadState();
+      }
+    } else {
+      await downloadPodcastEpisode(ep);
+      await syncDownloadState();
+    }
+  };
 
-  const title = isPodcast ? podcast?.title : radio?.name;
+  const isPodcast = currentItem.type === 'podcast';
+  const radio = currentItem.radio || null;
+  const podcastEpisode = currentItem.podcastEpisode || null;
+
+  const title = isPodcast
+    ? (podcastEpisode?.title || 'Podcast Bölümü')
+    : (radio?.name || 'Radyo İstasyonu');
+
   const subtitle = liveIcyTitle 
     ? `🎵 ${liveIcyTitle}` 
-    : (isPodcast ? podcast?.showTitle : (radio?.tags ? `Canlı • ${radio.tags}` : 'Canlı Akış'));
-  const coverUrl = isPodcast ? (podcast?.coverUrl || '') : (radio?.favicon || '');
+    : (isPodcast 
+        ? (podcastEpisode?.showTitle || podcastEpisode?.category || 'Podcast') 
+        : (radio?.tags ? `Canlı • ${radio.tags}` : 'Canlı Akış'));
 
-  // Target object for favoriting (RadioStation structure)
-  const favoriteStationTarget: RadioStation | null = isPodcast && podcast ? {
-    stationuuid: `podcast-${podcast.id}`,
-    name: podcast.title,
-    playUrl: podcast.audioUrl,
-    url: podcast.audioUrl,
-    url_resolved: podcast.audioUrl,
-    homepage: podcast.showTitle,
-    favicon: podcast.coverUrl || '',
-    tags: `podcast,${podcast.showTitle}`,
+  const coverUrl = isPodcast 
+    ? (podcastEpisode?.coverUrl || '') 
+    : (radio?.favicon || '');
+
+  const favoriteStationTarget: RadioStation | null = isPodcast && podcastEpisode ? {
+    stationuuid: `podcast-${podcastEpisode.id}`,
+    name: podcastEpisode.title,
+    playUrl: podcastEpisode.audioUrl,
+    url: podcastEpisode.audioUrl,
+    url_resolved: podcastEpisode.audioUrl,
+    homepage: podcastEpisode.showTitle,
+    favicon: podcastEpisode.coverUrl || '',
+    tags: `podcast,${podcastEpisode.showTitle}`,
     country: 'Global',
     countrycode: 'GLOBAL',
     language: 'tr',
@@ -236,9 +329,12 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
     audioEngine.setPlaybackRate(next);
   };
 
-  const activeDuration = duration || podcast?.durationSeconds || 1;
+  const activeDuration = isPodcast
+    ? (duration || localDuration || podcastEpisode?.durationSeconds || 0)
+    : 0;
+
   const currentPos = isDragging ? dragTime : currentTime;
-  const progressPercent = Math.min(100, Math.max(0, (currentPos / activeDuration) * 100));
+  const progressPercent = activeDuration > 0 ? Math.min(100, Math.max(0, (currentPos / activeDuration) * 100)) : 0;
 
   const handleSkip = (seconds: number) => {
     const nextTime = Math.max(0, Math.min(activeDuration, currentTime + seconds));
@@ -246,7 +342,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
   };
 
   const handlePlaylistSelect = (playlistId: string, playlistName: string) => {
-    const targetUuid = radio?.stationuuid || radio?.id || (podcast ? `podcast-${podcast.id}` : null);
+    const targetUuid = radio?.stationuuid || radio?.id || (podcastEpisode ? `podcast-${podcastEpisode.id}` : null);
     if (targetUuid && onAddToPlaylist) {
       onAddToPlaylist(playlistId, targetUuid);
       setPlaylistNotice(playlistName);
@@ -256,7 +352,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
 
   const handleQuickCreateAndAdd = () => {
     if (!newPlaylistName.trim()) return;
-    const targetUuid = radio?.stationuuid || radio?.id || (podcast ? `podcast-${podcast.id}` : null);
+    const targetUuid = radio?.stationuuid || radio?.id || (podcastEpisode ? `podcast-${podcastEpisode.id}` : null);
     const name = newPlaylistName.trim();
     if (onCreatePlaylist && targetUuid) {
       onCreatePlaylist(name, undefined, targetUuid);
@@ -268,192 +364,113 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
   };
 
   return (
-    <div className="fixed bottom-14 md:bottom-3 left-1/2 -translate-x-1/2 w-[98%] sm:w-[95%] max-w-5xl z-30 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl shadow-xl dark:shadow-2xl shrink-0 select-none transition-all duration-300 overflow-hidden">
-      {/* Prominent Interactive Podcast Scrubber Bar */}
-      {isPodcast && (
-        <div className="bg-amber-500/10 dark:bg-amber-500/5 border-b border-zinc-200 dark:border-zinc-800/80 px-3 sm:px-5 py-2 space-y-1">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center space-x-2">
-              <span className="font-mono font-bold text-xs sm:text-sm text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/30">
-                {formatTime(currentPos)}
-              </span>
-              <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 font-medium">
-                / {formatTime(activeDuration)}
-              </span>
-            </div>
-          </div>
-
-          {/* Interactive Range Track & Visible Floating Thumb */}
-          <div className="relative w-full group cursor-pointer py-1.5 flex items-center">
-            {/* Background Track */}
-            <div className="w-full h-2.5 sm:h-3 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden border border-zinc-300/80 dark:border-zinc-700/60 relative">
-              {/* Progress Fill */}
-              <div
-                className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-
-            {/* Glowing Drag Handle Thumb */}
+    <>
+      {/* Sticky Bottom Mini Player Bar */}
+      <div className="fixed bottom-14 md:bottom-3 inset-x-2 sm:inset-x-4 max-w-5xl mx-auto z-30 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-2xl shadow-xl dark:shadow-2xl shrink-0 select-none transition-all duration-300 overflow-hidden">
+        {/* Top 2px Progress Indicator Bar for Podcasts */}
+        {isPodcast && (
+          <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 relative">
             <div
-              className="absolute w-4 h-4 sm:w-5 sm:h-5 bg-amber-400 border-2 border-zinc-950 rounded-full shadow-lg pointer-events-none transform -translate-x-1/2 group-hover:scale-125 transition-transform z-20"
-              style={{ left: `${progressPercent}%` }}
-            />
-
-            {/* Actual Range Input for high precision dragging & clicking */}
-            <input
-              type="range"
-              min="0"
-              max={activeDuration || 100}
-              step="0.5"
-              value={currentPos}
-              onMouseDown={() => setIsDragging(true)}
-              onTouchStart={() => setIsDragging(true)}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                setDragTime(val);
-                audioEngine.seek(val);
-              }}
-              onMouseUp={(e) => {
-                const val = parseFloat((e.target as HTMLInputElement).value);
-                audioEngine.seek(val);
-                setTimeout(() => {
-                  setIsDragging(false);
-                  setDragTime(null);
-                }, 150);
-              }}
-              onTouchEnd={(e) => {
-                const val = parseFloat((e.target as HTMLInputElement).value);
-                audioEngine.seek(val);
-                setTimeout(() => {
-                  setIsDragging(false);
-                  setDragTime(null);
-                }, 150);
-              }}
-              className="absolute inset-0 w-full h-full opacity-0 z-30 cursor-pointer"
+              className="h-full bg-amber-500 transition-all duration-150"
+              style={{ width: `${progressPercent}%` }}
             />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Persistent Sticky Player Bar */}
-      <div className="px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4">
-        {/* Left: Artwork, Title, Favorite & Playlist Add */}
-        <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 flex-1 sm:flex-initial sm:max-w-[320px]">
+        <div className="px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2">
+          {/* Left: Artwork & Info (Tap anywhere on left side to Expand Fullscreen Player) */}
           <div 
-            className="relative shrink-0 cursor-pointer group" 
-            title={isPodcast ? 'Podcast detay sayfasına git' : 'Yayın sayfasına git'}
-            onClick={() => {
-              if (isPodcast && podcast && onNavigateToPodcastShow) {
-                onNavigateToPodcastShow(podcast);
-              } else {
-                onNavigateToDiscover?.();
-              }
-            }}
+            onClick={() => setIsExpanded(true)}
+            className="flex items-center space-x-2.5 min-w-0 flex-1 cursor-pointer group py-0.5"
+            title="Tam Ekran Çalara Geç"
           >
-            {coverUrl && !imgError ? (
-              <img
-                src={coverUrl}
-                alt={title || ''}
-                onError={() => setImgError(true)}
-                className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-cover bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md group-hover:scale-105 transition-transform"
-              />
-            ) : (
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500 flex items-center justify-center text-zinc-950 shadow-md">
-                {isPodcast ? <Mic className="w-5 h-5 text-zinc-950" /> : <Radio className="w-5 h-5 text-zinc-950" />}
-              </div>
-            )}
-            {status === 'playing' && (
-              <div className="absolute -bottom-1 -right-1 bg-amber-500 text-zinc-950 p-0.5 rounded-full border border-zinc-950 shadow flex items-center justify-center">
-                <div className="flex items-end gap-[1px] h-2.5 w-2.5">
-                  <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.1s] h-full" />
-                  <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.3s] h-2/3" />
-                  <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.2s] h-5/6" />
+            <div className="relative shrink-0">
+              {coverUrl && !imgError ? (
+                <img
+                  src={coverUrl}
+                  alt={title || ''}
+                  onError={() => setImgError(true)}
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl object-cover bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md group-hover:scale-105 transition-transform"
+                />
+              ) : (
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500 flex items-center justify-center text-zinc-950 shadow-md">
+                  {isPodcast ? <Mic className="w-5 h-5 text-zinc-950" /> : <Radio className="w-5 h-5 text-zinc-950" />}
                 </div>
-              </div>
-            )}
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center space-x-1.5">
-              <h4 
-                title={isPodcast ? 'Podcast detay sayfasına git' : 'Yayın sayfasına git'}
-                onClick={() => {
-                  if (isPodcast && podcast && onNavigateToPodcastShow) {
-                    onNavigateToPodcastShow(podcast);
-                  } else {
-                    onNavigateToDiscover?.();
-                  }
-                }}
-                className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate hover:text-amber-500 flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                <span className="truncate">{title}</span>
-                {status === 'playing' && (
-                  <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold border border-emerald-500/20 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span>CANLI</span>
-                  </span>
-                )}
-              </h4>
-
-              {/* Heart Favorite Toggle Button */}
-              {favoriteStationTarget && (
-                <button
-                  onClick={() => onToggleFavorite(favoriteStationTarget)}
-                  className="text-zinc-400 hover:text-rose-500 transition-colors p-1 shrink-0 active:scale-90"
-                  title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
-                >
-                  <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
-                </button>
+              )}
+              {status === 'playing' && (
+                <div className="absolute -bottom-1 -right-1 bg-amber-500 text-zinc-950 p-0.5 rounded-full border border-zinc-950 shadow flex items-center justify-center">
+                  <div className="flex items-end gap-[1px] h-2.5 w-2.5">
+                    <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.1s] h-full" />
+                    <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.3s] h-2/3" />
+                    <span className="w-0.5 bg-zinc-950 animate-[bounce_0.6s_infinite_0.2s] h-5/6" />
+                  </div>
+                </div>
               )}
             </div>
 
-            <p 
-              title={isPodcast ? 'Podcast detay sayfasına git' : 'Yayın sayfasına git'}
-              onClick={() => {
-                if (isPodcast && podcast && onNavigateToPodcastShow) {
-                  onNavigateToPodcastShow(podcast);
-                } else {
-                  onNavigateToDiscover?.();
-                }
-              }}
-              className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 cursor-pointer hover:text-amber-500 transition-colors"
-            >
-              {subtitle}
-            </p>
+            <div className="min-w-0 flex-1">
+              <h4 className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 truncate group-hover:text-amber-500 transition-colors">
+                {title}
+              </h4>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-0.5 flex items-center gap-1">
+                <span>{subtitle}</span>
+                {isPodcast && activeDuration > 0 && (
+                  <span className="text-[10px] font-mono text-amber-500 shrink-0">
+                    • {formatTime(currentPos)} / {formatTime(activeDuration)}
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Center Controls: Skip 10s, Stop, Play/Pause, Skip 30s, Equalizer (Centered) */}
-        <div className="flex items-center justify-center shrink-0">
-          <div className="flex items-center space-x-1 sm:space-x-2 shrink-0 justify-center">
-            {/* Podcast Backward -10s Button */}
+          {/* Right: Clean Controls & Expand Button */}
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+            {/* Download Button on Mini Player for Podcasts */}
             {isPodcast && (
               <button
-                onClick={() => handleSkip(-10)}
-                className="p-1.5 sm:p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-amber-500 transition-all active:scale-90 flex items-center gap-0.5"
-                title="10 saniye geri sar"
+                onClick={handleDownloadToggle}
+                className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-all active:scale-95 cursor-pointer"
+                title={
+                  activeDownload
+                    ? `İndiriliyor: %${activeDownload.progressPct.toFixed(0)}`
+                    : isDownloaded
+                    ? 'İndirilmiş (Sil)'
+                    : 'İndir'
+                }
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span className="text-[10px] font-bold font-mono hidden sm:inline">10s</span>
+                {activeDownload ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                ) : isDownloaded ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-500/20" />
+                ) : (
+                  <DownloadCloud className="w-4 h-4 hover:text-amber-500" />
+                )}
               </button>
             )}
 
-            {/* Stop Button */}
-            <button
-              onClick={onStop}
-              className="p-1.5 sm:p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors active:scale-95"
-              title="Durdur"
-            >
-              <Square className="w-3.5 h-3.5 fill-current" />
-            </button>
+            {/* Heart Favorite Toggle Button */}
+            {favoriteStationTarget && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFavorite(favoriteStationTarget);
+                }}
+                className="text-zinc-400 hover:text-rose-500 transition-colors p-1.5 shrink-0 active:scale-90 cursor-pointer"
+                title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+              >
+                <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+              </button>
+            )}
 
-            {/* Main Play/Pause Big Button */}
+            {/* Play / Pause Main Button */}
             <button
-              onClick={onPlayPause}
-              className={`p-2 sm:p-2.5 rounded-2xl transition-all shadow-lg active:scale-95 ${
+              onClick={(e) => {
+                e.stopPropagation();
+                onPlayPause();
+              }}
+              className={`p-2.5 sm:p-3 rounded-2xl transition-all shadow-md active:scale-95 cursor-pointer ${
                 status === 'playing'
-                  ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold shadow-amber-500/20 scale-105'
+                  ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold shadow-amber-500/20'
                   : 'bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-950 font-bold'
               }`}
               title={status === 'playing' ? 'Duraklat' : 'Oynat'}
@@ -467,130 +484,353 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
               )}
             </button>
 
-            {/* Previous (Geri) Button */}
-            {onPrevious && (
-              <button
-                onClick={onPrevious}
-                className="hidden xs:flex p-1.5 sm:p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-amber-500 transition-all active:scale-90 items-center justify-center"
-                title={isPodcast ? 'Önceki Bölüm' : 'Önceki Radyo'}
-              >
-                <SkipBack className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
-              </button>
-            )}
+            {/* Expand Fullscreen Button */}
+            <button
+              onClick={() => setIsExpanded(true)}
+              className="p-2 sm:p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-bold transition-all active:scale-95 cursor-pointer ml-1"
+              title="Tam Ekran Çalar"
+            >
+              <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
 
-            {/* Next (İleri) Button */}
-            {onNext && (
-              <button
-                onClick={onNext}
-                className="hidden xs:flex p-1.5 sm:p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-amber-500 transition-all active:scale-90 items-center justify-center"
-                title={isPodcast ? 'Sonraki Bölüm' : 'Sonraki Radyo'}
-              >
-                <SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
-              </button>
-            )}
+      {/* FULL-SCREEN OVERLAY PLAYER (RESPONSIVE, NON-OVERFLOWING, PERFECTLY BALANCED) */}
+      {isExpanded && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-2xl text-white flex flex-col justify-between p-3 sm:p-5 overflow-y-auto no-scrollbar max-h-screen select-none animate-fadeIn relative">
+          {/* Ambient Artwork Glow */}
+          {coverUrl && !imgError && (
+            <div 
+              className="absolute inset-0 bg-cover bg-center opacity-20 blur-3xl scale-125 pointer-events-none -z-10"
+              style={{ backgroundImage: `url(${coverUrl})` }}
+            />
+          )}
 
-            {/* Podcast Forward +30s Button */}
-            {isPodcast && (
-              <button
-                onClick={() => handleSkip(30)}
-                className="p-1.5 sm:p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-amber-500 transition-all active:scale-90 flex items-center gap-0.5"
-                title="30 saniye ileri sar"
-              >
-                <RotateCw className="w-3.5 h-3.5" />
-                <span className="text-[10px] font-bold font-mono hidden sm:inline">30s</span>
-              </button>
-            )}
+          {/* Top Bar Navigation */}
+          <div className="flex items-center justify-between w-full max-w-lg mx-auto pt-1 shrink-0 gap-2">
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="p-2 sm:p-2.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-all cursor-pointer active:scale-95 shadow-md flex items-center gap-1 shrink-0"
+              title="Çaları Daralt"
+            >
+              <ChevronDown className="w-5 h-5 text-amber-400" />
+            </button>
 
-            {/* Speed Rate Switcher for Podcast */}
-            {isPodcast && (
-              <button
-                onClick={handleNextRate}
-                className="px-1.5 sm:px-2 py-1 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-amber-500 hover:text-zinc-950 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 text-[10px] sm:text-[11px] font-bold font-mono transition-all active:scale-95"
-                title="Oynatma Hızı"
-              >
-                {playbackRate}x
-              </button>
-            )}
+            <div className="text-center truncate min-w-0">
+              <span className="text-[10px] sm:text-xs uppercase font-extrabold tracking-widest text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 truncate inline-block">
+                {isPodcast ? 'Podcast Çalar' : 'Canlı Radyo'}
+              </span>
+            </div>
 
-            {/* Mini Visualizer Canvas */}
-            <div className="hidden lg:block">
+            <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+              <button
+                onClick={handleShare}
+                className="p-2 sm:p-2.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-800 transition-all cursor-pointer relative"
+                title="Paylaş"
+              >
+                <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                {shareNotice && (
+                  <span className="absolute -bottom-8 right-0 bg-amber-500 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded shadow-lg whitespace-nowrap z-50">
+                    Kopyalandı!
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={onOpenSleepTimer}
+                className={`p-2 sm:p-2.5 rounded-2xl border transition-all cursor-pointer ${
+                  sleepTimerSeconds !== null
+                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-400 font-mono'
+                    : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:text-white'
+                }`}
+                title="Uyku Zamanlayıcı"
+              >
+                <Timer className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="p-2 sm:p-2.5 rounded-2xl bg-slate-900/90 hover:bg-red-500/20 text-slate-300 hover:text-red-400 border border-slate-800 transition-all cursor-pointer active:scale-95 shadow-md"
+                title="Kapat"
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Center Content Section: Artwork + Title + Visualizer */}
+          <div className="w-full max-w-md mx-auto my-auto py-2 sm:py-3 flex flex-col items-center text-center space-y-2 sm:space-y-3 flex-1 justify-center min-h-0 overflow-hidden">
+            {/* Album Artwork Cover */}
+            <div className="relative w-32 h-32 xs:w-40 xs:h-40 sm:w-52 sm:h-52 md:w-60 md:h-60 max-h-[28vh] aspect-square rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-800/80 bg-slate-900 shrink-0 group">
+              {coverUrl && !imgError ? (
+                <img
+                  src={coverUrl}
+                  alt={title || ''}
+                  onError={() => setImgError(true)}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center text-slate-950">
+                  {isPodcast ? <Mic className="w-10 h-10 sm:w-12 sm:h-12" /> : <Radio className="w-10 h-10 sm:w-12 sm:h-12" />}
+                </div>
+              )}
+
+              {/* Glowing Aura Background */}
+              <div className="absolute -inset-4 bg-gradient-to-r from-amber-500/20 to-purple-500/20 rounded-full blur-2xl -z-10 opacity-70" />
+            </div>
+
+            {/* Title & Subtitle (Line clamped & nicely padded) */}
+            <div className="space-y-1 w-full px-2 max-w-full">
+              <div className="flex items-center justify-center gap-2">
+                <h2 className="text-sm sm:text-base md:text-lg font-black text-white text-center leading-snug line-clamp-2">
+                  {title}
+                </h2>
+                {favoriteStationTarget && (
+                  <button
+                    onClick={() => onToggleFavorite(favoriteStationTarget)}
+                    className="text-slate-400 hover:text-rose-500 transition-colors p-1 shrink-0 active:scale-90 cursor-pointer"
+                    title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+                  >
+                    <Heart className={`w-5 h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  </button>
+                )}
+              </div>
+              <p className="text-xs sm:text-sm font-semibold text-amber-400/90 text-center truncate px-2">
+                {subtitle}
+              </p>
+            </div>
+
+            {/* Visualizer Wave */}
+            <div className="w-full max-w-xs shrink-0 pt-0.5">
               <AudioVisualizer
                 status={status}
-                barCount={16}
+                barCount={20}
                 colorTheme={themePalette}
-                className="w-20 h-6"
+                className="w-full h-6"
+              />
+            </div>
+          </div>
+
+          {/* Bottom Interactive Controls (Scrubber + 5-Slot Centered Control Bar + Volume) */}
+          <div className="w-full max-w-lg mx-auto space-y-3 sm:space-y-4 pb-2 shrink-0">
+            {/* Scrubber Range Bar for Podcasts */}
+            {isPodcast && (
+              <div className="space-y-1 px-1">
+                <div className="relative w-full group cursor-pointer py-1 flex items-center">
+                  <div className="w-full h-2 sm:h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700 relative">
+                    <div
+                      className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                  <div
+                    className="absolute w-4 h-4 sm:w-5 sm:h-5 bg-amber-400 border-2 border-slate-950 rounded-full shadow-lg pointer-events-none transform -translate-x-1/2 top-1/2 -translate-y-1/2 z-20"
+                    style={{ left: `${progressPercent}%` }}
+                  />
+                  <input
+                    type="range"
+                    min="0"
+                    max={activeDuration || 100}
+                    step="0.5"
+                    value={currentPos}
+                    onMouseDown={() => setIsDragging(true)}
+                    onTouchStart={() => setIsDragging(true)}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setDragTime(val);
+                      audioEngine.seek(val);
+                    }}
+                    onMouseUp={(e) => {
+                      const val = parseFloat((e.target as HTMLInputElement).value);
+                      audioEngine.seek(val);
+                      setTimeout(() => {
+                        setIsDragging(false);
+                        setDragTime(0);
+                      }, 150);
+                    }}
+                    onTouchEnd={(e) => {
+                      const val = parseFloat((e.target as HTMLInputElement).value);
+                      audioEngine.seek(val);
+                      setTimeout(() => {
+                        setIsDragging(false);
+                        setDragTime(0);
+                      }, 150);
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 z-30 cursor-pointer"
+                  />
+                </div>
+
+                {/* Timestamps */}
+                <div className="flex justify-between items-center text-[11px] sm:text-xs font-mono text-slate-400 font-bold px-0.5">
+                  <span>{formatTime(currentPos)}</span>
+                  <span>{formatTime(activeDuration)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* PERFECT 5-SLOT SYMMETRICAL CONTROL ROW - Play/Pause is ALWAYS strictly in Slot 3 (DEAD CENTER) */}
+            <div className="grid grid-cols-5 items-center justify-items-center w-full gap-1 sm:gap-2 px-1">
+              
+              {/* SLOT 1 (FAR LEFT): Speed Rate for Podcast OR Stop Button for Radio */}
+              <div className="flex items-center justify-center">
+                {isPodcast ? (
+                  <button
+                    onClick={handleNextRate}
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-400 text-xs font-black font-mono transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-md"
+                    title="Oynatma Hızı"
+                  >
+                    {playbackRate}x
+                  </button>
+                ) : (
+                  <button
+                    onClick={onStop}
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-md"
+                    title="Durdur"
+                  >
+                    <Square className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                  </button>
+                )}
+              </div>
+
+              {/* SLOT 2 (INNER LEFT): Skip -10s for Podcast OR Previous for Radio */}
+              <div className="flex items-center justify-center">
+                {isPodcast ? (
+                  <button
+                    onClick={() => handleSkip(-10)}
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 hover:text-amber-400 transition-all active:scale-90 cursor-pointer flex items-center justify-center shadow-md"
+                    title="10 saniye geri sar"
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                  </button>
+                ) : onPrevious ? (
+                  <button
+                    onClick={onPrevious}
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 hover:text-amber-400 transition-all active:scale-90 cursor-pointer flex items-center justify-center shadow-md"
+                    title="Önceki Radyo"
+                  >
+                    <SkipBack className="w-5 h-5 fill-current" />
+                  </button>
+                ) : (
+                  <div className="w-10 h-10 sm:w-12 sm:h-12" />
+                )}
+              </div>
+
+              {/* SLOT 3 (DEAD CENTER): HUGE HIGHLIGHT PLAY / PAUSE BUTTON */}
+              <div className="flex items-center justify-center">
+                <button
+                  onClick={onPlayPause}
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all shadow-2xl active:scale-90 cursor-pointer ${
+                    status === 'playing'
+                      ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/40 scale-105'
+                      : 'bg-white hover:bg-slate-200 text-slate-950'
+                  }`}
+                  title={status === 'playing' ? 'Duraklat' : 'Oynat'}
+                >
+                  {status === 'connecting' || status === 'buffering' ? (
+                    <RefreshCw className="w-7 h-7 animate-spin" />
+                  ) : status === 'playing' ? (
+                    <Pause className="w-7 h-7 fill-current" />
+                  ) : (
+                    <Play className="w-7 h-7 fill-current ml-1" />
+                  )}
+                </button>
+              </div>
+
+              {/* SLOT 4 (INNER RIGHT): Skip +30s for Podcast OR Next for Radio */}
+              <div className="flex items-center justify-center">
+                {isPodcast ? (
+                  <button
+                    onClick={() => handleSkip(30)}
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 hover:text-amber-400 transition-all active:scale-90 cursor-pointer flex items-center justify-center shadow-md"
+                    title="30 saniye ileri sar"
+                  >
+                    <RotateCw className="w-5 h-5" />
+                  </button>
+                ) : onNext ? (
+                  <button
+                    onClick={onNext}
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 hover:text-amber-400 transition-all active:scale-90 cursor-pointer flex items-center justify-center shadow-md"
+                    title="Sonraki Radyo"
+                  >
+                    <SkipForward className="w-5 h-5 fill-current" />
+                  </button>
+                ) : (
+                  <div className="w-10 h-10 sm:w-12 sm:h-12" />
+                )}
+              </div>
+
+              {/* SLOT 5 (FAR RIGHT): Offline Download Button for Podcast OR Favorite for Radio */}
+              <div className="flex items-center justify-center">
+                {isPodcast ? (
+                  <button
+                    onClick={handleDownloadToggle}
+                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl border transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-md ${
+                      isDownloaded
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                        : activeDownload
+                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                        : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
+                    }`}
+                    title={
+                      activeDownload
+                        ? `İndiriliyor: %${activeDownload.progressPct.toFixed(0)}`
+                        : isDownloaded
+                        ? 'Cihazda İndirilmiş (Silmek İçin Tıkla)'
+                        : 'Çevrimdışı Dinlemek İçin İndir'
+                    }
+                  >
+                    {activeDownload ? (
+                      <div className="flex flex-col items-center justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                        <span className="text-[9px] font-mono font-bold">{activeDownload.progressPct.toFixed(0)}%</span>
+                      </div>
+                    ) : isDownloaded ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400 fill-emerald-500/20" />
+                    ) : (
+                      <DownloadCloud className="w-5 h-5" />
+                    )}
+                  </button>
+                ) : favoriteStationTarget ? (
+                  <button
+                    onClick={() => onToggleFavorite(favoriteStationTarget)}
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-rose-500 transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-md"
+                    title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+                  >
+                    <Heart className={`w-5 h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  </button>
+                ) : (
+                  <div className="w-10 h-10 sm:w-12 sm:h-12" />
+                )}
+              </div>
+
+            </div>
+
+            {/* Volume Control Bar */}
+            <div className="flex items-center justify-center space-x-3 pt-1">
+              <button
+                onClick={onToggleMute}
+                className="text-slate-400 hover:text-white transition-colors p-2 cursor-pointer"
+                title={isMuted ? 'Sesi Aç' : 'Sesi Kapat'}
+              >
+                {isMuted || volume === 0 ? (
+                  <VolumeX className="w-5 h-5 text-rose-500" />
+                ) : (
+                  <Volume2 className="w-5 h-5 text-slate-300" />
+                )}
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={isMuted ? 0 : volume}
+                onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+                className="w-36 sm:w-48 accent-amber-500 cursor-pointer h-2 rounded-lg bg-slate-800"
               />
             </div>
           </div>
         </div>
-
-        {/* Right: Volume & Sleep Timer */}
-        <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-          {playlistNotice && (
-            <span className="hidden xl:inline-flex items-center gap-1 text-[10px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 px-2 py-1 rounded-lg">
-              <Check className="w-3 h-3" />
-              <span>{playlistNotice}'e eklendi</span>
-            </span>
-          )}
-
-          {/* Volume Slider Control */}
-          <div className="hidden md:flex items-center space-x-2">
-            <button
-              onClick={onToggleMute}
-              className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors p-1"
-              title={isMuted ? 'Sesi Aç' : 'Sesi Kapat'}
-            >
-              {isMuted || volume === 0 ? (
-                <VolumeX className="w-4 h-4 text-rose-500" />
-              ) : (
-                <Volume2 className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
-              )}
-            </button>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={isMuted ? 0 : volume}
-              onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-              className="w-20 accent-amber-500 cursor-pointer h-1.5 rounded-lg bg-zinc-200 dark:bg-zinc-800"
-            />
-          </div>
-
-          {/* Share Button */}
-          {currentItem && (
-            <button
-              onClick={handleShare}
-              className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-amber-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all cursor-pointer relative"
-              title="Paylaş"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              {shareNotice && (
-                <span className="absolute -top-8 right-0 bg-amber-500 text-zinc-950 text-[10px] font-bold px-2 py-0.5 rounded shadow-lg whitespace-nowrap animate-in fade-in duration-150">
-                  Bağlantı kopyalandı!
-                </span>
-              )}
-            </button>
-          )}
-
-          {/* Sleep Timer Button */}
-          <button
-            onClick={onOpenSleepTimer}
-            className={`px-2.5 py-1.5 rounded-xl border flex items-center space-x-1 text-xs transition-all active:scale-95 ${
-              sleepTimerSeconds !== null
-                ? 'bg-amber-500/20 border-amber-500/50 text-amber-600 dark:text-amber-300 font-mono font-medium'
-                : 'bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800'
-            }`}
-            title="Uyku Zamanlayıcısı"
-          >
-            <Timer className="w-3.5 h-3.5 text-amber-500" />
-            <span className="text-[11px] hidden lg:inline">
-              {sleepTimerSeconds !== null ? formatTime(sleepTimerSeconds) : 'Uyku Modu'}
-            </span>
-          </button>
-        </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 });
 
