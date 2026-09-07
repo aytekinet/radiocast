@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PodcastShow, PodcastEpisode } from '../types';
-import { searchPodcasts, getPopularPodcasts, fetchPodcastCatalog, getPodcastEpisodesResult, safeParseEpisodeDateMillis } from '../services/podcastApi';
+import { searchPodcasts, getPopularPodcasts, fetchPodcastCatalog, getPodcastEpisodesResult, safeParseEpisodeDateMillis, getLocalCuratedPodcasts } from '../services/podcastApi';
 import { getAllPodcastProgress, markPodcastEpisodeCompleted, clearPodcastProgress, PodcastProgressEntry, getRecentlyPlayed } from '../services/storage';
 import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
 import { 
@@ -198,11 +198,13 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   const resolveShowFromId = (showId: string): PodcastShow => {
     const cleanId = decodeURIComponent(showId.trim());
 
-    // 1. Check CURATED_TURKISH_PODCASTS (support with or without apple- prefix)
-    const curatedMatch = CURATED_TURKISH_PODCASTS.find(p => 
+    // 1. Check local curated & verified Turkish podcast catalog
+    const localCatalog = getLocalCuratedPodcasts();
+    const curatedMatch = localCatalog.find(p => 
       p.id === cleanId || 
       p.feedUrl === cleanId ||
-      p.id.replace('apple-', '') === cleanId.replace('apple-', '')
+      p.id.replace('apple-', '') === cleanId.replace('apple-', '') ||
+      p.id.replace('curated-', '') === cleanId.replace('curated-', '')
     );
     if (curatedMatch) {
       return {

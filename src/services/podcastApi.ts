@@ -1,9 +1,10 @@
 import { PodcastShow, PodcastEpisode } from '../types';
 import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
+import GENERATED_CATALOG from '../data/generatedPodcastCatalog.json';
 import { isTurkishPodcastStrict, isExplicitForeignText } from './turkishPodcastFilter';
 
 export function getLocalCuratedPodcasts(): PodcastShow[] {
-  return CURATED_TURKISH_PODCASTS.map((p) => ({
+  const curated: PodcastShow[] = CURATED_TURKISH_PODCASTS.map((p) => ({
     id: p.id,
     title: p.title,
     publisher: p.publisher,
@@ -14,6 +15,29 @@ export function getLocalCuratedPodcasts(): PodcastShow[] {
     releaseDateMillis: p.releaseDateMillis || 0,
     episodes: []
   }));
+
+  const generated: PodcastShow[] = (GENERATED_CATALOG as any[]).map((p) => ({
+    id: p.id,
+    title: p.title,
+    publisher: p.publisher || p.author || 'Yayıncı',
+    coverUrl: p.coverUrl || p.image || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=400&q=80',
+    category: p.category || (Array.isArray(p.categories) ? p.categories[0] : 'Podcast'),
+    description: p.description || '',
+    feedUrl: p.feedUrl,
+    releaseDateMillis: p.releaseDateMillis || 0,
+    episodes: []
+  }));
+
+  const seen = new Set<string>();
+  const merged: PodcastShow[] = [];
+  for (const item of [...curated, ...generated]) {
+    const key = (item.feedUrl || item.title).toLowerCase().trim();
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(item);
+    }
+  }
+  return merged;
 }
 
 export function parseTurkishDateToMillis(dateStr?: string): number {
