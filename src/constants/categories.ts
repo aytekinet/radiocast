@@ -8,108 +8,65 @@ export interface RadioGroup {
 
 export const GENRE_CATEGORIES: GenreCategory[] = [
   { id: 'all', name: 'Tüm', tag: '', iconName: 'Radio', color: 'from-amber-500 to-orange-600' },
-  { id: 'turkce_pop', name: 'Pop', tag: 'pop', iconName: 'Music', color: 'from-pink-500 to-rose-600' },
-  { id: 'turkce_slow', name: 'Slow', tag: 'slow', iconName: 'HeartHandshake', color: 'from-purple-500 to-indigo-600' },
-  { id: 'arabesk', name: 'Arabesk', tag: 'arabesk', iconName: 'Sparkles', color: 'from-fuchsia-600 to-purple-800' },
-  { id: 'thm', name: 'THM', tag: 'thm', iconName: 'Mic2', color: 'from-emerald-600 to-green-700' },
-  { id: 'tsm', name: 'TSM', tag: 'tsm', iconName: 'Disc', color: 'from-amber-600 to-yellow-600' },
-  { id: 'islami', name: 'İslami', tag: 'islami', iconName: 'Sun', color: 'from-sky-500 to-indigo-600' },
-  { id: 'haber_spor', name: 'Haber & Spor', tag: 'news', iconName: 'Newspaper', color: 'from-blue-600 to-cyan-700' },
-  { id: 'rap_rock', name: 'Rap & Rock', tag: 'rock', iconName: 'Flame', color: 'from-red-600 to-orange-700' },
-  { id: 'yabanci', name: 'Yabancı', tag: 'yabanci', iconName: 'Globe', color: 'from-violet-500 to-cyan-500' },
-  { id: 'klasik', name: 'Klasik', tag: 'klasik', iconName: 'Guitar', color: 'from-amber-700 to-stone-800' },
-  { id: 'nostalji', name: 'Nostalji', tag: 'nostalji', iconName: 'Disc', color: 'from-orange-500 to-amber-700' },
+  { id: 'populer', name: 'Popüler', tag: 'populer', iconName: 'Sparkles', color: 'from-yellow-400 to-amber-600' },
+  { id: 'turkce_pop', name: 'Türkçe Pop', tag: 'turkce_pop', iconName: 'Music', color: 'from-pink-500 to-rose-600' },
+  { id: 'arabesk_fantezi', name: 'Arabesk / Fantezi', tag: 'arabesk', iconName: 'Flame', color: 'from-fuchsia-600 to-purple-800' },
+  { id: 'slow_romantik', name: 'Slow / Romantik', tag: 'slow', iconName: 'HeartHandshake', color: 'from-purple-500 to-indigo-600' },
+  { id: 'haber', name: 'Haber', tag: 'haber', iconName: 'Newspaper', color: 'from-blue-600 to-cyan-700' },
+  { id: 'spor', name: 'Spor', tag: 'spor', iconName: 'Zap', color: 'from-emerald-600 to-green-700' },
+  { id: 'rock_alternatif', name: 'Rock / Alternatif', tag: 'rock', iconName: 'Guitar', color: 'from-red-600 to-orange-700' },
+  { id: 'rap_hiphop', name: 'Rap / Hip-Hop', tag: 'rap', iconName: 'Mic2', color: 'from-amber-600 to-red-600' },
+  { id: 'elektronik_dans', name: 'Elektronik / Dans', tag: 'elektronik', iconName: 'Disc', color: 'from-cyan-500 to-blue-600' },
+  { id: 'turku_thm', name: 'Türkü / THM', tag: 'turku', iconName: 'BoomBox', color: 'from-emerald-600 to-green-700' },
+  { id: 'klasik_muzik', name: 'Klasik Müzik', tag: 'klasik', iconName: 'Guitar', color: 'from-amber-700 to-stone-800' },
+  { id: 'nostalji_retro', name: 'Nostalji / Retro', tag: 'nostalji', iconName: 'Disc', color: 'from-orange-500 to-amber-700' },
+  { id: 'lounge_kesif', name: 'Lounge / Keşif', tag: 'lounge', iconName: 'Sparkles', color: 'from-teal-500 to-cyan-600' },
+  { id: 'jazz', name: 'Jazz', tag: 'jazz', iconName: 'Disc', color: 'from-indigo-600 to-purple-700' },
+  { id: 'oyun_havasi', name: 'Oyun Havası', tag: 'oyun_havasi', iconName: 'Zap', color: 'from-yellow-500 to-amber-600' },
   { id: 'karadeniz', name: 'Karadeniz', tag: 'karadeniz', iconName: 'BoomBox', color: 'from-teal-600 to-emerald-700' },
-  { id: 'ankara', name: 'Ankara', tag: 'ankara', iconName: 'Zap', color: 'from-yellow-500 to-amber-600' },
-  { id: 'kampus', name: 'Kampüs', tag: 'kampus', iconName: 'Wifi', color: 'from-cyan-500 to-blue-600' },
-  { id: 'kpop', name: 'K-Pop', tag: 'kpop', iconName: 'Sparkles', color: 'from-pink-600 to-purple-600' },
-  { id: 'akustik', name: 'Akustik', tag: 'akustik', iconName: 'Guitar', color: 'from-emerald-500 to-teal-700' },
-  { id: 'caz', name: 'Caz', tag: 'caz', iconName: 'Disc', color: 'from-indigo-600 to-purple-700' },
-  { id: 'kktc', name: 'KKTC', tag: 'kktc', iconName: 'Globe', color: 'from-red-500 to-amber-600' },
-  { id: 'diger_kategori', name: 'Diğer', tag: 'diger', iconName: 'Radio', color: 'from-zinc-500 to-zinc-700' }
+  { id: 'kurtce', name: 'Kürtçe', tag: 'kurtce', iconName: 'Radio', color: 'from-lime-600 to-green-700' },
+  { id: 'dini', name: 'Dini', tag: 'dini', iconName: 'Sun', color: 'from-sky-500 to-indigo-600' },
+  { id: 'universite', name: 'Üniversite Radyoları', tag: 'universite', iconName: 'Wifi', color: 'from-cyan-500 to-blue-600' },
+  { id: 'yabanci_pop', name: 'Yabancı Pop', tag: 'yabanci_pop', iconName: 'Globe', color: 'from-violet-500 to-cyan-500' },
+  { id: 'yerel_bolgesel', name: 'Yerel / Bölgesel', tag: 'yerel_bolgesel', iconName: 'Radio', color: 'from-stone-600 to-zinc-800' },
+  { id: 'karma_genel', name: 'Karma / Genel', tag: 'karma_genel', iconName: 'Radio', color: 'from-zinc-500 to-zinc-700' }
 ];
 
 export const RADIO_GROUPS: RadioGroup[] = [
   {
-    id: 'fenomen',
-    name: 'Fenomen',
-    stationNames: [
-      'fenomen 2010', 'fenomen afro', 'fenomen akustik', 'fenomen clubbin',
-      'fenomen dans', 'fenomen k-pop', 'fenomen kpop', 'fenomen karisik',
-      'fenomen pop', 'fenomen rap', 'fenomen turk', 'radyo fenomen'
-    ]
+    id: 'trt_grup',
+    name: 'TRT Radyoları',
+    stationNames: ['trt radyo 1', 'trt radyo haber', 'trt turku', 'trt nagme', 'trt fm', 'trt']
   },
   {
     id: 'karnaval',
-    name: 'Karnaval',
-    stationNames: [
-      'baby joy', 'baska radyo', 'borusan klasik', 'efkar fm', 'greatest hits of all time',
-      'joy fm', 'joy jazz', 'joy turk', 'joyturk', 'k-pop', 'karadeniz radyo',
-      'kiss fm', 'kiss turk', 'literal radio', 'makam radyo', 'metro fm',
-      'mydonose turk', 'odea radyo', 'pop hits', 'popbesk', 'radio mydonose',
-      'radyo gonul fm', 'radyo pop 90', 'radyo sole', 'retro turk', 'rock station',
-      'slow hits', 'super fm', 'super2 fm', 'tum zamanlarin en iyileri',
-      'virgin radio turkiye', 'yeni pop', 'yeni rap', 'yeni slow', 'yol arkadasim radyo'
-    ]
+    name: 'Karnaval Medya',
+    stationNames: ['super fm', 'metro fm', 'joyturk', 'joyturk rock', 'virgin radio turkiye', 'retro turk', 'borusan klasik', 'radio mydonose']
   },
   {
-    id: 'number_one',
-    name: 'Number One',
-    stationNames: [
-      'best of number 1', 'nr1 ask', 'number 1 classic', 'number 1 dance',
-      'number 1 deep house', 'number 1 disco', 'number 1 eller havaya',
-      'number 1 ertugrul ozkok', 'number 1 fm', 'number 1 greek', 'number 1 heart',
-      'number 1 jazz', 'number 1 lounge', 'number 1 r&b', 'number 1 rock',
-      'number one turk', 'number one turk damar', 'number one turk doksanlar',
-      'number one turk rap', 'number one turk slow', 'petrol ofisi radyosu',
-      'uskudar musiki cemiyeti radyosu'
-    ]
-  },
-  {
-    id: 'pal_grup',
-    name: 'Pal Grup',
-    stationNames: ['pal doga', 'pal fm', 'pal nostalji', 'pal station']
+    id: 'fenomen',
+    name: 'Fenomen Medya',
+    stationNames: ['radyo fenomen', 'radyo fenomen clubbin', 'fenomen']
   },
   {
     id: 'power_app',
-    name: 'Power App',
-    stationNames: [
-      'power dance', 'power deep', 'power earth', 'power fm', 'power gold',
-      'power greece', 'power hiphop r&b', 'power jazz', 'power love fm',
-      'power plus', 'power pop', 'power smooth', 'power turk fm', 'powerturk',
-      'power xl fm', 'powerturk akustik', 'powerturk dans', 'powerturk en iyiler',
-      'powerturk rap', 'powerturk slow', 'powerturk taptaze', 'radyo boombox'
-    ]
+    name: 'Power Medya',
+    stationNames: ['powerturk', 'powerturk slow', 'power dance', 'radyo koc', 'power app', 'power fm']
+  },
+  {
+    id: 'dinamo',
+    name: 'Dinamo.fm Ağı',
+    stationNames: ['dinamo fm caffe', 'dinamo fm deep', 'dinamo fm fluent', 'dinamo fm locodyno', 'dinamo fm smog', 'dinamo fm']
   },
   {
     id: 'radyo_7_grup',
-    name: 'Radyo 7',
-    stationNames: [
-      'muhtesem dortlu radyosu', 'radyo 7', 'radyo 7 kuran arapca', 'radyo 7 muslum',
-      'radyo 7 ankara havalari', 'radyo 7 arabesk', 'radyo 7 kuran meali',
-      'radyo 7 nostalji', 'radyo 7 pop hit', 'radyo 7 tasavvuf', 'radyo 7 turku',
-      'slow 7', 'ulke radyo'
-    ]
+    name: 'Radyo 7 & Haber Grubu',
+    stationNames: ['radyo 7', 'haberturk radyo', 'ntv radyo', 'tgrt fm']
   },
   {
-    id: 'radyo_home',
-    name: 'Radyo Home',
-    stationNames: [
-      'doksanlar fm', 'klasik home', 'maziden bir demet', 'melankolik home',
-      'muhtesem dortlu radyosu', 'pop home', 'radyo altin sarkilar',
-      'radyo ankara havalari', 'radyo efsane 4 lu', 'radyo ege havalari',
-      'radyo gol', 'radyo tezene', 'radyo turkulerle turkiye', 'rap home',
-      'relax home', 'sari tramvay', 'slow home', 'the rock radio', 'world hits'
-    ]
-  },
-  {
-    id: 'show_viva',
-    name: 'Show & Viva',
-    stationNames: [
-      'tv100 haber', 'radyo viva trend pop', 'radyo viva club', 'show trend',
-      'show eller havaya', 'show akustik', 'show slow', 'show 90s', 'show 90lar',
-      'radyo viva turka', 'radyo viva turku', 'radyo viva efkar', 'radyo viva', 'show radyo'
-    ]
+    id: 'dini_grup',
+    name: 'Dini Yayınlar',
+    stationNames: ['diyanet kur an radyo', 'erkam radyo', 'lalegul fm', 'nur radyo', 'radyo fitrat']
   }
 ];
 
@@ -127,174 +84,404 @@ export function normalizeName(name: string): string {
     .trim();
 }
 
-// Category Station Lists for accurate classification
-const CATEGORY_NAMES_MAP: Record<string, string[]> = {
-  turkce_pop: [
-    'kafa radyo', 'alem fm', 'best fm', 'kral pop', 'powerturk', 'power turk',
-    'radyo 7', 'radyo seymen', 'polis radyosu', 'ankara radyo banko', 'baska radyo',
-    'dada radyo', 'doksanlar fm', 'fenomen turk', 'fg turk radyo', 'genclik radyosu',
-    'istanbul fm', 'istanbul kupe fm', 'istanbul radyo seymen', 'karadeniz fm 98.2',
-    'karma turk', 'kiss genc', 'kiss gold turk', 'kiss turk', 'kral pop radyo',
-    'mydonose turk', 'number 1 eller havaya', 'number one turk', 'number one turk doksanlar',
-    'ordu fm', 'pal fm', 'pal nostalji', 'pal nostalji fm', 'park fm', 'pop home',
-    'popbesk', 'power pop', 'powerturk fm', 'powerturk akustik', 'powerturk dans',
-    'powerturk en iyiler', 'powerturk taptaze', 'radyo 34 istanbul', 'radyo 35',
-    'radyo 45lik', 'radyo 7 nostalji', 'radyo 7 pop hit', 'radyo altin sarkilar',
-    'radyo bordo mavi fm', 'radyo d', 'radyo pop 90', 'radyo trio', 'radyo viva',
-    'radyo viva trend pop', 'radyo yaren', 'radyobir', 'retro turk', 'show 90s',
-    'show 90lar', 'show akustik', 'show radyo', 'siaray turk fm', 'super fm',
-    'super2 fm', 'trend ankara', 'tum zamanlarin en iyileri', 'viyana fm', 'yeni pop',
-    'yol arkadasim radyo', 'pop'
+export const CATEGORY_NAMES_MAP: Record<string, string[]> = {
+  "populer": [
+    "arabesk fm",
+    "damar turk fm",
+    "dinamo fm caffe",
+    "dinamo fm deep",
+    "radyo fenomen clubbin",
+    "haberturk radyo",
+    "ntv radyo",
+    "tgrt fm",
+    "trt radyo haber",
+    "radyo 7",
+    "trt radyo 1",
+    "borusan klasik",
+    "havin fm",
+    "radio voyage",
+    "radyo 45lik",
+    "radyo seymen",
+    "joyturk rock",
+    "virgin radio turkiye",
+    "ask fm",
+    "slow turk",
+    "radyo fenomen",
+    "super fm",
+    "trt turku",
+    "turku radyo",
+    "turkulerle turkiye",
+    "radyo odtu",
+    "metro fm",
+    "alem fm",
+    "avrasya turk radyo",
+    "baba radyo",
+    "dost",
+    "genc kral fm",
+    "halk radyo",
+    "joyturk",
+    "kalp fm",
+    "radyo alaturka",
+    "populer",
+    "hit",
+    "trend",
+    "top 40",
+    "top40"
   ],
-  turkce_slow: [
-    'slow turk', 'joy turk', 'joyturk', 'kalp fm', 'yeni slow', 'best slow',
-    'joy turk akustik', 'slow 7', 'powerturk slow', 'istanbul fm slow',
-    'karma turk slow', 'nr1 ask', 'number one turk slow', 'power xl fm',
-    'radyo 34 istanbul', 'radyo romantik turk', 'romantik ses isparta',
-    'romantik ses sakarya', 'show slow', 'slow hits', 'slow home', 'slow'
+  "turkce_pop": [
+    "radyo fenomen",
+    "super fm",
+    "arkadas radyo",
+    "bodrum fm",
+    "keyf station",
+    "kiss turk",
+    "koroglu fm",
+    "radio ava turkiye",
+    "radyo 35",
+    "radyo taksi",
+    "super fm 99 9",
+    "turkce pop",
+    "pop",
+    "fenomen",
+    "kral pop",
+    "best fm",
+    "alem fm"
   ],
-  arabesk: [
-    'kral fm', 'baba radyo', 'efkar fm', 'imbat fm', 'damar', 'istanbul fm fantezi',
-    'viva efkar', 'radyo megasite', 'adana efsane radyo', 'arabesk radyo', 'ask fm',
-    'baba radyo 105.6', 'bor fm', 'can fm', 'damar fm', 'denizli art fm',
-    'elbistan yore fm', 'gercek radyo', 'hatay dost fm', 'izmir imbat fm',
-    'karesi radyo', 'kralim fm 99.3', 'melankolik home', 'number one turk damar',
-    'radyo 11', 'radyo 2000', 'radyo 2000 elazig', 'radyo 2000 fm', 'radyo 7 muslum',
-    'radyo 7 arabesk', 'radyo durak', 'radyo efsane 4 lu', 'radyo hayat amasya',
-    'radyo moda', 'radyo nester', 'radyo usta', 'radyo viva efkar', 'star arti fm',
-    'sultan radyo', 'arabesk', 'fantezi'
+  "arabesk_fantezi": [
+    "arabesk fm",
+    "damar turk fm",
+    "arabesk",
+    "fantezi",
+    "damar",
+    "muslum",
+    "orhan",
+    "ferdi"
   ],
-  thm: [
-    'radyo 7 turku', 'radyo ostim', 'pal doga', 'radyo turkulerle turkiye',
-    'yon radyo', 'muhtesem 4lu', 'muhtesem dortlu', 'radyo ekin', 'avrasya turk',
-    'adana radyo guney', 'avrasya turk 107.1', 'bati radyo', 'best kina', 'cem radyo',
-    'dadas fm', 'derya fm', 'elazig mavi radyo', 'erzincan radyo 2000', 'erzincan radyo cem',
-    'firat fm', 'hatay asya radyo', 'hatay tempo fm', 'kent radyo mersin',
-    'kocaeli tempo fm', 'konya fm', 'radyo 7 ankara havalari', 'radyo gonul fm',
-    'radyo gun', 'radyo harman fm', 'radyo manavgat', 'radyo tezene', 'radyo vatan turku',
-    'radyo viva turku', 'sancak fm', 'show eller havaya', 'tempo turk eskisehir',
-    'turku radyo', 'ulusal radyo turku', 'turku', 'folk'
+  "slow_romantik": [
+    "ask fm",
+    "slow turk",
+    "karma turk slow",
+    "ki ss love radyo turkey",
+    "ki ss turk slow",
+    "powerturk slow",
+    "radyo duygusal",
+    "slow",
+    "ask",
+    "romantik",
+    "duygusal",
+    "love"
   ],
-  tsm: [
-    'radyo alaturka', 'radyo 7 tsm', 'polis radyosu tsm', 'kiss musiki',
-    'istanbul fm alaturka', 'uludag fm', 'genc radyo', 'makam radyo',
-    'gaziantep grt fm', 'maziden bir demet', 'radyo ahenk', 'radyo han kayseri',
-    'radyo kordelya', 'radyo nihavent', 'radyo viva turka', 'ulusal radyo sanat',
-    'uskudar musiki cemiyeti', 'tsm', 'alaturka', 'sanat muzigi'
+  "haber": [
+    "haberturk radyo",
+    "ntv radyo",
+    "tgrt fm",
+    "trt radyo haber",
+    "replay news turkce her 5 dakikada haber radyosu",
+    "haber",
+    "news",
+    "sondakika",
+    "haberturk",
+    "ntv",
+    "tgrt",
+    "trt haber"
   ],
-  islami: [
-    'radyo 7 kuran meali', 'radyo 7 tasavvuf', 'diyanet radyo', 'diyanet kuran',
-    'risalet radyo', 'bayram fm', 'moral fm', 'erkam radyo', 'arkadas fm',
-    'baris radyo', 'berat fm', 'bizim iller radyo', 'bizim radyo', 'corum cagri fm',
-    'davet radyo', 'dolunay fm', 'dost fm', 'enderun fm', 'furkan radyo',
-    'gencligin sesi', 'gonca fm', 'kocaeli radyo gul', 'konya isra fm',
-    'konya radyo en', 'lalegul fm', 'mesaj fm', 'nur fm', 'nur radyo', 'ozel fm',
-    'radyo 7 kuran arapca', 'radyo denge', 'radyo feza', 'radyo fitrat',
-    'radyo genc ses', 'radyo genclik', 'radyo hayat', 'radyo hedef', 'radyo huzur',
-    'radyo nida', 'radyo tulu', 'radyo urfa', 'rahmet fm', 'ribat fm', 'safak radyo',
-    'semerkand radyo', 'seyr fm', 'tgrt fm', 'umut fm', 'islami', 'kuran', 'dini', 'ilahi'
+  "spor": [
+    "lig radyo",
+    "radyo gol",
+    "spor",
+    "sport",
+    "futbol"
   ],
-  haber_spor: [
-    'haberturk radyo', 'radyo cnn turk', 'ntv radyo', 'tgrt fm', 'ulusal radyo',
-    'radyo trafik', 'meteorolojinin sesi', 'radyo spor', '24 radyo',
-    'bbc world service', 'bloomberg ht', 'lig radyo', 'ntv spor radyo',
-    'radyo fenerbahce', 'radyo gol', 'samsun haber radyo', 'st endustri radyo',
-    'sun radyo', 'tv100 haber', 'ulke radyo', 'haber', 'spor', 'news'
+  "rock_alternatif": [
+    "joyturk rock",
+    "virgin radio turkiye",
+    "ktu",
+    "max fm 95 8 maximum music",
+    "radyo a radyo anadolu universitesi",
+    "radyo eksen 96 2",
+    "radyo odtu rock",
+    "rock",
+    "alternatif",
+    "metal",
+    "anadolu rock"
   ],
-  rap_rock: [
-    'power hiphop', 'kiss beatbox', 'radyo boombox', 'yeni rap', 'best rap',
-    'joy turk rock', 'the rock radio', 'max fm', 'fenomen rap', 'itu radyosu rock',
-    'number 1 r&b', 'number 1 rock', 'number one turk rap', 'power earth',
-    'power plus', 'powerturk rap', 'radio boombox xtra', 'radyo duble rap',
-    'radyo mars', 'rap home', 'rock fm', 'rock station', 'x radio', 'rock', 'rap', 'hiphop'
+  "rap_hiphop": [
+    "number 1 turk rap",
+    "x radio",
+    "rap",
+    "hip hop",
+    "hiphop",
+    "r&b",
+    "trap"
   ],
-  yabanci: [
-    'power fm', 'metro fm', 'joy fm', 'radyo voyage', 'radio mydonose', 'pal station',
-    'radyo fenomen', 'number one fm', 'best hit', 'dalkas fm', 'dance fm',
-    'fenomen 2010s', 'fenomen afro', 'fenomen clubbin', 'fenomen dans',
-    'fenomen karisik', 'fenomen pop', 'greatest hits of all time', 'heart fm',
-    'kiss dance', 'kiss ege', 'kiss fk', 'kiss fm', 'kiss gold', 'literal radio',
-    'lounge fm', 'mix fm mersin', 'nrk jazz', 'number 1 dance', 'number 1 deep house',
-    'number 1 disco', 'number 1 ertugrul ozkok', 'number 1 greek', 'number 1 heart',
-    'number 1 jazz', 'number 1 lounge', 'petrol ofisi radyosu', 'pop hits',
-    'power dance', 'power deep', 'power greece', 'power jazz', 'power love fm',
-    'power smooth', 'power xl fm', 'radio 2020', 'radio mix', 'radio swiss classic',
-    'radio veronika', 'radyo a anadolu', 'radyo bilim', 'radyo bilkent',
-    'radyo eko', 'radyo eksen', 'radyo fg', 'radyo ilef', 'radyo klasik',
-    'radyo line', 'radyo odtu', 'radyo universite', 'radyo viva club',
-    'radyovizyon', 'relax home', 'slow time', 'sout al khaleej', 'virgin radio turkiye',
-    'world hits', 'english', 'foreign'
+  "elektronik_dans": [
+    "dinamo fm caffe",
+    "dinamo fm deep",
+    "radyo fenomen clubbin",
+    "dinamo fm fluent",
+    "dinamo fm locodyno",
+    "dinamo fm smog",
+    "fg 93 8 future generation mp3 128k",
+    "loops radio techno",
+    "mayday records",
+    "power dance",
+    "radio antalya",
+    "radio mydonose",
+    "dans",
+    "dance",
+    "electronic",
+    "house",
+    "techno",
+    "edm",
+    "club",
+    "trance"
   ],
-  klasik: [
-    'klasik home', 'number 1 klasik', 'number 1 classic', 'itu radyosu klasik',
-    'radyo voyage', 'radio swiss classic', 'nrk klasik', 'borusan klasik',
-    'abc classic 2 fm', 'radyo klasik', 'klasik', 'classical'
+  "turku_thm": [
+    "trt turku",
+    "turku radyo",
+    "turkulerle turkiye",
+    "radyo banko",
+    "turkuvaz anadolu",
+    "turkuradyo",
+    "turku",
+    "thm",
+    "halk muzigi",
+    "turkuler",
+    "bozlak"
   ],
-  nostalji: [
-    'istanbul fm nostalji', 'show 90s', 'show 90lar', 'sari tramvay',
-    'radyo altin sarkilar', 'power gold', 'number one turk doksanlar',
-    'radyo pop 90', 'retro turk', 'pal nostalji', 'pal nostalji fm',
-    'radyo 45lik', 'doksanlar fm', 'esas radyo', 'radyo 7 nostalji', 'nostalji', '90lar', '80ler'
+  "klasik_muzik": [
+    "borusan klasik",
+    "klasik",
+    "classical",
+    "senfoni",
+    "filarmoni",
+    "opera"
   ],
-  karadeniz: [
-    'kadirga fm', 'karadeniz dalga fm', 'raks fm', 'karadeniz akustik fm',
-    'blue karadeniz radyo', 'karadeniz radyo', 'radyo bordo mavi fm',
-    'vitamin fm', 'kemence fm', 'karadenizin sesi radyosu', 'trabzon taka fm',
-    'karadeniz fm 98.2', 'karadeniz fm bursa', 'radyo karadeniz', 'karadeniz'
+  "nostalji_retro": [
+    "radyo 45lik",
+    "dedemi n radyosu",
+    "retro turk",
+    "vi zyon nostalji",
+    "yeni radyo nostaljinin sesi",
+    "nostalji",
+    "retro",
+    "45lik",
+    "eskiler",
+    "90lar",
+    "80ler",
+    "70ler"
   ],
-  ankara: [
-    'radyo ankara', 'radyo 7 ankara havalari', 'radyo tuzgolu', 'best kina',
-    'radyo ankara havalari', 'yoruk fm', 'radyo 06 ankara', 'park fm',
-    'istanbul radyo seymen', 'ankara radyo banko', 'ankara'
+  "lounge_kesif": [
+    "radio voyage",
+    "apacik radyo",
+    "kiyi gece",
+    "kiyi muzik",
+    "kiyi turkce",
+    "standart fm",
+    "lounge",
+    "chill",
+    "ambient",
+    "downtempo",
+    "kesif",
+    "relax"
   ],
-  kampus: [
-    'adyu fm', 'alevin sesi', 'bau radyo', 'cu radyo', 'hitit fm', 'kampus fm',
-    'kuradyo', 'kutahya radyo dumlupinar', 'mersin universitesi radyosu',
-    'omu radyo', 'radio atilim', 'radyo a anadolu universitesi', 'radyo altinbas',
-    'radyo baskent', 'radyo bilkent', 'radyo bogazici', 'radyo duet',
-    'radyo ege universitesi', 'radyo esogu', 'radyo estu', 'radyo firat',
-    'radyo ilef', 'radyo iletisim', 'radyo kampus', 'radyo ki', 'radyo kocatepe',
-    'radyo ktu', 'radyo odtu', 'radyo ozu', 'radyo sdu', 'radyo uni14',
-    'radyo universite', 'universite fm', 'kampus', 'universite'
+  "jazz": [
+    "radyo gokceada",
+    "sezen radyo",
+    "jazz",
+    "caz",
+    "blues"
   ],
-  kpop: [
-    'k pop', 'k-pop', 'kpop', 'fenomen k-pop', 'fenomen kpop', 'kore pop'
+  "oyun_havasi": [
+    "radyo seymen",
+    "masti ka fm",
+    "oyun havasi",
+    "ankara havasi",
+    "seymen",
+    "mastika",
+    "ciftetelli",
+    "roman"
   ],
-  akustik: [
-    'istanbul fm akustik', 'fenomen akustik', 'show akustik', 'powerturk akustik',
-    'joy turk akustik', 'joyturk akustik', 'akustik'
+  "karadeniz": [
+    "radyo karadeniz",
+    "karadeniz",
+    "kemence",
+    "horon",
+    "tulum"
   ],
-  caz: [
-    'nrk jazz', 'joy jazz', 'number 1 jazz', 'itu radyosu jazz blues',
-    'power jazz', 'jazz', 'caz'
+  "kurtce": [
+    "havin fm",
+    "radyo mezopotamya",
+    "radyo mori",
+    "kurtce",
+    "kurdi",
+    "dengbej",
+    "stran"
   ],
-  kktc: [
-    'enerji slow 106.2', 'enerji 93.1', 'dance fm kktc', 'dance fm - kktc',
-    'radyo vatan turku', 'radyo nihavent', 'radyo vatan', 'radyo diyalog',
-    'first fm', 'kibris sim radyo', 'kibris bayrak fm', 'kktc', 'kibris'
+  "dini": [
+    "diyanet kur an radyo",
+    "erkam radyo",
+    "lalegul fm",
+    "nur radyo",
+    "radyo fitrat",
+    "dini",
+    "kuran",
+    "tasavvuf",
+    "ilahi",
+    "diyanet",
+    "islam"
+  ],
+  "universite": [
+    "radyo odtu",
+    "radyo bilkent",
+    "radyo koc",
+    "universite",
+    "odtu",
+    "bilkent",
+    "itu",
+    "koc",
+    "kampus"
+  ],
+  "yabanci_pop": [
+    "metro fm",
+    "acs radyo",
+    "radio light",
+    "yabanci pop",
+    "world hits",
+    "foreign pop",
+    "hit music"
+  ],
+  "yerel_bolgesel": [
+    "alem fm",
+    "avrasya turk radyo",
+    "baba radyo",
+    "dost",
+    "genc kral fm",
+    "halk radyo",
+    "joyturk",
+    "kalp fm",
+    "radyo alaturka",
+    "95 1 tempo radyo hatay",
+    "baris fm 103 2",
+    "bayram fm turkey",
+    "bi leci k fm turkey",
+    "bitlis fm 98 8",
+    "bloomberg ht radyo",
+    "cesme vi ki ng radyo",
+    "cinar fm",
+    "denge gundeme",
+    "elazig mavi radyo",
+    "emek radyo",
+    "ert elazig",
+    "erzi ncan fm",
+    "espiye fm",
+    "fakir fm",
+    "gevas sesi radyosu",
+    "kent radyo",
+    "kuzey fm turkey",
+    "lokum fm",
+    "maxfm",
+    "melodi radyo",
+    "merkez fm samsun turkey",
+    "radyo 16",
+    "radyo 2000",
+    "radyo 90",
+    "radyo ahenk",
+    "radyo akdeniz",
+    "radyo alevi canlar",
+    "radyo durak",
+    "radyo ekin",
+    "radyo megasite",
+    "radyo munzur 97 7",
+    "radyo sari tramvay",
+    "radyo sevtek",
+    "radyo sinerji",
+    "radyo talya",
+    "radyo zile fm 93 5",
+    "super show radyo",
+    "trt nagme",
+    "turkiyem fm",
+    "yenikoy fm",
+    "yon radyo",
+    "yerel",
+    "bolgesel",
+    "fm",
+    "radyo"
+  ],
+  "karma_genel": [
+    "radyo 7",
+    "trt radyo 1",
+    "bestefm mix",
+    "hayatmi x",
+    "mix a mix fm",
+    "radio hayal",
+    "radyo 75",
+    "radyo dingil",
+    "radyo maksat",
+    "karma",
+    "genel",
+    "mix",
+    "karisik",
+    "cesitli"
   ]
+};
+
+export const CATEGORY_ID_FROM_MAIN: Record<string, string> = {
+  "Arabesk / Fantezi": "arabesk_fantezi",
+  "Elektronik / Dans": "elektronik_dans",
+  "Haber": "haber",
+  "Karma / Genel": "karma_genel",
+  "Klasik Müzik": "klasik_muzik",
+  "Kürtçe": "kurtce",
+  "Lounge / Keşif": "lounge_kesif",
+  "Nostalji / Retro": "nostalji_retro",
+  "Oyun Havası": "oyun_havasi",
+  "Rock / Alternatif": "rock_alternatif",
+  "Slow / Romantik": "slow_romantik",
+  "Türkçe Pop": "turkce_pop",
+  "Türkü / THM": "turku_thm",
+  "Üniversite Radyoları": "universite",
+  "Yabancı Pop": "yabanci_pop",
+  "Yerel / Bölgesel": "yerel_bolgesel",
+  "Dini": "dini",
+  "Jazz": "jazz",
+  "Karadeniz": "karadeniz",
+  "Rap / Hip-Hop": "rap_hiphop",
+  "Spor": "spor"
 };
 
 export function matchesCategory(station: RadioStation, categoryId: string): boolean {
   if (!categoryId || categoryId === 'all') return true;
 
-  const nameNorm = normalizeName(station.name);
-  const tagsNorm = normalizeName(station.tags);
+  // 1. Check direct isPopular flag
+  if (categoryId === 'populer') {
+    if (station.isPopular) return true;
+    const tagsLower = (station.tags || '').toLowerCase();
+    if (tagsLower.includes('popüler') || tagsLower.includes('populer')) return true;
+  }
 
-  if (categoryId === 'diger_kategori') {
-    // Check if it matches any known category
-    for (const [catId, keywords] of Object.entries(CATEGORY_NAMES_MAP)) {
-      if (keywords.some(k => nameNorm.includes(k) || tagsNorm.includes(k))) {
-        return false;
-      }
-    }
+  // 2. Check mainCategory match
+  if (station.mainCategory && CATEGORY_ID_FROM_MAIN[station.mainCategory] === categoryId) {
     return true;
   }
 
-  const keywords = CATEGORY_NAMES_MAP[categoryId];
-  if (!keywords || keywords.length === 0) return true;
+  // 3. Check normalized tags
+  const tagsNorm = normalizeName(station.tags || '');
+  const cat = GENRE_CATEGORIES.find(c => c.id === categoryId);
+  if (cat && cat.tag && tagsNorm.includes(cat.tag)) {
+    return true;
+  }
 
-  return keywords.some(k => nameNorm.includes(k) || tagsNorm.includes(k));
+  // 4. Station name match in category map
+  const nameNorm = normalizeName(station.name || '');
+  const keywords = CATEGORY_NAMES_MAP[categoryId];
+  if (keywords && keywords.length > 0) {
+    if (keywords.some(k => nameNorm.includes(k) || tagsNorm.includes(k))) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function matchesGroup(station: RadioStation, groupId: string): boolean {
@@ -303,7 +490,6 @@ export function matchesGroup(station: RadioStation, groupId: string): boolean {
   const nameNorm = normalizeName(station.name);
 
   if (groupId === 'diger_grup') {
-    // Check if station belongs to any named group
     for (const group of RADIO_GROUPS) {
       if (group.stationNames.some(s => nameNorm.includes(s))) {
         return false;

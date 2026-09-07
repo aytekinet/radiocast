@@ -25,6 +25,9 @@ export interface RadioStation {
   lastCheckOk?: boolean;
   sslError?: number;
   isHttps?: boolean;
+  mainCategory?: string;
+  isPopular?: boolean;
+  requiresProxy?: boolean;
 }
 
 export interface RadioCountry {

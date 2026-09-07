@@ -3,6 +3,7 @@ import { registerStationClick } from './radioApi';
 import { getPodcastProgress, savePodcastProgress, getPodcastProgressEntry, addRecentlyPlayed } from './storage';
 import { getOfflineAudioUrl } from './offlineStorage';
 import { getCandidateUrlsForStation } from '../data/fallbackStations';
+import Hls from 'hls.js';
 
 export type PlaybackStatus = 'idle' | 'connecting' | 'playing' | 'paused' | 'buffering' | 'error';
 
@@ -70,26 +71,30 @@ class AudioEngine {
   }
 
   constructor() {
-    this.audio = new Audio();
-    this.audio.preload = 'none';
+    if (typeof Audio !== 'undefined') {
+      this.audio = new Audio();
+      this.audio.preload = 'none';
 
-    let savedVol = 0.8;
-    try {
-      const raw = localStorage.getItem('player-volume');
-      if (raw) {
-        const parsed = parseFloat(raw);
-        if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 1) {
-          savedVol = parsed;
+      let savedVol = 0.8;
+      try {
+        const raw = localStorage.getItem('player-volume');
+        if (raw) {
+          const parsed = parseFloat(raw);
+          if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 1) {
+            savedVol = parsed;
+          }
         }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
+
+      this.audio.volume = savedVol;
+      this.audio.muted = false;
+
+      this.setupAudioListeners();
+    } else {
+      this.audio = {} as HTMLAudioElement;
     }
-
-    this.audio.volume = savedVol;
-    this.audio.muted = false;
-
-    this.setupAudioListeners();
   }
 
   public setCallbacks(callbacks: AudioEngineCallbacks) {
@@ -185,6 +190,8 @@ class AudioEngine {
     });
 
     this.audio.addEventListener('error', () => {
+      if (!this.audio.getAttribute('src') && !this.hlsInstance) return;
+      if (this.status === 'idle' || this.status === 'paused') return;
       const activeSession = this.currentSessionId;
       this.tryNextCandidate(activeSession);
     });
@@ -279,22 +286,37 @@ class AudioEngine {
     const stationRelayUrl = stationId ? `/api/radio/stream/${encodeURIComponent(stationId)}` : null;
 
     let rawCandidates: (string | null | undefined)[] = [];
+    const isHttpsOrigin = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
     for (const url of baseCandidates) {
       if (!url) continue;
       const cleanUrl = url.trim();
       const proxyUrl = `/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`;
+      const corsProxy = `https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`;
 
       if (cleanUrl.toLowerCase().startsWith('https://')) {
-        // Direct HTTPS stream FIRST: Browser plays directly from CDN without Vercel serverless function timeouts
+        // Direct HTTPS stream FIRST: Browser plays directly from CDN without timeouts
         rawCandidates.push(cleanUrl);
         rawCandidates.push(proxyUrl);
       } else if (cleanUrl.toLowerCase().startsWith('http://')) {
-        // Direct HTTP stream: Upgrade to HTTPS FIRST, then try Express proxy, then raw HTTP
-        const httpsUpgraded = cleanUrl.replace(/^http:\/\//i, 'https://');
-        rawCandidates.push(httpsUpgraded);
-        rawCandidates.push(proxyUrl);
-        rawCandidates.push(cleanUrl);
+        const isIpHost = /^https?:\/\/\d+\.\d+\.\d+\.\d+/i.test(cleanUrl);
+        if (isHttpsOrigin) {
+          // On HTTPS pages (AI Studio and Vercel):
+          // 1. If domain name, try upgraded HTTPS
+          if (!isIpHost) {
+            rawCandidates.push(cleanUrl.replace(/^http:\/\//i, 'https://'));
+          }
+          // 2. Local backend proxy
+          rawCandidates.push(proxyUrl);
+          // 3. Public CORS proxy (crucial for Vercel static deploys)
+          rawCandidates.push(corsProxy);
+          // 4. Raw HTTP
+          rawCandidates.push(cleanUrl);
+        } else {
+          // On HTTP pages (localhost)
+          rawCandidates.push(cleanUrl);
+          rawCandidates.push(proxyUrl);
+        }
       } else {
         rawCandidates.push(cleanUrl);
         rawCandidates.push(proxyUrl);
@@ -449,8 +471,13 @@ class AudioEngine {
         !playableUrl.includes('allorigins.win')
       ) {
         // Direct HTTP is blocked on HTTPS pages (Mixed Content).
-        // Try HTTPS upgraded version directly so browser can connect natively without Vercel serverless timeouts.
-        playableUrl = playableUrl.replace(/^http:\/\//i, 'https://');
+        const isIpHost = /^https?:\/\/\d+\.\d+\.\d+\.\d+/i.test(playableUrl);
+        if (!isIpHost) {
+          playableUrl = playableUrl.replace(/^http:\/\//i, 'https://');
+        } else {
+          playableUrl = `/api/radio/proxy?url=${encodeURIComponent(playableUrl)}`;
+          playableUrl = window.location.origin + playableUrl;
+        }
       }
     }
 
@@ -478,7 +505,8 @@ class AudioEngine {
       if (p !== undefined) {
         p.catch((err) => {
           if (sessionId !== this.currentSessionId) return;
-          if (err.name !== 'NotAllowedError' && err.name !== 'AbortError') {
+          console.warn('[AudioEngine] Playback error on candidate:', currentUrl, err?.message || err);
+          if (err.name !== 'AbortError') {
             this.tryNextCandidate(sessionId);
           }
         });
@@ -486,55 +514,55 @@ class AudioEngine {
     };
 
     if (isHls) {
-      if (this.audio.canPlayType('application/vnd.apple.mpegurl')) {
+      if (Hls.isSupported()) {
+        this.hlsInstance = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          manifestLoadingTimeOut: 6000,
+          manifestLoadingMaxRetry: 2,
+          levelLoadingTimeOut: 6000,
+          levelLoadingMaxRetry: 2,
+          fragLoadingTimeOut: 6000,
+          fragLoadingMaxRetry: 2,
+          maxBufferLength: 10,
+          maxMaxBufferLength: 20,
+          maxBufferSize: 15 * 1024 * 1024,
+          backBufferLength: 0
+        });
+        this.hlsInstance.loadSource(playableUrl);
+        this.hlsInstance.attachMedia(this.audio);
+        this.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (sessionId === this.currentSessionId) {
+            safePlay();
+          }
+        });
+        this.hlsInstance.on(Hls.Events.ERROR, (_: any, data: any) => {
+          if (sessionId !== this.currentSessionId) return;
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                this.hlsInstance?.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                this.hlsInstance?.recoverMediaError();
+                break;
+              default:
+                this.tryNextCandidate(sessionId);
+                break;
+            }
+          }
+        });
+        // Immediately invoke safePlay within the user interaction callstack to preserve browser gesture
+        safePlay();
+      } else if (this.audio.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native HLS for Safari
         this.audio.src = playableUrl;
         this.audio.load();
         safePlay();
       } else {
-        try {
-          const HlsModule = await import('hls.js');
-          const Hls = HlsModule.default;
-
-          if (sessionId !== this.currentSessionId) return;
-
-          if (Hls && Hls.isSupported()) {
-            this.hlsInstance = new Hls({
-              enableWorker: true,
-              lowLatencyMode: true,
-              manifestLoadingTimeOut: 10000,
-              manifestLoadingMaxRetry: 3,
-              levelLoadingTimeOut: 10000,
-              levelLoadingMaxRetry: 3,
-              fragLoadingTimeOut: 10000,
-              fragLoadingMaxRetry: 3,
-              maxBufferLength: 15,
-              maxMaxBufferLength: 30,
-              maxBufferSize: 30 * 1024 * 1024,
-              backBufferLength: 0
-            });
-            this.hlsInstance.loadSource(playableUrl);
-            this.hlsInstance.attachMedia(this.audio);
-            this.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-              if (sessionId === this.currentSessionId) safePlay();
-            });
-            this.hlsInstance.on(Hls.Events.ERROR, (_: any, data: any) => {
-              if (sessionId !== this.currentSessionId) return;
-              if (data.fatal) {
-                this.tryNextCandidate(sessionId);
-              }
-            });
-          } else {
-            this.audio.src = playableUrl;
-            this.audio.load();
-            safePlay();
-          }
-        } catch {
-          if (sessionId === this.currentSessionId) {
-            this.audio.src = playableUrl;
-            this.audio.load();
-            safePlay();
-          }
-        }
+        this.audio.src = playableUrl;
+        this.audio.load();
+        safePlay();
       }
     } else {
       this.audio.src = playableUrl;

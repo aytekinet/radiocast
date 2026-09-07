@@ -73,7 +73,7 @@ function normalizeStation(s: any) {
   const rawResolved = (s.url_resolved || '').trim();
   const rawUrl = (s.url || '').trim();
   const primaryStreamUrl = rawResolved || rawUrl;
-  const fallbackStreamUrl = (rawResolved && rawUrl && rawResolved !== rawUrl) ? rawUrl : null;
+  const fallbackStreamUrl = (s.fallbackUrl || '').trim() || ((rawResolved && rawUrl && rawResolved !== rawUrl) ? rawUrl : null);
   const isHttps = primaryStreamUrl.toLowerCase().startsWith('https://');
 
   return {
@@ -101,7 +101,10 @@ function normalizeStation(s: any) {
     clickCount: typeof s.clickcount === 'number' ? s.clickcount : 0,
     lastcheckok: s.lastcheckok,
     lastCheckOk: s.lastcheckok === 1,
-    isHttps
+    isHttps,
+    mainCategory: s.mainCategory || undefined,
+    isPopular: Boolean(s.isPopular),
+    requiresProxy: Boolean(s.requiresProxy)
   };
 }
 
@@ -178,20 +181,12 @@ export async function handleRadioStations(req: Request, res: Response) {
 
     let processed = processStationList(rawData);
 
-    // If TR country and first page, ensure VERIFIED_TURKISH_STATIONS are merged at top
+    // If TR country and first page, ensure VERIFIED_TURKISH_STATIONS are merged at top in exact priority order
     if (country === 'TR' && offset === 0) {
-      const seenKeys = new Set(processed.map(s => normalizeStationName(s.name)));
-      const verifiedToInsert: any[] = [];
-
-      for (const v of VERIFIED_TURKISH_STATIONS) {
-        const key = normalizeStationName(v.name);
-        if (!seenKeys.has(key)) {
-          seenKeys.add(key);
-          verifiedToInsert.push(normalizeStation(v));
-        }
-      }
-
-      processed = [...verifiedToInsert, ...processed];
+      const verifiedList = VERIFIED_TURKISH_STATIONS.map(v => normalizeStation(v));
+      const verifiedKeys = new Set(verifiedList.map(s => normalizeStationName(s.name)));
+      const nonDuplicateProcessed = processed.filter(s => !verifiedKeys.has(normalizeStationName(s.name)));
+      processed = [...verifiedList, ...nonDuplicateProcessed];
     }
 
     if (processed.length === 0 && country === 'TR') {

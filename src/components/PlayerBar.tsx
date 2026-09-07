@@ -348,7 +348,9 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
     country: 'Global',
     countrycode: 'GLOBAL',
     language: 'tr',
-    votes: 100
+    votes: 100,
+    codec: 'MP3',
+    bitrate: 128
   } : radio || null;
 
   const formatTime = (sec: number) => {
@@ -657,9 +659,9 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
               {/* Album Artwork Cover */}
               <div 
                 onClick={() => {
-                  if (isPodcast && currentItem && onNavigateToPodcastShow) {
+                  if (isPodcast && currentItem?.podcastEpisode && onNavigateToPodcastShow) {
                     handleSetExpanded(false);
-                    onNavigateToPodcastShow(currentItem as PodcastEpisode);
+                    onNavigateToPodcastShow(currentItem.podcastEpisode);
                   }
                 }}
                 className={`relative w-28 h-28 xs:w-36 xs:h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 max-h-[22vh] sm:max-h-[28vh] aspect-square rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-800/80 bg-slate-900 shrink-0 group ${
@@ -701,13 +703,13 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                   )}
                 </div>
 
-                {isPodcast && currentItem && (currentItem as PodcastEpisode) ? (
+                {isPodcast && currentItem?.podcastEpisode ? (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleSetExpanded(false);
-                      if (onNavigateToPodcastShow) {
-                        onNavigateToPodcastShow(currentItem as PodcastEpisode);
+                      if (onNavigateToPodcastShow && currentItem?.podcastEpisode) {
+                        onNavigateToPodcastShow(currentItem.podcastEpisode);
                       }
                     }}
                     className="inline-flex items-center justify-center gap-1 px-3 py-1 mt-1 rounded-full bg-amber-500/15 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 hover:text-white text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 shadow-md group/chan max-w-full"

@@ -51,6 +51,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>('discover');
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
+  // Scroll Position Preservation Container Ref
+  const mainRef = useRef<HTMLDivElement>(null);
+  const tabScrollPositions = useRef<Record<string, number>>({});
+
   const [settings, setSettings] = useState<AppSettings>(() => getStoredSettings());
   const [favorites, setFavorites] = useState<RadioStation[]>(() => getStoredFavorites());
   const [playlists, setPlaylists] = useState<Playlist[]>(() => getStoredPlaylists());
@@ -64,8 +68,12 @@ export default function App() {
     }
     setActiveTab(newTab);
     if (pushHistory && typeof window !== 'undefined' && window.history) {
-      if (window.location.hash !== `#${newTab}`) {
-        window.history.pushState({ tab: newTab }, '', `#${newTab}`);
+      try {
+        if (window.location.hash !== `#${newTab}`) {
+          window.history.pushState({ tab: newTab }, '', `#${newTab}`);
+        }
+      } catch {
+        // Ignore iframe sandbox restriction
       }
     }
     setTimeout(() => {
@@ -152,11 +160,15 @@ export default function App() {
     };
 
     if (typeof window !== 'undefined' && window.history) {
-      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-      const rawTarget = hash.split('/')[0];
-      const initialTab = validTabs.includes(rawTarget) ? rawTarget : 'discover';
-      if (!window.history.state || !window.history.state.tab) {
-        window.history.replaceState({ tab: initialTab }, '', window.location.hash || `#${initialTab}`);
+      try {
+        const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+        const rawTarget = hash.split('/')[0];
+        const initialTab = validTabs.includes(rawTarget) ? rawTarget : 'discover';
+        if (!window.history.state || !window.history.state.tab) {
+          window.history.replaceState({ tab: initialTab }, '', window.location.hash || `#${initialTab}`);
+        }
+      } catch {
+        // Ignore iframe sandbox restriction
       }
     }
 
@@ -263,10 +275,6 @@ export default function App() {
 
   const sleepOnEpisodeEndRef = useRef(sleepOnEpisodeEnd);
   sleepOnEpisodeEndRef.current = sleepOnEpisodeEnd;
-
-  // Scroll Position Preservation Container Ref
-  const mainRef = useRef<HTMLDivElement>(null);
-  const tabScrollPositions = useRef<Record<string, number>>({});
 
   // Continuously preserve scroll position per tab
   useEffect(() => {
