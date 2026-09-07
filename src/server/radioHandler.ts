@@ -179,6 +179,26 @@ export async function handleRadioStations(req: Request, res: Response) {
       rawData = [];
     }
 
+    if (!rawData || rawData.length === 0) {
+      try {
+        rawData = await fetchRadioBrowser<any[]>(
+          `/json/stations/bycountry/${encodeURIComponent(country)}?hidebroken=true&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`
+        );
+      } catch {
+        rawData = [];
+      }
+    }
+
+    if (!rawData || rawData.length === 0) {
+      try {
+        rawData = await fetchRadioBrowser<any[]>(
+          `/json/stations/search?countrycode=${encodeURIComponent(country)}&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`
+        );
+      } catch {
+        rawData = [];
+      }
+    }
+
     let processed = processStationList(rawData);
 
     // If TR country and first page, ensure VERIFIED_TURKISH_STATIONS are merged at top in exact priority order

@@ -8,6 +8,7 @@ import { POPULAR_TURKISH_PODCASTS } from '../data/podcastsData';
 import GENERATED_PODCAST_CATALOG from '../data/generatedPodcastCatalog.json';
 import { ALL_COUNTRIES, COUNTRY_NAMES_TR } from '../constants/categories';
 import { searchPodcasts } from '../services/podcastApi';
+import { searchStations } from '../services/radioApi';
 
 interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 }) => {
   const [query, setQuery] = useState('');
   const [livePodcasts, setLivePodcasts] = useState<PodcastShow[]>([]);
+  const [liveStations, setLiveStations] = useState<RadioStation[]>([]);
   const [isSearchingLive, setIsSearchingLive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -37,14 +39,16 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     } else {
       setQuery('');
       setLivePodcasts([]);
+      setLiveStations([]);
     }
   }, [isOpen]);
 
-  // Debounced live podcast search for queries >= 2 chars
+  // Debounced live station and podcast search for queries >= 2 chars
   useEffect(() => {
     const trimmed = query.trim().toLowerCase();
     if (trimmed.length < 2) {
       setLivePodcasts([]);
+      setLiveStations([]);
       setIsSearchingLive(false);
       return;
     }
@@ -52,14 +56,23 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     setIsSearchingLive(true);
     const timer = setTimeout(async () => {
       try {
-        const results = await searchPodcasts(trimmed);
-        setLivePodcasts(results || []);
+        const [stationsRes, podcastsRes] = await Promise.allSettled([
+          searchStations({ q: trimmed }),
+          searchPodcasts(trimmed)
+        ]);
+
+        if (stationsRes.status === 'fulfilled') {
+          setLiveStations(stationsRes.value || []);
+        }
+        if (podcastsRes.status === 'fulfilled') {
+          setLivePodcasts(podcastsRes.value || []);
+        }
       } catch (err) {
         console.warn('GlobalSearch live search error:', err);
       } finally {
         setIsSearchingLive(false);
       }
-    }, 300);
+    }, 280);
 
     return () => clearTimeout(timer);
   }, [query]);
@@ -79,14 +92,37 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
   const normalizedQuery = query.trim().toLowerCase();
 
-  // Search Stations
-  const matchingStations = normalizedQuery
-    ? ALL_TURKISH_STATIONS.filter(
-        s =>
-          s.name.toLowerCase().includes(normalizedQuery) ||
-          (s.tags && s.tags.toLowerCase().includes(normalizedQuery))
-      ).slice(0, 6)
-    : [];
+  // Search Stations (Local Turkish + Live Global World Stations)
+  const matchingStations = useMemo(() => {
+    if (!normalizedQuery) return [];
+    const seenNames = new Set<string>();
+    const list: RadioStation[] = [];
+
+    // 1. Local Turkish verified stations
+    for (const s of ALL_TURKISH_STATIONS) {
+      if (
+        s.name.toLowerCase().includes(normalizedQuery) ||
+        (s.tags && s.tags.toLowerCase().includes(normalizedQuery))
+      ) {
+        const key = s.name.toLowerCase().trim();
+        if (!seenNames.has(key)) {
+          seenNames.add(key);
+          list.push(s);
+        }
+      }
+    }
+
+    // 2. Live World & Global Stations (e.g. BBC, Kiss, Virgin, Jazz, Rock)
+    for (const s of liveStations) {
+      const key = s.name.toLowerCase().trim();
+      if (!seenNames.has(key)) {
+        seenNames.add(key);
+        list.push(s);
+      }
+    }
+
+    return list.slice(0, 10);
+  }, [normalizedQuery, liveStations]);
 
   // Search Local + Catalog + Curated Podcasts
   const localPodcastMatches: PodcastShow[] = [];

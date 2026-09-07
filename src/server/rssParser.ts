@@ -252,6 +252,7 @@ export function parseRssXmlContent(xmlText: string, feedUrl: string): {
       }
 
       if (!audioUrl || !audioUrl.startsWith('http')) continue;
+      audioUrl = audioUrl.replace(/&amp;/g, '&').trim();
       if (audioUrl.match(/\.(html|htm|php|asp|aspx|js|css|jpg|jpeg|png|gif|svg|webp|youtube\.com|vimeo\.com)($|\?)/i)) {
         continue;
       }

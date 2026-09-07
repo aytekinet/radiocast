@@ -300,13 +300,10 @@ export async function downloadPodcastEpisode(
   const cleanUrl = rawUrl.startsWith('http://') ? rawUrl.replace(/^http:\/\//i, 'https://') : rawUrl;
 
   const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(cleanUrl)}`;
-  const allOriginsUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`;
-  const codeTabsUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(cleanUrl)}`;
-  const bridgeUrl = `https://cors.bridge.workers.dev/?${encodeURIComponent(cleanUrl)}`;
   const proxyUrl = rawUrl.startsWith('/api/') ? rawUrl : `/api/radio/proxy?url=${encodeURIComponent(rawUrl)}`;
   
-  // Prioritize direct CDN URLs & fast client CORS proxies to bypass Vercel 10s serverless function timeout
-  const candidateUrls = [cleanUrl, rawUrl, corsProxyUrl, codeTabsUrl, bridgeUrl, allOriginsUrl, proxyUrl];
+  // Prioritize our backend proxy FIRST because it bypasses CORS and handles large audio streams reliably
+  const candidateUrls = [proxyUrl, cleanUrl, rawUrl, corsProxyUrl];
   
   const uniqueCandidateUrls = candidateUrls.filter((u, i, self) => u && self.indexOf(u) === i);
 
@@ -319,13 +316,12 @@ export async function downloadPodcastEpisode(
       if (controller.signal.aborted) break;
       
       try {
-        // Use XMLHttpRequest with fast connect fallback
+        // Use XMLHttpRequest with reliable progress tracking
         const downloadedResult = await new Promise<{ blob: Blob; size: number }>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open('GET', fetchUrl, true);
-          // Set reasonable timeout per candidate URL so we failover quickly to working proxies
-          const isVercelServerProxy = fetchUrl.startsWith('/api/');
-          xhr.timeout = isVercelServerProxy ? 12000 : 180000; // 12s for Vercel proxy before fallback, 3min for direct CDN/CORS proxies
+          // 5 minutes timeout for full episode download
+          xhr.timeout = 300000;
 
           const isIOSDevice = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent || '');
           xhr.responseType = isIOSDevice ? 'arraybuffer' : 'blob';
@@ -561,3 +557,32 @@ export async function downloadPodcastEpisode(
     return false;
   }
 }
+
+/**
+ * Directly triggers device browser file download (MP3 file saved to computer / mobile download folder)
+ */
+export function triggerDirectFileDownload(episode: PodcastEpisode): void {
+  const rawUrl = (episode.audioUrl || '').trim();
+  if (!rawUrl) return;
+  const proxyUrl = rawUrl.startsWith('/api/') ? rawUrl : `/api/radio/proxy?url=${encodeURIComponent(rawUrl)}`;
+  const cleanTitle = (episode.title || 'podcast-bolum')
+    .replace(/[/\\?%*:|"<>]/g, '')
+    .trim()
+    .replace(/\s+/g, '-');
+
+  const a = document.createElement('a');
+  a.href = proxyUrl;
+  a.download = `${cleanTitle}.mp3`;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    try {
+      document.body.removeChild(a);
+    } catch {
+      // ignore
+    }
+  }, 1000);
+}
+

@@ -46,7 +46,7 @@ class AudioEngine {
   
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
   private watchdogStartTime: number = 0;
-  private watchdogDurationMs: number = 4000;
+  private watchdogDurationMs: number = 9500;
   private progressSaveTimer: ReturnType<typeof setInterval> | null = null;
   
   private candidates: string[] = [];
@@ -301,14 +301,14 @@ class AudioEngine {
       } else if (cleanUrl.toLowerCase().startsWith('http://')) {
         const isIpHost = /^https?:\/\/\d+\.\d+\.\d+\.\d+/i.test(cleanUrl);
         if (isHttpsOrigin) {
-          // On HTTPS pages (AI Studio and Vercel):
-          // 1. If domain name, try upgraded HTTPS
+          // On HTTPS pages:
+          // 1. Local backend proxy FIRST (bypasses browser mixed-content block & Shoutcast ICY headers)
+          rawCandidates.push(proxyUrl);
+          // 2. If domain name, try upgraded HTTPS
           if (!isIpHost) {
             rawCandidates.push(cleanUrl.replace(/^http:\/\//i, 'https://'));
           }
-          // 2. Local backend proxy
-          rawCandidates.push(proxyUrl);
-          // 3. Public CORS proxy (crucial for Vercel static deploys)
+          // 3. Public CORS proxy
           rawCandidates.push(corsProxy);
           // 4. Raw HTTP
           rawCandidates.push(cleanUrl);
@@ -470,14 +470,9 @@ class AudioEngine {
         !playableUrl.includes('corsproxy.io') &&
         !playableUrl.includes('allorigins.win')
       ) {
-        // Direct HTTP is blocked on HTTPS pages (Mixed Content).
-        const isIpHost = /^https?:\/\/\d+\.\d+\.\d+\.\d+/i.test(playableUrl);
-        if (!isIpHost) {
-          playableUrl = playableUrl.replace(/^http:\/\//i, 'https://');
-        } else {
-          playableUrl = `/api/radio/proxy?url=${encodeURIComponent(playableUrl)}`;
-          playableUrl = window.location.origin + playableUrl;
-        }
+        // Direct HTTP is blocked on HTTPS pages (Mixed Content). Route through proxy.
+        playableUrl = `/api/radio/proxy?url=${encodeURIComponent(playableUrl)}`;
+        playableUrl = window.location.origin + playableUrl;
       }
     }
 

@@ -123,9 +123,9 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = React.memo(({
         gradient.addColorStop(0.5, '#06b6d4');
         gradient.addColorStop(1, '#38bdf8');
       } else {
-        gradient.addColorStop(0, '#f59e0b');
-        gradient.addColorStop(0.5, '#f97316');
-        gradient.addColorStop(1, '#ef4444');
+        gradient.addColorStop(0, '#10b981');
+        gradient.addColorStop(0.5, '#059669');
+        gradient.addColorStop(1, '#34d399');
       }
 
       ctx.fillStyle = gradient;

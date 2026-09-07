@@ -19,38 +19,45 @@ html, body {
   position: relative;
 }
 
-/* Light theme body defaults */
+/* Light theme body defaults - Soft, elegant pearl */
 html.light {
   color-scheme: light;
 }
 
 html.light body {
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #f6f7f9;
+  color: #18181b;
 }
 
-/* Dark theme body defaults */
+/* Dark theme body defaults - Soft, eye-pleasing velvety obsidian tones (Spotify & Fizy inspired) */
 html.dark {
   color-scheme: dark;
 }
 
-html.dark[data-theme-palette="pure-carbon"] body {
-  background-color: #000000;
+html.dark body {
+  background-color: #0f1013;
   color: #f4f4f5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html.dark[data-theme-palette="pure-carbon"] body {
+  background-color: #0d0e11;
+  color: #f4f4f6;
 }
 
 html.dark[data-theme-palette="neon-ocean"] body {
-  background-color: #020617;
+  background-color: #0c0f17;
   color: #f1f5f9;
 }
 
 html.dark[data-theme-palette="cyber-orchid"] body {
-  background-color: #0c0a09;
+  background-color: #120f14;
   color: #f5f5f4;
 }
 
 html.dark[data-theme-palette="cosmic-slate"] body {
-  background-color: #022c22;
+  background-color: #0b1311;
   color: #ecfdf5;
 }
 
@@ -64,14 +71,14 @@ html.dark[data-theme-palette="cosmic-slate"] body {
 
 /* Smooth transition for theme mode & palette switches */
 body {
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Render Performance Utilities */
+/* Render Performance Utilities for Butter-Smooth 120fps Scrolling */
 .cv-auto {
   content-visibility: auto;
-  contain-intrinsic-size: 140px;
+  contain-intrinsic-size: 240px;
 }
 
 /* Reduced Motion Override for Battery & CPU Savings */

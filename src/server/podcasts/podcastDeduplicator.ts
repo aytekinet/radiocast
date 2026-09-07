@@ -65,7 +65,8 @@ export function buildUnifiedPodcastCatalog(
       source: 'curated',
       sources: ['curated'],
       turkishConfidence: 1.0,
-      releaseDateMillis: 0
+      releaseDateMillis: c.releaseDateMillis || 0,
+      episodeCount: c.trackCount || 0
     };
 
     catalogMap.set(normFeed, podcastObj);
@@ -122,7 +123,7 @@ export function buildUnifiedPodcastCatalog(
         language: p.language || 'tr',
         categories: categoryList,
         episodeCount: p.episodeCount || 0,
-        releaseDateMillis: p.newestItemPubdate ? p.newestItemPubdate * 1000 : Date.now(),
+        releaseDateMillis: p.newestItemPubdate ? p.newestItemPubdate * 1000 : 0,
         source: 'podcast-index',
         sources: ['podcast-index'],
         turkishConfidence: confidence
@@ -172,7 +173,7 @@ export function buildUnifiedPodcastCatalog(
         language: 'tr-unknown',
         categories: [a.primaryGenreName || 'Podcast'],
         episodeCount: a.trackCount || 0,
-        releaseDateMillis: releaseMillis || Date.now(),
+        releaseDateMillis: releaseMillis || 0,
         source: 'apple',
         sources: ['apple'],
         turkishConfidence: confidence

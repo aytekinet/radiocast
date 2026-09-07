@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { 
   Play, 
   Pause, 
@@ -24,7 +24,7 @@ interface StationCardProps {
   onAddToPlaylist: (playlistId: string, stationUuid: string) => void;
 }
 
-export const StationCard: React.FC<StationCardProps> = React.memo(({
+export const StationCard: React.FC<StationCardProps> = memo(({
   station,
   isPlaying,
   status,
@@ -39,8 +39,6 @@ export const StationCard: React.FC<StationCardProps> = React.memo(({
   const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
   const [addedNotice, setAddedNotice] = useState<string | null>(null);
 
-  const tagsList = station.tags ? station.tags.split(',').filter(Boolean).slice(0, 2) : [];
-
   const handlePlaylistSelect = (playlistId: string, playlistName: string) => {
     onAddToPlaylist(playlistId, station.stationuuid);
     setShowPlaylistMenu(false);
@@ -48,188 +46,192 @@ export const StationCard: React.FC<StationCardProps> = React.memo(({
     setTimeout(() => setAddedNotice(null), 2000);
   };
 
+  const isBuffering = isCurrentStation && (status === 'connecting' || status === 'buffering');
+  const isCurrentlyActive = isCurrentStation && (isPlaying || isBuffering);
+
+  const fallbackGenre = station.mainCategory || (station.tags ? station.tags.split(',')[0].trim() : 'Canlı Radyo');
+
   return (
     <div
       data-station-card="true"
       onClick={() => onPlay(station)}
-      className={`group relative rounded-2xl p-3 border transition-all duration-200 ease-out flex flex-col justify-between cursor-pointer h-[156px] min-h-[156px] max-h-[156px] overflow-hidden ${
+      className={`group relative rounded-2xl p-3 transition-all duration-200 ease-out flex flex-col cursor-pointer cv-auto select-none ${
         isCurrentStation
-          ? 'bg-amber-500/10 dark:bg-zinc-900/95 border-amber-500 shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
-          : 'bg-white dark:bg-zinc-900/70 border-zinc-200 dark:border-zinc-800/80 hover:border-amber-500/50 dark:hover:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 shadow-sm'
+          ? 'bg-emerald-500/10 dark:bg-emerald-500/[0.08] border border-emerald-500/40 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+          : 'bg-white/80 dark:bg-white/[0.03] hover:bg-white dark:hover:bg-white/[0.08] border border-zinc-200/70 dark:border-white/[0.06] hover:border-zinc-300 dark:hover:border-white/15 shadow-sm hover:shadow-xl hover:-translate-y-1'
       }`}
     >
-      {/* Upper Content Section */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Logo + Action Buttons */}
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <div className="relative shrink-0">
-            {station.favicon && !imgError ? (
-              <img
-                src={station.favicon}
-                alt={station.name || 'Radyo'}
-                loading="lazy"
-                decoding="async"
-                onError={() => setImgError(true)}
-                className="w-9 h-9 rounded-xl object-contain bg-zinc-100 dark:bg-zinc-950 p-1 border border-zinc-200 dark:border-zinc-800 shadow-inner"
-              />
-            ) : (
-              <div className="w-9 h-9 rounded-xl bg-amber-500/10 dark:bg-zinc-800 border border-amber-500/30 dark:border-zinc-700/80 flex items-center justify-center text-amber-500">
-                <Radio className="w-4 h-4 text-amber-500" />
-              </div>
-            )}
-
-            {isCurrentStation && isPlaying && (
-              <div className="absolute -bottom-1 -right-1 p-0.5 bg-amber-500 text-zinc-950 rounded-full border border-zinc-950 shadow">
-                <Volume2 className="w-2.5 h-2.5 animate-pulse" />
-              </div>
-            )}
+      {/* Artwork Cover Box with Floating Play Button (Spotify / Fizy Style) */}
+      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900/90 mb-2.5 flex items-center justify-center shrink-0 shadow-inner">
+        {station.favicon && !imgError ? (
+          <img
+            src={station.favicon}
+            alt={station.name || 'Radyo'}
+            loading="lazy"
+            decoding="async"
+            onError={() => setImgError(true)}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900 text-zinc-400 p-4">
+            <Radio className="w-8 h-8 text-emerald-400/80 mb-1" />
+            <span className="text-[10px] font-bold tracking-wider uppercase text-zinc-500 line-clamp-1">
+              {station.name ? station.name.slice(0, 10) : 'RADYO'}
+            </span>
           </div>
+        )}
 
-          <div className="flex items-center space-x-1 shrink-0">
+        {/* Soft dark vignette on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+
+        {/* Top Badges: Live / Codec */}
+        <div className="absolute top-2 left-2 flex items-center gap-1 pointer-events-none z-10">
+          {isCurrentlyActive ? (
+            <span className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-zinc-950 shadow-md">
+              <Volume2 className="w-2.5 h-2.5 animate-pulse" />
+              <span>YAYINDA</span>
+            </span>
+          ) : station.codec ? (
+            <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md bg-black/60 text-white/90 backdrop-blur-md border border-white/10">
+              {station.codec}
+            </span>
+          ) : null}
+        </div>
+
+        {/* Top Right Quick Actions: Favorite + Playlist */}
+        <div className="absolute top-2 right-2 flex items-center gap-1 z-20">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite(station);
+            }}
+            className={`p-1.5 rounded-full backdrop-blur-md transition-all duration-150 ${
+              isFavorite
+                ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30'
+                : 'bg-black/50 hover:bg-black/70 text-white/80 hover:text-rose-400 opacity-0 group-hover:opacity-100 hover:scale-110'
+            }`}
+            title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+          >
+            <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`} />
+          </button>
+
+          <div className="relative">
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onToggleFavorite(station);
+                setShowPlaylistMenu(!showPlaylistMenu);
               }}
-              className={`p-1.5 rounded-lg border transition-all ${
-                isFavorite
-                  ? 'bg-rose-500/20 border-rose-500/40 text-rose-500'
-                  : 'bg-zinc-100 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700/50 text-zinc-400 hover:text-rose-500 hover:bg-zinc-200 dark:hover:bg-zinc-800'
-              }`}
-              title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+              className="p-1.5 rounded-full bg-black/50 hover:bg-black/70 text-white/80 hover:text-white opacity-0 group-hover:opacity-100 hover:scale-110 backdrop-blur-md transition-all duration-150"
+              title="Çalma Listesine Ekle"
             >
-              <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+              <ListPlus className="w-3.5 h-3.5" />
             </button>
 
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowPlaylistMenu(!showPlaylistMenu);
-                }}
-                className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/50 text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all"
-                title="Çalma Listesine Ekle"
+            {/* Playlist Popup Menu */}
+            {showPlaylistMenu && (
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 top-full mt-1.5 w-52 bg-white dark:bg-[#18191e] border border-zinc-200 dark:border-white/10 rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 space-y-1"
               >
-                <ListPlus className="w-3.5 h-3.5" />
-              </button>
-
-              {showPlaylistMenu && (
-                <div 
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 top-full mt-1.5 w-52 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xl p-2 z-50 animate-fadeIn space-y-1"
-                >
-                  <div className="flex items-center justify-between pb-1.5 mb-1 border-b border-zinc-100 dark:border-zinc-800">
-                    <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-1">
-                      Çalma Listesi Seç
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowPlaylistMenu(false);
-                      }}
-                      className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xs px-1"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  {addedNotice && (
-                    <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold flex items-center space-x-1">
-                      <Check className="w-3 h-3 shrink-0" />
-                      <span className="truncate">{addedNotice} eklendi</span>
-                    </div>
-                  )}
-
-                  {playlists.length > 0 ? (
-                    <div className="max-h-40 overflow-y-auto space-y-0.5">
-                      {playlists.map((p) => {
-                        const isAdded = p.stationUuids.includes(station.stationuuid);
-                        return (
-                          <button
-                            key={p.id}
-                            onClick={() => handlePlaylistSelect(p.id, p.name)}
-                            className={`w-full text-left px-2 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
-                              isAdded
-                                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold'
-                                : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                            }`}
-                          >
-                            <span className="truncate">{p.name}</span>
-                            {isAdded && <Check className="w-3 h-3 text-amber-500 shrink-0 ml-1" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="p-2.5 text-center bg-zinc-50 dark:bg-zinc-800/40 rounded-lg">
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium">Henüz liste yok</p>
-                      <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-                        Çalma Listelerim sekmesinden oluşturun.
-                      </p>
-                    </div>
-                  )}
+                <div className="flex items-center justify-between pb-1.5 mb-1 border-b border-zinc-100 dark:border-white/5">
+                  <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-1">
+                    Çalma Listesi Seç
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPlaylistMenu(false);
+                    }}
+                    className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xs px-1"
+                  >
+                    ✕
+                  </button>
                 </div>
-              )}
-            </div>
+
+                {addedNotice && (
+                  <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold flex items-center space-x-1">
+                    <Check className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{addedNotice} eklendi</span>
+                  </div>
+                )}
+
+                {playlists.length > 0 ? (
+                  <div className="max-h-40 overflow-y-auto space-y-0.5">
+                    {playlists.map((p) => {
+                      const isAdded = p.stationUuids.includes(station.stationuuid);
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => handlePlaylistSelect(p.id, p.name)}
+                          className={`w-full text-left px-2 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                            isAdded
+                              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold'
+                              : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06]'
+                          }`}
+                        >
+                          <span className="truncate">{p.name}</span>
+                          {isAdded && <Check className="w-3 h-3 text-emerald-500 shrink-0 ml-1" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-2.5 text-center bg-zinc-50 dark:bg-zinc-800/40 rounded-lg">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium">Henüz liste yok</p>
+                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                      Çalma Listelerim sekmesinden oluşturun.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Station Title */}
-        <div className="my-0.5 min-w-0">
-          <h3 className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-amber-500 transition-colors truncate leading-tight">
-            {station.name || 'İsimsiz Radyo'}
-          </h3>
-        </div>
-
-        {/* Tags / Location */}
-        <div className="flex items-center gap-1 my-0.5 overflow-hidden whitespace-nowrap">
-          {station.countrycode && (
-            <span className="text-[9px] font-semibold px-1 py-0.2 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700/60 shrink-0">
-              {station.countrycode}
-            </span>
-          )}
-          {tagsList.map((tag, idx) => (
-            <span
-              key={idx}
-              className="text-[9px] font-medium px-1 py-0.2 rounded bg-zinc-100/80 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700/40 truncate max-w-[80px] shrink-0"
-            >
-              #{tag.trim()}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Footer: Codec Badge & Play Button */}
-      <div className="flex items-center justify-between pt-1.5 border-t border-zinc-200 dark:border-zinc-800/80 mt-auto shrink-0">
-        <div className="flex items-center space-x-1 text-[10px] text-zinc-400 dark:text-zinc-500 font-mono shrink-0">
-          {station.codec && (
-            <span className="uppercase text-zinc-400 font-medium">
-              {station.codec}
-            </span>
-          )}
-        </div>
-
+        {/* Circular Floating Play Button (Spotify / Fizy Signature) */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onPlay(station);
           }}
-          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all shadow-md active:scale-90 shrink-0 ${
-            isCurrentStation && (isPlaying || status === 'connecting' || status === 'buffering')
-              ? 'bg-amber-500 text-zinc-950 font-bold shadow-amber-500/20 scale-105'
-              : 'bg-zinc-100 dark:bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700/80 shadow-sm'
+          className={`absolute bottom-2.5 right-2.5 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 z-20 shadow-xl ${
+            isCurrentlyActive
+              ? 'bg-emerald-500 text-zinc-950 scale-100 opacity-100 shadow-emerald-500/40'
+              : 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 shadow-emerald-500/30 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 translate-y-2 hover:scale-105 active:scale-95'
           }`}
-          title={isCurrentStation && (isPlaying || status === 'connecting' || status === 'buffering') ? 'Durdur' : 'Dinle'}
+          title={isCurrentlyActive ? 'Durdur' : 'Dinle'}
         >
-          {isCurrentStation && (status === 'connecting' || status === 'buffering') ? (
-            <RefreshCw className="w-3.5 h-3.5 animate-spin text-zinc-950" />
-          ) : isCurrentStation && (isPlaying || status === 'playing') ? (
-            <Pause className="w-3.5 h-3.5 fill-current" />
+          {isBuffering ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : isCurrentlyActive ? (
+            <Pause className="w-4 h-4 fill-current" />
           ) : (
-            <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+            <Play className="w-4 h-4 fill-current ml-0.5" />
           )}
         </button>
       </div>
+
+      {/* Station Information */}
+      <div className="flex-1 min-w-0">
+        <h3 className={`font-semibold text-xs sm:text-sm truncate transition-colors leading-tight ${
+          isCurrentStation ? 'text-emerald-500 font-bold' : 'text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-400'
+        }`}>
+          {station.name || 'İsimsiz Radyo'}
+        </h3>
+        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate mt-1">
+          {fallbackGenre}
+        </p>
+      </div>
     </div>
+  );
+}, (prev, next) => {
+  // Ultra-fast memo equality check to prevent needless re-renders of static cards
+  return (
+    prev.station.stationuuid === next.station.stationuuid &&
+    prev.isPlaying === next.isPlaying &&
+    prev.isCurrentStation === next.isCurrentStation &&
+    prev.status === next.status &&
+    prev.isFavorite === next.isFavorite &&
+    prev.playlists.length === next.playlists.length
   );
 });

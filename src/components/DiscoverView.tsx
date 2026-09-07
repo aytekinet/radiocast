@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
 import { 
   Sparkles, 
   Radio, 
@@ -12,182 +12,20 @@ import {
   Guitar, 
   Newspaper, 
   Sun, 
-  BoomBox,
-  Globe,
-  Wifi,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Play,
-  Pause
+  BoomBox, 
+  Globe, 
+  Wifi, 
+  ChevronLeft, 
+  ChevronRight, 
+  Clock, 
+  Play, 
+  Pause 
 } from 'lucide-react';
 import { Playlist, RadioStation } from '../types';
 import { GENRE_CATEGORIES, ALL_COUNTRIES, POPULAR_COUNTRIES, COUNTRY_NAMES_TR } from '../constants/categories';
 import { StationCard } from './StationCard';
 import { PlaybackStatus } from '../services/audioEngine';
 import { getRecentlyPlayed } from '../services/storage';
-
-interface VirtualizedStationGridProps {
-  stations: RadioStation[];
-  currentStation: RadioStation | null;
-  isPlaying: boolean;
-  playbackStatus?: PlaybackStatus;
-  favorites: RadioStation[];
-  favoriteSet: Set<string>;
-  onPlayStation: (station: RadioStation) => void;
-  onToggleFavorite: (station: RadioStation) => void;
-  playlists: Playlist[];
-  onAddToPlaylist: (playlistId: string, stationUuid: string) => void;
-}
-
-const ROW_HEIGHT = 168;
-const OVERSCAN_ROWS = 3;
-
-const VirtualizedStationGrid: React.FC<VirtualizedStationGridProps> = React.memo(({
-  stations,
-  currentStation,
-  isPlaying,
-  playbackStatus,
-  favoriteSet,
-  onPlayStation,
-  onToggleFavorite,
-  playlists,
-  onAddToPlaylist
-}) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [columns, setColumns] = useState(1);
-  const [scrollTop, setScrollTop] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(800);
-
-  useEffect(() => {
-    const updateLayout = () => {
-      const width = window.innerWidth;
-      if (width >= 1280) setColumns(4);
-      else if (width >= 768) setColumns(3);
-      else if (width >= 640) setColumns(2);
-      else setColumns(1);
-
-      if (containerRef.current) {
-        const scrollParent = containerRef.current.closest('main') || window;
-        const h = scrollParent === window ? window.innerHeight : (scrollParent as HTMLElement).clientHeight;
-        setContainerHeight(h || 800);
-      }
-    };
-
-    updateLayout();
-    window.addEventListener('resize', updateLayout);
-    return () => window.removeEventListener('resize', updateLayout);
-  }, []);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const scrollParent = el.closest('main') || window;
-
-    const handleScroll = () => {
-      if (!containerRef.current) return;
-      let currentScrollY = 0;
-      let gridTopInParent = 0;
-
-      if (scrollParent === window) {
-        currentScrollY = window.scrollY;
-        const rect = containerRef.current.getBoundingClientRect();
-        gridTopInParent = rect.top + window.scrollY;
-      } else {
-        const parentEl = scrollParent as HTMLElement;
-        currentScrollY = parentEl.scrollTop;
-        const rect = containerRef.current.getBoundingClientRect();
-        const parentRect = parentEl.getBoundingClientRect();
-        gridTopInParent = rect.top - parentRect.top + parentEl.scrollTop;
-      }
-
-      const relativeScroll = Math.max(0, currentScrollY - gridTopInParent);
-      setScrollTop(relativeScroll);
-    };
-
-    handleScroll();
-    scrollParent.addEventListener('scroll', handleScroll, { passive: true });
-    // Also re-check scroll position on window resize or view unhide
-    window.addEventListener('resize', handleScroll);
-    return () => {
-      scrollParent.removeEventListener('scroll', handleScroll as any);
-      window.removeEventListener('resize', handleScroll);
-    };
-  }, [stations]);
-
-  const totalRows = Math.ceil(stations.length / columns);
-  const totalHeight = totalRows * ROW_HEIGHT;
-
-  const startRow = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN_ROWS);
-  const endRow = Math.min(Math.max(0, totalRows - 1), Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + OVERSCAN_ROWS);
-
-  const visibleRows = [];
-  for (let r = startRow; r <= endRow && r < totalRows; r++) {
-    const startIdx = r * columns;
-    const rowStations = stations.slice(startIdx, startIdx + columns);
-    visibleRows.push({
-      rowIndex: r,
-      top: r * ROW_HEIGHT,
-      stations: rowStations
-    });
-  }
-
-  // Safety fallback: if visibleRows is empty due to initial mount scroll offset but stations exist, render initial batch
-  if (visibleRows.length === 0 && stations.length > 0) {
-    const fallbackEnd = Math.min(totalRows - 1, 10);
-    for (let r = 0; r <= fallbackEnd; r++) {
-      const startIdx = r * columns;
-      const rowStations = stations.slice(startIdx, startIdx + columns);
-      visibleRows.push({
-        rowIndex: r,
-        top: r * ROW_HEIGHT,
-        stations: rowStations
-      });
-    }
-  }
-
-  return (
-    <div ref={containerRef} style={{ height: Math.max(totalHeight, 180), position: 'relative' }} className="w-full">
-      {visibleRows.map((row) => (
-        <div
-          key={row.rowIndex}
-          style={{
-            position: 'absolute',
-            top: row.top,
-            left: 0,
-            right: 0,
-            height: ROW_HEIGHT - 16
-          }}
-          className={`grid gap-4 ${
-            columns === 4
-              ? 'grid-cols-4'
-              : columns === 3
-              ? 'grid-cols-3'
-              : columns === 2
-              ? 'grid-cols-2'
-              : 'grid-cols-1'
-          }`}
-        >
-          {row.stations.map((station) => (
-            <StationCard
-              key={station.stationuuid}
-              station={station}
-              isPlaying={isPlaying}
-              status={playbackStatus}
-              isCurrentStation={currentStation?.stationuuid === station.stationuuid}
-              isFavorite={favoriteSet.has(station.stationuuid)}
-              onPlay={onPlayStation}
-              onToggleFavorite={onToggleFavorite}
-              playlists={playlists}
-              onAddToPlaylist={onAddToPlaylist}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-});
 
 interface DiscoverViewProps {
   stations: RadioStation[];
@@ -213,7 +51,9 @@ interface DiscoverViewProps {
   searchQuery: string;
 }
 
-export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
+const BATCH_SIZE = 48;
+
+export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
   stations,
   isLoading,
   isLoadingMore,
@@ -236,15 +76,51 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
   onRefresh,
   searchQuery
 }) => {
-  const favoriteSet = React.useMemo(() => new Set(favorites.map((f) => f.stationuuid)), [favorites]);
+  const favoriteSet = useMemo(() => new Set(favorites.map((f) => f.stationuuid)), [favorites]);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const recentRadioStations = React.useMemo(() => {
+  // Progressive batch rendering for 120 FPS smooth scrolling
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+
+  // Reset batch count when category, search query, or group changes
+  useEffect(() => {
+    setVisibleCount(BATCH_SIZE);
+  }, [selectedCategory, selectedGroup, selectedCountry, searchQuery]);
+
+  // Infinite scroll sentinel using IntersectionObserver (ZERO layout thrashing!)
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => {
+            if (prev < stations.length) {
+              return Math.min(prev + BATCH_SIZE, stations.length);
+            }
+            return prev;
+          });
+        }
+      },
+      { rootMargin: '400px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [stations.length]);
+
+  const visibleStations = useMemo(() => {
+    return stations.slice(0, visibleCount);
+  }, [stations, visibleCount]);
+
+  const recentRadioStations = useMemo(() => {
     const list = getRecentlyPlayed();
     return list
       .filter((item) => item.type === 'radio' && item.radioStation)
       .map((item) => item.radioStation!)
-      .slice(0, 10);
+      .slice(0, 8);
   }, [currentStation, isPlaying]);
 
   const scrollCategory = (direction: 'left' | 'right') => {
@@ -260,7 +136,6 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
     }
   };
 
-  // Map category icon name to Lucide icon component
   const renderCategoryIcon = (iconName: string) => {
     switch (iconName) {
       case 'Music': return <Music className="w-3.5 h-3.5" />;
@@ -281,68 +156,64 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner / Genre Chips */}
+    <div className="space-y-6 pb-8">
+      {/* Category Pills Header (Spotify / Fizy Style) */}
       <div className="space-y-3">
         {selectedCountry && selectedCountry !== 'TR' ? (
-          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-amber-500/30 text-zinc-800 dark:text-zinc-200 shadow-sm">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-white/[0.04] border border-zinc-200 dark:border-white/[0.08] shadow-sm">
             <div className="flex items-center space-x-3">
-              <span className="text-xl">
+              <span className="text-2xl">
                 {ALL_COUNTRIES.find((c) => c.code === selectedCountry)?.flag || '🌍'}
               </span>
               <div>
-                <h3 className="text-xs font-bold text-zinc-900 dark:text-white">
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
                   {ALL_COUNTRIES.find((c) => c.code === selectedCountry)?.name || COUNTRY_NAMES_TR[selectedCountry] || selectedCountry} Radyoları
                 </h3>
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                  Yabancı ülke seçiminde tüm popüler istasyonlar kategori sınırlaması olmaksızın listelenmektedir.
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Tüm popüler istasyonlar kategori sınırlaması olmaksızın listelenmektedir.
                 </p>
               </div>
             </div>
             <button
               onClick={() => setSelectedCountry('TR')}
-              className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-semibold shrink-0 transition-colors"
+              className="px-3.5 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-semibold shrink-0 transition-colors"
             >
               🇹🇷 Türkiye Radyoları
             </button>
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between px-1">
               <div className="flex items-center space-x-2">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                <h2 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">
+                <Sparkles className="w-4 h-4 text-emerald-500" />
+                <h2 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                   Kategoriler & Müzik Türleri
                 </h2>
               </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={onRefresh}
-                  disabled={isLoading}
-                  className="flex items-center space-x-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-amber-500 transition-colors"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-amber-500' : ''}`} />
-                  <span>Yenile</span>
-                </button>
-              </div>
+              <button
+                onClick={onRefresh}
+                disabled={isLoading}
+                className="flex items-center space-x-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 transition-colors cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-emerald-500' : ''}`} />
+                <span>Yenile</span>
+              </button>
             </div>
 
-            {/* Scrollable Category Chips Container with Arrows */}
+            {/* Scrollable Category Chips Container with Smooth Arrows */}
             <div className="relative group">
-              {/* Left Scroll Arrow Button */}
               <button
                 onClick={() => scrollCategory('left')}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 shadow-md flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:text-amber-500 hover:scale-110 active:scale-95 transition-all opacity-80 group-hover:opacity-100"
+                className="absolute -left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/90 dark:bg-zinc-800/90 border border-zinc-200 dark:border-white/10 shadow-lg flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:text-emerald-500 hover:scale-110 active:scale-95 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                 title="Sola Kaydır"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
 
-              {/* Category Items Scroll Wrapper */}
               <div
                 ref={categoryScrollRef}
                 onWheel={handleCategoryWheel}
-                className="flex items-center space-x-2 overflow-x-auto py-1 px-8 sm:px-9 scroll-smooth touch-pan-x whitespace-nowrap scrollbar-thin scrollbar-thumb-amber-500/30 scrollbar-track-transparent select-none max-w-full overscroll-x-contain"
+                className="flex items-center space-x-2 overflow-x-auto py-1 px-1 scroll-smooth touch-pan-x whitespace-nowrap no-scrollbar select-none max-w-full"
               >
                 {GENRE_CATEGORIES.map((cat) => {
                   const isSelected = selectedCategory === cat.id;
@@ -351,12 +222,12 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
                       key={cat.id}
                       onClick={() => {
                         setSelectedCategory(cat.id);
-                        setSelectedGroup('all_groups');
+                        if (setSelectedGroup) setSelectedGroup('all_groups');
                       }}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-medium shrink-0 flex items-center space-x-2 border transition-all ${
+                      className={`px-4 py-2 rounded-full text-xs font-semibold shrink-0 flex items-center space-x-2 transition-all cursor-pointer ${
                         isSelected
-                          ? 'bg-amber-500 text-zinc-950 font-bold border-amber-500 shadow-md shadow-amber-500/20 scale-[1.02]'
-                          : 'bg-white dark:bg-zinc-900/80 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white'
+                          ? 'bg-emerald-500 text-zinc-950 font-bold shadow-md shadow-emerald-500/20 scale-[1.02]'
+                          : 'bg-white dark:bg-white/[0.05] hover:bg-zinc-100 dark:hover:bg-white/[0.1] text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-white/[0.06]'
                       }`}
                     >
                       {renderCategoryIcon(cat.iconName)}
@@ -366,60 +237,63 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
                 })}
               </div>
 
-              {/* Right Scroll Arrow Button */}
               <button
                 onClick={() => scrollCategory('right')}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 shadow-md flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:text-amber-500 hover:scale-110 active:scale-95 transition-all opacity-80 group-hover:opacity-100"
+                className="absolute -right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white/90 dark:bg-zinc-800/90 border border-zinc-200 dark:border-white/10 shadow-lg flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:text-emerald-500 hover:scale-110 active:scale-95 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                 title="Sağa Kaydır"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Son Dinlenen Radyolar Widget */}
+            {/* Recently Played Stations Strip (Spotify Style) */}
             {recentRadioStations.length > 0 && !searchQuery && (
               <div className="pt-2 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="w-3.5 h-3.5 text-amber-500" />
-                    <h3 className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                      Son Dinlenen Radyolar
-                    </h3>
-                  </div>
+                <div className="flex items-center space-x-2 px-1">
+                  <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                  <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                    Son Dinlenen Radyolar
+                  </h3>
                 </div>
 
-                <div className="flex items-center space-x-3 overflow-x-auto pb-2 scrollbar-none max-w-full touch-pan-x overscroll-x-contain">
+                <div className="flex items-center space-x-3 overflow-x-auto pb-2 no-scrollbar max-w-full touch-pan-x">
                   {recentRadioStations.map((st) => {
                     const isThisPlaying = (currentStation?.id || currentStation?.stationuuid) === (st.id || st.stationuuid) && isPlaying;
                     return (
                       <div
                         key={st.id || st.stationuuid}
                         onClick={() => onPlayStation(st)}
-                        className={`flex items-center space-x-2.5 px-3 py-2 rounded-xl border shrink-0 cursor-pointer transition-all ${
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-xl shrink-0 cursor-pointer transition-all duration-150 border ${
                           isThisPlaying
-                            ? 'bg-amber-500/15 border-amber-500/60 shadow-sm'
-                            : 'bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800 border-zinc-200 dark:border-zinc-800'
+                            ? 'bg-emerald-500/15 border-emerald-500/50 shadow-sm'
+                            : 'bg-white dark:bg-white/[0.04] hover:bg-zinc-100 dark:hover:bg-white/[0.08] border-zinc-200/70 dark:border-white/[0.06]'
                         }`}
                       >
                         <img
                           src={st.favicon || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100&q=80'}
                           alt={st.name}
-                          className="w-7 h-7 rounded-lg object-cover bg-zinc-800"
+                          className="w-8 h-8 rounded-lg object-cover bg-zinc-800 shrink-0"
                           onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100&q=80'; }}
                         />
                         <div className="min-w-0 pr-1">
-                          <span className="text-xs font-bold text-zinc-900 dark:text-white truncate block max-w-[120px]">
+                          <span className={`text-xs font-semibold truncate block max-w-[130px] ${
+                            isThisPlaying ? 'text-emerald-500' : 'text-zinc-900 dark:text-zinc-100'
+                          }`}>
                             {st.name}
                           </span>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate block max-w-[120px]">
-                            {st.tags ? st.tags.split(',')[0] : 'Radyo'}
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate block max-w-[130px]">
+                            {st.tags ? st.tags.split(',')[0] : 'Canlı'}
                           </span>
                         </div>
-                        {isThisPlaying ? (
-                          <Pause className="w-3.5 h-3.5 text-amber-500 fill-current shrink-0" />
-                        ) : (
-                          <Play className="w-3.5 h-3.5 text-zinc-400 fill-current shrink-0" />
-                        )}
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                          isThisPlaying ? 'bg-emerald-500 text-zinc-950' : 'bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-zinc-300'
+                        }`}>
+                          {isThisPlaying ? (
+                            <Pause className="w-3 h-3 fill-current" />
+                          ) : (
+                            <Play className="w-3 h-3 fill-current ml-0.5" />
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -430,10 +304,10 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
         )}
       </div>
 
-      {/* Main Stations Grid Header */}
-      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/80 pb-3">
+      {/* Main Stations Header */}
+      <div className="flex items-center justify-between border-b border-zinc-200/80 dark:border-white/[0.06] pb-3 px-1">
         <div>
-          <h1 className="text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center space-x-2">
+          <h1 className="text-base font-bold text-zinc-900 dark:text-white flex items-center space-x-2">
             <span>
               {searchQuery
                 ? `Arama Sonuçları: "${searchQuery}"`
@@ -441,93 +315,94 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
                 ? `${GENRE_CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Kategori'} Radyoları`
                 : selectedCountry
                 ? `${ALL_COUNTRIES.find((c) => c.code === selectedCountry)?.name || COUNTRY_NAMES_TR[selectedCountry] || selectedCountry} Radyoları`
-                : 'En Çok Dinlenen Radyolar'}
+                : 'Popüler Radyolar'}
             </span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700/60 font-mono">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-white/[0.06] text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-white/[0.06] font-mono">
               {stations.length} İstasyon
             </span>
           </h1>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Canlı yayın akışını dinlemek için karta tıklayın
+            Dinlemek istediğiniz radyonun üzerine tıklayın
           </p>
         </div>
 
-        {/* Quick Country Pills if no country filter selected */}
         {!selectedCountry && (
-          <div className="hidden lg:flex items-center space-x-1 text-xs">
+          <div className="hidden lg:flex items-center space-x-1.5 text-xs">
             {POPULAR_COUNTRIES.slice(0, 5).map((c) => (
               <button
                 key={c.code}
                 onClick={() => setSelectedCountry(c.code)}
-                className="px-2 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800/60 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700/50 flex items-center space-x-1 transition-colors"
+                className="px-2.5 py-1 rounded-full bg-white dark:bg-white/[0.04] hover:bg-zinc-100 dark:hover:bg-white/[0.08] text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-white/[0.06] flex items-center space-x-1 transition-colors cursor-pointer"
               >
                 <span>{c.flag}</span>
-                <span className="text-[11px]">{c.code}</span>
+                <span className="text-[11px] font-medium">{c.code}</span>
               </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* Loading Skeleton or Stations Grid */}
+      {/* High-Performance Smooth CSS Grid (Zero forced reflow, 120 FPS) */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
           {Array.from({ length: 12 }).map((_, idx) => (
             <div
               key={idx}
-              className="h-36 rounded-2xl bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80 animate-pulse p-4 flex flex-col justify-between"
+              className="rounded-2xl bg-white dark:bg-white/[0.03] border border-zinc-200/70 dark:border-white/[0.06] p-3 animate-pulse space-y-3"
             >
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-xl bg-zinc-200 dark:bg-zinc-800" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 bg-zinc-200 dark:bg-zinc-800 rounded w-3/4" />
-                  <div className="h-2 bg-zinc-200 dark:bg-zinc-800 rounded w-1/2" />
-                </div>
-              </div>
-              <div className="h-8 bg-zinc-200 dark:bg-zinc-800 rounded-xl" />
+              <div className="aspect-square w-full rounded-xl bg-zinc-200 dark:bg-white/[0.06]" />
+              <div className="h-3 bg-zinc-200 dark:bg-white/[0.06] rounded w-3/4" />
+              <div className="h-2.5 bg-zinc-200 dark:bg-white/[0.06] rounded w-1/2" />
             </div>
           ))}
         </div>
       ) : stations.length > 0 ? (
         <div className="space-y-6">
-          <VirtualizedStationGrid
-            stations={stations}
-            currentStation={currentStation}
-            isPlaying={isPlaying}
-            playbackStatus={playbackStatus}
-            favorites={favorites}
-            favoriteSet={favoriteSet}
-            onPlayStation={onPlayStation}
-            onToggleFavorite={onToggleFavorite}
-            playlists={playlists}
-            onAddToPlaylist={onAddToPlaylist}
-          />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+            {visibleStations.map((station) => (
+              <StationCard
+                key={station.stationuuid}
+                station={station}
+                isPlaying={isPlaying}
+                status={playbackStatus}
+                isCurrentStation={currentStation?.stationuuid === station.stationuuid}
+                isFavorite={favoriteSet.has(station.stationuuid)}
+                onPlay={onPlayStation}
+                onToggleFavorite={onToggleFavorite}
+                playlists={playlists}
+                onAddToPlaylist={onAddToPlaylist}
+              />
+            ))}
+          </div>
 
-          {/* Load More Button - Only show when no category filter is active and API has more results */}
-          {hasMore !== false && onLoadMore && (!selectedCategory || selectedCategory === 'all') && !searchQuery ? (
-            <div className="pt-4 pb-2 text-center">
+          {/* Invisible sentinel for buttery smooth continuous infinite loading */}
+          <div ref={sentinelRef} className="h-10 w-full" />
+
+          {/* Load More Button for remote API fetch */}
+          {hasMore !== false && onLoadMore && (!selectedCategory || selectedCategory === 'all') && !searchQuery && (
+            <div className="pt-2 pb-4 text-center">
               <button
                 onClick={onLoadMore}
                 disabled={isLoadingMore}
-                className="px-6 py-3 rounded-2xl bg-white dark:bg-zinc-900/90 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-amber-500/40 text-amber-600 dark:text-amber-400 text-xs font-bold transition-all shadow-md hover:scale-[1.02] disabled:opacity-50 flex items-center justify-center space-x-2 mx-auto"
+                className="px-6 py-2.5 rounded-full bg-white dark:bg-white/[0.05] hover:bg-zinc-100 dark:hover:bg-white/[0.1] border border-zinc-200 dark:border-white/10 text-zinc-800 dark:text-zinc-200 text-xs font-semibold transition-all shadow-sm hover:scale-105 disabled:opacity-50 inline-flex items-center space-x-2 cursor-pointer"
               >
                 {isLoadingMore ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
-                    <span>Daha Fazla İstasyon Yükleniyor...</span>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-500" />
+                    <span>Daha Fazla Yükleniyor...</span>
                   </>
                 ) : (
                   <>
-                    <Radio className="w-4 h-4 text-amber-500" />
-                    <span>Daha Fazla Radyo Yükle ({stations.length} İstasyon Gösteriliyor)</span>
+                    <Radio className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Daha Fazla Radyo Yükle</span>
                   </>
                 )}
               </button>
             </div>
-          ) : null}
+          )}
         </div>
       ) : (
-        <div className="py-16 text-center space-y-3 bg-white dark:bg-zinc-900/40 rounded-2xl border border-zinc-200 dark:border-zinc-800/60 p-8 shadow-sm">
+        <div className="py-16 text-center space-y-3 bg-white dark:bg-white/[0.02] rounded-2xl border border-zinc-200/80 dark:border-white/[0.06] p-8 shadow-sm">
           <Radio className="w-12 h-12 text-zinc-400 dark:text-zinc-600 mx-auto" />
           <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-300">
             Aradığınız kriterlere uygun radyo bulunamadı
@@ -538,12 +413,12 @@ export const DiscoverView: React.FC<DiscoverViewProps> = React.memo(({
           <button
             onClick={() => {
               setSelectedCategory('all');
-              setSelectedGroup('all_groups');
+              if (setSelectedGroup) setSelectedGroup('all_groups');
               setSelectedCountry('TR');
             }}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold rounded-xl transition-colors shadow-md"
+            className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-bold rounded-full transition-all shadow-md cursor-pointer"
           >
-            Filtreleri Sıfırla (Türkiye)
+            Filtreleri Sıfırla
           </button>
         </div>
       )}

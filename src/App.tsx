@@ -234,20 +234,34 @@ export default function App() {
   const filteredStations = useMemo(() => {
     let result = stations;
 
-    // Filter by selected category if no search query is active
-    if (!searchQuery.trim() && selectedCategory && selectedCategory !== 'all') {
-      const catMatches = result.filter((s) => matchesCategory(s, selectedCategory));
-      if (catMatches.length > 0) {
-        result = catMatches;
-      } else {
-        const fallbackCat = ALL_TURKISH_STATIONS.filter((s) => matchesCategory(s, selectedCategory));
-        if (fallbackCat.length > 0) result = fallbackCat;
+    // Filter by search query if active
+    if (searchQuery.trim()) {
+      const qLower = searchQuery.trim().toLowerCase();
+      const searchMatches = result.filter((s) => 
+        s.name.toLowerCase().includes(qLower) ||
+        (s.tags && s.tags.toLowerCase().includes(qLower)) ||
+        (s.country && s.country.toLowerCase().includes(qLower))
+      );
+      // If client-side search matches, use it; otherwise use the remote search result directly
+      if (searchMatches.length > 0) {
+        result = searchMatches;
       }
-    }
+    } else {
+      // Filter by selected category if no search query is active
+      if (selectedCategory && selectedCategory !== 'all') {
+        const catMatches = result.filter((s) => matchesCategory(s, selectedCategory));
+        if (catMatches.length > 0) {
+          result = catMatches;
+        } else {
+          const fallbackCat = ALL_TURKISH_STATIONS.filter((s) => matchesCategory(s, selectedCategory));
+          if (fallbackCat.length > 0) result = fallbackCat;
+        }
+      }
 
-    // Filter by selected radio group if no search query is active
-    if (!searchQuery.trim() && selectedGroup && selectedGroup !== 'all_groups') {
-      result = result.filter((s) => matchesGroup(s, selectedGroup));
+      // Filter by selected radio group if no search query is active
+      if (selectedGroup && selectedGroup !== 'all_groups') {
+        result = result.filter((s) => matchesGroup(s, selectedGroup));
+      }
     }
 
     if (quickFilter === 'popular') {
@@ -481,11 +495,21 @@ export default function App() {
       let list: RadioStation[] = [];
 
       if (searchQuery.trim()) {
+        // If searching with a specific non-TR country, try that country first
+        const countryFilter = selectedCountry && selectedCountry !== 'TR' ? selectedCountry : undefined;
         list = await searchStations({
           name: searchQuery.trim(),
-          countrycode: selectedCountry || undefined,
+          countrycode: countryFilter,
           page: pageNum
         });
+
+        // If nothing found with country filter or user is on default TR, search globally across all world stations!
+        if (list.length === 0 && countryFilter) {
+          list = await searchStations({
+            name: searchQuery.trim(),
+            page: pageNum
+          });
+        }
       } else {
         list = await getTopStationsByCountry(selectedCountry || 'TR', pageNum);
       }
@@ -505,6 +529,9 @@ export default function App() {
       } else {
         if (list.length > 0) {
           setStations(list);
+        } else if (searchQuery.trim()) {
+          // If searching and nothing found, show empty list so search empty state is accurately shown
+          setStations([]);
         }
       }
     } catch (err) {
@@ -848,6 +875,9 @@ export default function App() {
           changeTab('discover');
         }}
         onOpenSearch={() => setIsSearchModalOpen(true)}
+        onPlayStation={handlePlayStation}
+        onPlayPodcastEpisode={handlePlayPodcastEpisode}
+        onOpenPodcastShow={handleOpenPodcastShowFromFav}
       />
 
       {/* TuneIn & SoundCloud Sticky Top Player Bar */}

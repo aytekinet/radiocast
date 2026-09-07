@@ -420,6 +420,7 @@ export function parseRssXml(xmlText: string) {
       }
 
       if (!audioUrl) continue;
+      audioUrl = audioUrl.replace(/&amp;/g, '&').trim();
 
       const title = extractXmlTextValue(item.title) || `Bölüm ${idx + 1}`;
       const rawItemDesc = extractXmlTextValue(item.description) || extractXmlTextValue(item['itunes:summary']) || extractXmlTextValue(item['content:encoded']) || extractXmlTextValue(item.summary) || title;
@@ -529,6 +530,7 @@ function fallbackParseRssXml(xmlText: string) {
     }
 
     if (!audioUrl) continue;
+    audioUrl = audioUrl.replace(/&amp;/g, '&').trim();
 
     const titleMatch = itemContent.match(/<title>(.*?)<\/title>/i);
     const descMatch = itemContent.match(/<description>(.*?)<\/description>/i) || itemContent.match(/<itunes:summary>(.*?)<\/itunes:summary>/i);
@@ -681,7 +683,8 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
   const client = parsed.protocol === 'https:' ? https : http;
 
   const requestHeaders: Record<string, string> = {
-    'User-Agent': (req.headers['user-agent'] as string) || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    // VLC User-Agent is accepted by all Shoutcast, Icecast, Radionomy, and Cloudstream servers
+    'User-Agent': (req.headers['user-agent'] as string) || 'VLC/3.0.18 LibVLC/3.0.18 (compatible; RadioCast/1.0; Mozilla/5.0)',
     'Accept': (req.headers['accept'] as string) || '*/*',
     'Accept-Encoding': 'identity'
   };
@@ -700,12 +703,14 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
     method: 'GET',
     headers: requestHeaders,
     rejectUnauthorized: false, // Allow radios with self-signed or expired SSL certs
-    timeout: 60000 // 60 seconds connection timeout
+    insecureHTTPParser: true, // CRITICAL: Allows Shoutcast v1/v2 servers sending non-standard "ICY 200 OK" status lines
+    timeout: 30000 // 30 seconds connection timeout
   };
 
   const proxyReq = client.request(options, (upstreamRes) => {
-    // Disable timeout once streaming starts so downloads complete without abrupt cuts
+    // Disable timeout once streaming starts so radio/podcast playback is uninterrupted
     proxyReq.setTimeout(0);
+
     if (upstreamRes.statusCode && upstreamRes.statusCode >= 300 && upstreamRes.statusCode < 400 && upstreamRes.headers.location) {
       let redirectLocation = upstreamRes.headers.location;
       try {
@@ -724,6 +729,27 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
 
     const currentCT = (upstreamRes.headers['content-type'] || '').toLowerCase();
     const isM3u8 = targetUrl.includes('.m3u8') || targetUrl.includes('playlist') || currentCT.includes('mpegurl') || currentCT.includes('m3u8');
+
+    // Detect PLS or non-HLS M3U playlists commonly used by world radio stations (e.g. SomaFM, Radio Paradise)
+    const isPls = targetUrl.toLowerCase().includes('.pls') || currentCT.includes('scpls') || currentCT.includes('audio/x-scpls') || currentCT.includes('playlist');
+    const isPlainM3u = !isM3u8 && (targetUrl.toLowerCase().endsWith('.m3u') || currentCT.includes('audio/x-mpegurl'));
+
+    if (isPls || isPlainM3u) {
+      let playlistBody = '';
+      upstreamRes.setEncoding('utf8');
+      upstreamRes.on('data', chunk => { playlistBody += chunk; });
+      upstreamRes.on('end', () => {
+        // Extract first playable stream URL from File1=... or plain link
+        const match = playlistBody.match(/File\d+\s*=\s*(https?:\/\/[^\r\n]+)/i) ||
+                      playlistBody.match(/(https?:\/\/[^\r\n\s]+)/i);
+        if (match && match[1]) {
+          const resolvedStreamUrl = match[1].trim();
+          return proxyAudioStream(resolvedStreamUrl, req, res, redirectCount + 1);
+        }
+        if (!res.headersSent) res.status(502).end();
+      });
+      return;
+    }
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -762,9 +788,14 @@ function proxyAudioStream(targetUrl: string, req: express.Request, res: express.
       res.setHeader('Content-Length', upstreamRes.headers['content-length']);
     }
 
-    if (!currentCT || currentCT.includes('octet-stream')) {
+    // Ensure audio content type is properly set for browser audio elements
+    if (!currentCT || currentCT.includes('octet-stream') || currentCT.includes('text/plain')) {
       if (targetUrl.includes('aac')) {
         res.setHeader('Content-Type', 'audio/aac');
+      } else if (targetUrl.includes('m4a') || targetUrl.includes('mp4')) {
+        res.setHeader('Content-Type', 'audio/mp4');
+      } else if (targetUrl.includes('ogg')) {
+        res.setHeader('Content-Type', 'audio/ogg');
       } else {
         res.setHeader('Content-Type', 'audio/mpeg');
       }
