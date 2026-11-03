@@ -1,4 +1,4 @@
-import { RadioStation, PodcastEpisode, PlayableItem, Audiobook, AudiobookTrack } from '../types';
+import { RadioStation, PodcastEpisode, PlayableItem, Audiobook, AudiobookTrack, ReconnectState, SleepTimerState } from '../types';
 import { registerStationClick } from './radioApi';
 import { getPodcastProgress, savePodcastProgress, getPodcastProgressEntry, addRecentlyPlayed } from './storage';
 import { getOfflineAudioUrl } from './offlineStorage';
@@ -16,6 +16,8 @@ export interface AudioEngineCallbacks {
   onEnded?: () => void;
   onNext?: () => void;
   onPrevious?: () => void;
+  onReconnectChange?: (state: ReconnectState) => void;
+  onSleepTimerTick?: (state: SleepTimerState) => void;
 }
 
 export interface AudioEngineDebugInfo {
@@ -36,6 +38,9 @@ export interface AudioEngineDebugInfo {
   errorMessage: string | null;
   startupDurationMs: number | null;
   sessionId: number;
+  reconnectAttempt: number;
+  isReconnecting: boolean;
+  sleepTimerRemainingSec: number;
 }
 
 class AudioEngine {
@@ -58,6 +63,22 @@ class AudioEngine {
 
   private currentSessionId: number = 0;
   private timeUpdateListeners = new Set<(curr: number, dur: number) => void>();
+
+  // 6-stage exponential reconnect for live radio
+  private reconnectAttempt: number = 0;
+  private readonly maxReconnectAttempts: number = 6;
+  private readonly reconnectDelaysSec: number[] = [1, 2, 4, 8, 16, 30];
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectCountdownTimer: ReturnType<typeof setInterval> | null = null;
+  private reconnectNextInSec: number = 0;
+  private isReconnecting: boolean = false;
+
+  // Sleep timer with 30s gradual fade-out
+  private sleepTimerInterval: ReturnType<typeof setInterval> | null = null;
+  private sleepTimerEndAt: number = 0;
+  private sleepTimerTotalDurationMinutes: number = 0;
+  private originalVolumeBeforeFade: number = 0.8;
+  private isFadingOut: boolean = false;
 
   public subscribeTimeUpdate(listener: (curr: number, dur: number) => void): () => void {
     this.timeUpdateListeners.add(listener);
@@ -89,6 +110,7 @@ class AudioEngine {
       }
 
       this.audio.volume = savedVol;
+      this.originalVolumeBeforeFade = savedVol;
       this.audio.muted = false;
 
       this.setupAudioListeners();
@@ -584,13 +606,164 @@ class AudioEngine {
     if (sessionId !== this.currentSessionId) return;
 
     this.cleanupPlayback();
-    this.setStatus('idle');
+
+    // If current item is a live radio station, attempt 6-stage exponential reconnect
+    if (this.currentItem?.type === 'radio' && this.reconnectAttempt < this.maxReconnectAttempts) {
+      this.scheduleReconnect(sessionId);
+      return;
+    }
+
+    this.clearReconnectState();
+    this.setStatus('error');
+    const errMsg = this.currentItem?.type === 'radio'
+      ? 'Yayın şu anda açılamıyor. Lütfen daha sonra tekrar deneyin veya alternatif bir istasyon seçin.'
+      : 'Medya dosyası oynatılamadı. Lütfen internet bağlantınızı kontrol edin.';
+    if (this.callbacks.onError) {
+      this.callbacks.onError(errMsg);
+    }
+  }
+
+  private scheduleReconnect(sessionId: number) {
+    this.clearReconnectTimers();
+    this.isReconnecting = true;
+    const delaySec = this.reconnectDelaysSec[this.reconnectAttempt] || 30;
+    this.reconnectNextInSec = delaySec;
+    this.setStatus('connecting');
+
+    this.emitReconnectState();
+
+    this.reconnectCountdownTimer = setInterval(() => {
+      if (sessionId !== this.currentSessionId) {
+        this.clearReconnectState();
+        return;
+      }
+      this.reconnectNextInSec = Math.max(0, this.reconnectNextInSec - 1);
+      this.emitReconnectState();
+    }, 1000);
+
+    this.reconnectTimer = setTimeout(() => {
+      if (sessionId !== this.currentSessionId) return;
+      this.clearReconnectTimers();
+      this.reconnectAttempt++;
+      this.candidateIndex = 0;
+      this.startPlaybackCurrentCandidate(sessionId);
+    }, delaySec * 1000);
+  }
+
+  public clearReconnectState() {
+    this.clearReconnectTimers();
+    this.isReconnecting = false;
+    this.reconnectAttempt = 0;
+    this.reconnectNextInSec = 0;
+    this.emitReconnectState();
+  }
+
+  private clearReconnectTimers() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.reconnectCountdownTimer) {
+      clearInterval(this.reconnectCountdownTimer);
+      this.reconnectCountdownTimer = null;
+    }
+  }
+
+  private emitReconnectState() {
+    if (this.callbacks.onReconnectChange) {
+      this.callbacks.onReconnectChange(this.getReconnectState());
+    }
+  }
+
+  public getReconnectState(): ReconnectState {
+    return {
+      isReconnecting: this.isReconnecting,
+      attempt: this.reconnectAttempt,
+      maxAttempts: this.maxReconnectAttempts,
+      nextRetrySeconds: this.reconnectNextInSec
+    };
+  }
+
+  // --- Sleep Timer with 30s Gradual Fade-out ---
+  public startSleepTimer(durationMinutes: number, onComplete?: () => void) {
+    this.cancelSleepTimer();
+    if (durationMinutes <= 0) return;
+
+    this.sleepTimerTotalDurationMinutes = durationMinutes;
+    this.sleepTimerEndAt = Date.now() + durationMinutes * 60 * 1000;
+    this.originalVolumeBeforeFade = this.audio.volume || 0.8;
+    this.isFadingOut = false;
+
+    this.emitSleepTimerState();
+
+    this.sleepTimerInterval = setInterval(() => {
+      const remainingMs = this.sleepTimerEndAt - Date.now();
+      const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
+
+      // Gradual 30-second fade-out before expiration
+      if (remainingSec <= 30 && remainingSec > 0) {
+        this.isFadingOut = true;
+        const ratio = remainingSec / 30;
+        this.audio.volume = Math.max(0, this.originalVolumeBeforeFade * ratio);
+      } else if (remainingSec > 30) {
+        this.isFadingOut = false;
+      }
+
+      this.emitSleepTimerState();
+
+      if (remainingSec <= 0) {
+        this.cancelSleepTimer();
+        // Pause playback
+        this.audio.pause();
+        this.setStatus('paused');
+        // Restore original volume so user is not stuck at 0!
+        this.audio.volume = this.originalVolumeBeforeFade;
+        this.isFadingOut = false;
+        if (onComplete) onComplete();
+      }
+    }, 1000);
+  }
+
+  public cancelSleepTimer() {
+    if (this.sleepTimerInterval) {
+      clearInterval(this.sleepTimerInterval);
+      this.sleepTimerInterval = null;
+    }
+    if (this.isFadingOut) {
+      this.audio.volume = this.originalVolumeBeforeFade;
+      this.isFadingOut = false;
+    }
+    this.sleepTimerEndAt = 0;
+    this.sleepTimerTotalDurationMinutes = 0;
+    this.emitSleepTimerState();
+  }
+
+  public getSleepTimerRemainingSec(): number {
+    if (!this.sleepTimerEndAt) return 0;
+    return Math.max(0, Math.ceil((this.sleepTimerEndAt - Date.now()) / 1000));
+  }
+
+  public isSleepTimerActive(): boolean {
+    return this.sleepTimerEndAt > Date.now();
+  }
+
+  private emitSleepTimerState() {
+    if (this.callbacks.onSleepTimerTick) {
+      const rem = this.getSleepTimerRemainingSec();
+      this.callbacks.onSleepTimerTick({
+        active: rem > 0,
+        durationMinutes: this.sleepTimerTotalDurationMinutes,
+        remainingSeconds: rem,
+        isFadingOut: this.isFadingOut
+      });
+    }
   }
 
   public togglePlayPause() {
     if (!this.currentItem) return;
 
     if (this.status === 'playing') {
+      this.clearReconnectState();
       this.audio.pause();
     } else if (this.status === 'paused' || this.status === 'idle') {
       if (this.audio.src) {
@@ -640,6 +813,7 @@ class AudioEngine {
 
   public stop() {
     this.currentSessionId++;
+    this.clearReconnectState();
     this.saveCurrentProgress();
     this.cleanupPlayback();
     this.setStatus('idle');
@@ -647,7 +821,10 @@ class AudioEngine {
 
   public setVolume(volume: number) {
     const v = Math.max(0, Math.min(1, volume));
-    this.audio.volume = v;
+    this.originalVolumeBeforeFade = v;
+    if (!this.isFadingOut) {
+      this.audio.volume = v;
+    }
     try {
       localStorage.setItem('player-volume', v.toString());
     } catch {
@@ -715,7 +892,10 @@ class AudioEngine {
       errorCode: this.audio.error ? this.audio.error.code : null,
       errorMessage: this.audio.error ? this.audio.error.message : null,
       startupDurationMs: this.startupDurationMs,
-      sessionId: this.currentSessionId
+      sessionId: this.currentSessionId,
+      reconnectAttempt: this.reconnectAttempt,
+      isReconnecting: this.isReconnecting,
+      sleepTimerRemainingSec: this.getSleepTimerRemainingSec()
     };
   }
 

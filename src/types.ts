@@ -56,12 +56,30 @@ export interface AppSettings {
   defaultCountry: string;
   autoPlayLastStation: boolean;
   volume: number;
+  locale?: 'tr' | 'en' | 'ru';
+  podcastAutoNext?: boolean;
+  clock24h?: boolean;
+}
+
+export interface RadioGroup {
+  id: string;
+  name: string;
+  stationIds: string[];
+  createdAt: number;
+}
+
+export interface ReconnectState {
+  isReconnecting: boolean;
+  attempt: number;
+  maxAttempts: number;
+  nextRetrySeconds: number;
 }
 
 export interface SleepTimerState {
   active: boolean;
   durationMinutes: number;
   remainingSeconds: number;
+  isFadingOut?: boolean;
 }
 
 export interface GenreCategory {

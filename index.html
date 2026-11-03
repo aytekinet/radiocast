@@ -1,42 +1,54 @@
 <!doctype html>
-<html lang="tr" class="dark" style="background-color: #090d16; color: #f8fafc; height: 100%;">
+<html lang="tr" class="dark" style="background-color: #0A0F17; color: #F8FAFC; height: 100%;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#090d16" />
+    <meta name="theme-color" content="#0A0F17" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>RadioCast - Canlı Radyo & Podcast</title>
+    <meta name="description" content="RadioCast - Canlı Radyo & Güncel Türkçe Podcast dinleme platformu. 629 doğrulanmış canlı radyo ve 133+ güncel Türkçe podcast." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
 
-    <!-- Purge any stale Service Worker and caches immediately -->
+    <!-- Safe Service Worker and cache maintenance without unhandled rejections -->
     <script>
       (function() {
         try {
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-              for (var i = 0; i < registrations.length; i++) {
-                registrations[i].unregister();
-              }
-            });
+          if (typeof window !== 'undefined' && 'serviceWorker' in navigator && window.location.protocol === 'https:') {
+            navigator.serviceWorker.getRegistrations()
+              .then(function(registrations) {
+                if (registrations && registrations.length) {
+                  for (var i = 0; i < registrations.length; i++) {
+                    registrations[i].unregister().catch(function() {});
+                  }
+                }
+              })
+              .catch(function() {});
           }
-          if ('caches' in window) {
-            caches.keys().then(function(keys) {
-              for (var i = 0; i < keys.length; i++) {
-                caches.delete(keys[i]);
-              }
-            });
+        } catch (e) {}
+
+        try {
+          if (typeof window !== 'undefined' && 'caches' in window) {
+            caches.keys()
+              .then(function(keys) {
+                if (keys && keys.length) {
+                  for (var i = 0; i < keys.length; i++) {
+                    caches.delete(keys[i]).catch(function() {});
+                  }
+                }
+              })
+              .catch(function() {});
           }
         } catch (e) {}
       })();
     </script>
     <style>
       html, body {
-        background-color: #090d16 !important;
-        color: #f8fafc;
+        background-color: #0A0F17 !important;
+        color: #F8FAFC;
         margin: 0;
         padding: 0;
         width: 100%;
@@ -47,36 +59,23 @@
         to { transform: rotate(360deg); }
       }
       .initial-spinner {
-        width: 36px;
-        height: 36px;
-        border: 3px solid rgba(245, 158, 11, 0.18);
-        border-top-color: #f59e0b;
+        width: 32px;
+        height: 32px;
+        border: 2.5px solid rgba(56, 189, 248, 0.2);
+        border-top-color: #38BDF8;
         border-radius: 50%;
-        animation: spin 0.8s linear infinite;
+        animation: spin 0.75s linear infinite;
       }
     </style>
   </head>
-  <body class="bg-slate-950 text-slate-100 antialiased overflow-x-hidden w-full max-w-full select-none touch-pan-y" style="background-color: #090d16;">
+  <body class="bg-[#0A0F17] text-slate-100 antialiased overflow-x-hidden w-full max-w-full select-none touch-pan-y" style="background-color: #0A0F17;">
     <div id="root">
-      <div id="app-loading-screen" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #090d16; color: #f8fafc; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <div id="app-loading-screen" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #0A0F17; color: #F8FAFC; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         <div class="initial-spinner" style="margin-bottom: 16px;"></div>
-        <div style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em; color: #e2e8f0; margin-bottom: 6px;">RadioCast</div>
-        <div style="font-size: 12px; color: #64748b;">Canlı Radyo & Podcast Yükleniyor...</div>
+        <div style="font-size: 15px; font-weight: 700; letter-spacing: 0.05em; color: #F8FAFC; margin-bottom: 4px;">RadioCast</div>
+        <div style="font-size: 12px; color: #64748B;">Canlı Radyolar & Türkçe Podcastler Yükleniyor...</div>
       </div>
     </div>
-    <script>
-      window.addEventListener('error', function(event) {
-        var loader = document.getElementById('app-loading-screen');
-        if (loader) {
-          loader.innerHTML = '<div style="max-width: 440px; margin: 20px; padding: 24px; background: #0f172a; border: 1px solid #1e293b; border-radius: 20px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">' +
-            '<div style="font-size: 28px; margin-bottom: 12px;">📻</div>' +
-            '<div style="font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 8px;">Uygulama Yüklenirken Bir Durum Oluştu</div>' +
-            '<div style="font-size: 12px; color: #94a3b8; margin-bottom: 16px; line-height: 1.5; word-break: break-word;">' + (event.message || 'Yükleme sırasında hata oluştu.') + '</div>' +
-            '<button onclick="localStorage.clear(); sessionStorage.clear(); location.reload();" style="display: inline-block; width: 100%; padding: 12px 20px; background: #f59e0b; color: #090d16; font-weight: 700; font-size: 13px; border: none; border-radius: 12px; cursor: pointer;">Önbelleği Temizle ve Yenile</button>' +
-          '</div>';
-        }
-      });
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

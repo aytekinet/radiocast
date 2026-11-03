@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { getFromCache, setToCache } from './cache';
-import { VERIFIED_TURKISH_STATIONS } from '../data/fallbackStations';
+import { VERIFIED_TURKISH_STATIONS, ALL_TURKISH_STATIONS } from '../data/fallbackStations';
+import { normalizeTurkishText, turkishIncludes, turkishMatchScore } from '../utils/turkishSearch';
 
 let ACTIVE_MIRRORS = [
   'de1.api.radio-browser.info',
@@ -199,25 +200,18 @@ export async function handleRadioStations(req: Request, res: Response) {
       }
     }
 
-    let processed = processStationList(rawData);
-
-    // If TR country and first page, ensure VERIFIED_TURKISH_STATIONS are merged at top in exact priority order
+    // If country is TR on first page, guarantee all 629 local verified stations
     if (country === 'TR' && offset === 0) {
-      const verifiedList = VERIFIED_TURKISH_STATIONS.map(v => normalizeStation(v));
-      const verifiedKeys = new Set(verifiedList.map(s => normalizeStationName(s.name)));
-      const nonDuplicateProcessed = processed.filter(s => !verifiedKeys.has(normalizeStationName(s.name)));
-      processed = [...verifiedList, ...nonDuplicateProcessed];
+      const all629 = ALL_TURKISH_STATIONS.map(v => normalizeStation(v));
+      setToCache(cacheKey, all629, 60 * 60 * 1000);
+      return res.setHeader('Content-Type', 'application/json').json(all629);
     }
 
-    if (processed.length === 0 && country === 'TR') {
-      processed = VERIFIED_TURKISH_STATIONS.map(v => normalizeStation(v));
-    }
-
+    let processed = processStationList(rawData);
     setToCache(cacheKey, processed, 15 * 60 * 1000);
     return res.setHeader('Content-Type', 'application/json').json(processed);
   } catch {
-    // If radio browser fails completely, return local verified stations for TR or empty
-    const fallback = country === 'TR' ? VERIFIED_TURKISH_STATIONS.map(v => normalizeStation(v)) : [];
+    const fallback = country === 'TR' ? ALL_TURKISH_STATIONS.map(v => normalizeStation(v)) : [];
     return res.setHeader('Content-Type', 'application/json').json(fallback);
   }
 }
@@ -236,6 +230,32 @@ export async function handleRadioSearch(req: Request, res: Response) {
     return res.setHeader('Content-Type', 'application/json').json(cached);
   }
 
+  const results: any[] = [];
+  const seenIds = new Set<string>();
+
+  // 1. Local 629 Turkish stations search first
+  if (q && (!country || country === 'TR')) {
+    const matchedLocal = ALL_TURKISH_STATIONS.filter(s => {
+      if (tag && s.tags && !turkishIncludes(s.tags, tag)) return false;
+      return (
+        turkishIncludes(s.name, q) ||
+        (s.tags && turkishIncludes(s.tags, q)) ||
+        (s.state && turkishIncludes(s.state, q))
+      );
+    }).sort((a, b) => {
+      const scoreA = turkishMatchScore(a.name, q) * 2 + (a.votes || 0);
+      const scoreB = turkishMatchScore(b.name, q) * 2 + (b.votes || 0);
+      return scoreB - scoreA;
+    });
+
+    for (const item of matchedLocal) {
+      const norm = normalizeStation(item);
+      seenIds.add(norm.id);
+      results.push(norm);
+    }
+  }
+
+  // 2. Query Radio Browser for global stations or additional matches
   try {
     const params = new URLSearchParams({
       hidebroken: 'true',
@@ -252,11 +272,20 @@ export async function handleRadioSearch(req: Request, res: Response) {
     const data = await fetchRadioBrowser<any[]>(`/json/stations/search?${params.toString()}`);
     const processed = processStationList(data);
 
-    setToCache(cacheKey, processed, 10 * 60 * 1000);
-    return res.setHeader('Content-Type', 'application/json').json(processed);
+    for (const p of processed) {
+      const normName = normalizeTurkishText(p.name);
+      const exists = results.some(r => normalizeTurkishText(r.name) === normName);
+      if (!seenIds.has(p.id) && !exists) {
+        seenIds.add(p.id);
+        results.push(p);
+      }
+    }
   } catch {
-    return res.setHeader('Content-Type', 'application/json').json([]);
+    // If radio browser fails, local results remain
   }
+
+  setToCache(cacheKey, results, 10 * 60 * 1000);
+  return res.setHeader('Content-Type', 'application/json').json(results);
 }
 
 export async function handleRadioCountries(req: Request, res: Response) {

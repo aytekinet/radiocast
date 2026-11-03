@@ -192,8 +192,15 @@ function mergeVerifiedAndApiStations(verified: RadioStation[], apiStations: Radi
   return result;
 }
 
+import { normalizeTurkishText, turkishIncludes, turkishMatchScore } from '../utils/turkishSearch';
+
 export async function getStationsByCountry(countryCode = 'TR', page = 1): Promise<RadioStation[]> {
   const codeUpper = (countryCode || 'TR').toUpperCase().trim();
+
+  // If requesting Turkey on page 1, immediately return the 629 verified Turkish stations!
+  if (codeUpper === 'TR' && page === 1) {
+    return ALL_TURKISH_STATIONS;
+  }
 
   // 1. Try local Express API route (if running full-stack)
   try {
@@ -203,20 +210,20 @@ export async function getStationsByCountry(countryCode = 'TR', page = 1): Promis
       if (contentType.includes('application/json')) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          if (codeUpper === 'TR' && page === 1) {
-            return mergeVerifiedAndApiStations(GUARANTEED_TURKISH_STATIONS, data);
+          if (codeUpper === 'TR') {
+            return ALL_TURKISH_STATIONS;
           }
           return deduplicateStationsByName(data);
         }
       }
     }
   } catch (err) {
-    console.warn('Backend API unavailable, falling back to direct Radio Browser API query:', err);
+    // Backend API unavailable
   }
 
-  // 2. Direct client-side fetch from Radio-Browser API mirrors (Crucial for Vercel / static hosting!)
+  // 2. Direct client-side fetch from Radio-Browser API mirrors (For foreign countries)
   try {
-    const limit = codeUpper === 'TR' ? 600 : 300;
+    const limit = 300;
     const offset = (page - 1) * limit;
 
     let rawList = await fetchFromRadioBrowserDirect(
@@ -229,32 +236,17 @@ export async function getStationsByCountry(countryCode = 'TR', page = 1): Promis
       );
     }
 
-    if (!rawList || rawList.length === 0) {
-      rawList = await fetchFromRadioBrowserDirect(
-        `/json/stations/search?countrycode=${encodeURIComponent(codeUpper)}&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`
-      );
-    }
-
-    if (!rawList || rawList.length === 0) {
-      rawList = await fetchFromRadioBrowserDirect(
-        `/json/stations/search?country=${encodeURIComponent(codeUpper)}&order=clickcount&reverse=true&limit=${limit}&offset=${offset}`
-      );
-    }
-
     if (rawList && rawList.length > 0) {
       const formatted = rawList.map(formatRawStation);
-      if (codeUpper === 'TR' && page === 1) {
-        return mergeVerifiedAndApiStations(GUARANTEED_TURKISH_STATIONS, formatted);
-      }
       return deduplicateStationsByName(formatted);
     }
   } catch (directErr) {
-    console.warn('Direct radio browser fetch failed:', directErr);
+    // Direct radio browser fetch failed
   }
 
-  // 3. Last fallback: local catalog
-  if (codeUpper === 'TR' && page === 1) {
-    return deduplicateStationsByName(GUARANTEED_TURKISH_STATIONS);
+  // 3. Fallback for TR
+  if (codeUpper === 'TR') {
+    return ALL_TURKISH_STATIONS;
   }
   return [];
 }
@@ -269,12 +261,39 @@ export async function searchStations(params: {
   page?: number;
 }): Promise<RadioStation[]> {
   const query = (params.q || params.name || '').trim();
-  const country = params.country || params.countrycode || '';
+  const country = (params.country || params.countrycode || '').toUpperCase();
   const tag = params.tag || '';
   const language = params.language || '';
   const page = params.page || 1;
 
-  // 1. Try local Express API route
+  const results: RadioStation[] = [];
+  const seenIds = new Set<string>();
+
+  // 1. First, search local 629 Turkish stations with Turkish normalization
+  if (query && (!country || country === 'TR')) {
+    const matchedLocal = ALL_TURKISH_STATIONS.filter(s => {
+      if (tag && s.tags && !turkishIncludes(s.tags, tag)) return false;
+      return (
+        turkishIncludes(s.name, query) ||
+        (s.tags && turkishIncludes(s.tags, query)) ||
+        (s.state && turkishIncludes(s.state, query))
+      );
+    }).sort((a, b) => {
+      const scoreA = turkishMatchScore(a.name, query) * 2 + (a.votes || 0);
+      const scoreB = turkishMatchScore(b.name, query) * 2 + (b.votes || 0);
+      return scoreB - scoreA;
+    });
+
+    for (const s of matchedLocal) {
+      const id = s.stationuuid || s.id || s.name;
+      if (!seenIds.has(id)) {
+        seenIds.add(id);
+        results.push(s);
+      }
+    }
+  }
+
+  // 2. Fetch live from Radio Browser (especially for global stations or additional matches)
   try {
     const queryParams = new URLSearchParams({
       page: page.toString()
@@ -289,45 +308,24 @@ export async function searchStations(params: {
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) return deduplicateStationsByName(data);
+        if (Array.isArray(data)) {
+          for (const s of data) {
+            const id = s.stationuuid || s.id || s.name;
+            const normName = normalizeTurkishText(s.name);
+            const exists = results.some(r => normalizeTurkishText(r.name) === normName);
+            if (!seenIds.has(id) && !exists) {
+              seenIds.add(id);
+              results.push(s);
+            }
+          }
+        }
       }
     }
   } catch (err) {
-    console.warn('Backend search API failed, falling back to direct mirror search:', err);
+    // Backend search API failed
   }
 
-  // 2. Direct client-side fetch from Radio-Browser API mirrors
-  try {
-    const queryParams = new URLSearchParams({
-      hidebroken: 'true',
-      order: 'clickcount',
-      reverse: 'true',
-      limit: '300'
-    });
-    if (query) queryParams.set('name', query);
-    if (country) queryParams.set('countrycode', country);
-    if (tag) queryParams.set('tag', tag);
-    if (language) queryParams.set('language', language);
-
-    const rawList = await fetchFromRadioBrowserDirect(`/json/stations/search?${queryParams.toString()}`);
-    if (rawList && rawList.length > 0) {
-      const formatted = rawList.map(formatRawStation);
-      return deduplicateStationsByName(formatted);
-    }
-  } catch (e) {
-    console.warn('Direct radio browser search error:', e);
-  }
-
-  if ((!country || country === 'TR') && query) {
-    const qLower = query.toLowerCase();
-    const verifiedMatches = VERIFIED_TURKISH_STATIONS.filter(s =>
-      s.name.toLowerCase().includes(qLower) ||
-      s.tags.toLowerCase().includes(qLower)
-    );
-    return deduplicateStationsByName(verifiedMatches);
-  }
-
-  return [];
+  return results;
 }
 
 export async function getTopStationsByCountry(countryCode = 'TR', page = 1): Promise<RadioStation[]> {

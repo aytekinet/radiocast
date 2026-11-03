@@ -41,10 +41,12 @@ import { CountriesView } from './components/CountriesView';
 import { SettingsView } from './components/SettingsView';
 import { DownloadsView } from './components/DownloadsView';
 import { SleepTimerModal } from './components/SleepTimerModal';
+import { BigScreenModal } from './components/BigScreenModal';
 import { LegalView, LegalPageType } from './components/LegalView';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { IOSInstallGuideModal } from './components/IOSInstallGuideModal';
 import { WifiOff, DownloadCloud, Smartphone, Share, X, SquarePlus, ChevronRight } from 'lucide-react';
+import { ReconnectState } from './types';
 
 export default function App() {
   // Navigation & Settings
@@ -282,10 +284,18 @@ export default function App() {
   const [isMuted, setIsMuted] = useState(false);
   const [podcastEpisodesList, setPodcastEpisodesList] = useState<PodcastEpisode[]>([]);
 
-  // Sleep Timer
+  // Sleep Timer & Big Screen
   const [sleepTimerSeconds, setSleepTimerSeconds] = useState<number | null>(null);
+  const [isFadingOut, setIsFadingOut] = useState<boolean>(false);
   const [sleepOnEpisodeEnd, setSleepOnEpisodeEnd] = useState(false);
   const [isSleepModalOpen, setIsSleepModalOpen] = useState(false);
+  const [isBigScreenOpen, setIsBigScreenOpen] = useState(false);
+  const [reconnectState, setReconnectState] = useState<ReconnectState>({
+    isReconnecting: false,
+    attempt: 0,
+    maxAttempts: 6,
+    nextRetrySeconds: 0
+  });
 
   const sleepOnEpisodeEndRef = useRef(sleepOnEpisodeEnd);
   sleepOnEpisodeEndRef.current = sleepOnEpisodeEnd;
@@ -431,6 +441,13 @@ export default function App() {
       },
       onPrevious: () => {
         handlePreviousRef.current();
+      },
+      onReconnectChange: (state) => {
+        setReconnectState(state);
+      },
+      onSleepTimerTick: (state) => {
+        setSleepTimerSeconds(state.active ? state.remainingSeconds : null);
+        setIsFadingOut(Boolean(state.isFadingOut));
       }
     });
     audioEngine.setVolume(settings.volume);
@@ -535,7 +552,7 @@ export default function App() {
         }
       }
     } catch (err) {
-      console.error('Radio stations load error:', err);
+      console.warn('Radio stations load error:', err);
       // Keep existing ALL_TURKISH_STATIONS intact if network fails
     } finally {
       setIsLoading(false);
@@ -780,38 +797,36 @@ export default function App() {
   }, []);
 
   // Sleep Timer Countdown Effect
-  useEffect(() => {
-    if (sleepTimerSeconds === null) return;
-
-    if (sleepTimerSeconds <= 0) {
-      audioEngine.stop();
-      setSleepTimerSeconds(null);
-      showToast('Uyku zamanlayıcısı doldu. Ses durduruldu.');
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setSleepTimerSeconds((prev) => (prev !== null && prev > 0 ? prev - 1 : null));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [sleepTimerSeconds]);
-
   const handleStartSleepTimer = (minutes: number) => {
-    setSleepTimerSeconds(minutes * 60);
+    audioEngine.startSleepTimer(minutes, () => {
+      showToast('Uyku zamanlayıcısı süresi doldu. Ses durduruldu.');
+    });
     setSleepOnEpisodeEnd(false);
     showToast(`Yayın ${minutes} dakika sonra durdurulacak.`);
   };
 
   const handleCancelSleepTimer = () => {
+    audioEngine.cancelSleepTimer();
     setSleepTimerSeconds(null);
     setSleepOnEpisodeEnd(false);
+    setIsFadingOut(false);
     showToast('Uyku zamanlayıcısı iptal edildi.');
+  };
+
+  const handleAddSleepMinutes = (extraMinutes: number) => {
+    const currentRemaining = audioEngine.getSleepTimerRemainingSec();
+    const newTotalMinutes = Math.ceil(currentRemaining / 60) + extraMinutes;
+    audioEngine.startSleepTimer(newTotalMinutes, () => {
+      showToast('Uyku zamanlayıcısı süresi doldu. Ses durduruldu.');
+    });
+    showToast(`Zamanlayıcıya +${extraMinutes} dakika eklendi.`);
   };
 
   const handleSetEndOfEpisodeTimer = useCallback(() => {
     setSleepOnEpisodeEnd(true);
+    audioEngine.cancelSleepTimer();
     setSleepTimerSeconds(null);
+    setIsFadingOut(false);
     showToast('Uyku Zamanlayıcısı: Bölüm sonunda durdurulacak.');
   }, []);
 
@@ -878,6 +893,8 @@ export default function App() {
         onPlayStation={handlePlayStation}
         onPlayPodcastEpisode={handlePlayPodcastEpisode}
         onOpenPodcastShow={handleOpenPodcastShowFromFav}
+        locale={settings.locale || 'tr'}
+        onSelectLocale={(loc) => updateSettings({ locale: loc })}
       />
 
       {/* TuneIn & SoundCloud Sticky Top Player Bar */}
@@ -910,6 +927,8 @@ export default function App() {
         themePalette={settings.themePalette}
         onNavigateToDiscover={() => changeTab('discover')}
         onNavigateToPodcastShow={handleNavigateToPodcastShow}
+        onOpenBigScreen={() => setIsBigScreenOpen(true)}
+        reconnectState={reconnectState}
       />
 
       {/* Main Body: Sidebar + Active View Content */}
@@ -929,6 +948,7 @@ export default function App() {
             setSelectedCategory('all');
             setSearchQuery('');
           }}
+          onOpenBigScreen={() => setIsBigScreenOpen(true)}
         />
 
         {/* Main Content Scrollable Workspace */}
@@ -1164,9 +1184,21 @@ export default function App() {
         activeTimerSeconds={sleepTimerSeconds}
         onStartTimer={handleStartSleepTimer}
         onCancelTimer={handleCancelSleepTimer}
+        onAddMinutes={handleAddSleepMinutes}
+        isFadingOut={isFadingOut}
         isPodcast={currentItem?.type === 'podcast'}
         sleepOnEpisodeEnd={sleepOnEpisodeEnd}
         onSetEndOfEpisodeTimer={handleSetEndOfEpisodeTimer}
+      />
+
+      {/* Big Screen Modal */}
+      <BigScreenModal
+        isOpen={isBigScreenOpen}
+        onClose={() => setIsBigScreenOpen(false)}
+        currentItem={currentItem}
+        status={playbackStatus}
+        locale={settings.locale || 'tr'}
+        clock24h={settings.clock24h ?? true}
       />
 
       {/* Global Search Modal (Cmd+K) */}

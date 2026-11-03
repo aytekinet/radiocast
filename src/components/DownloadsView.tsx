@@ -57,7 +57,7 @@ export const DownloadsView: React.FC<DownloadsViewProps> = ({
       setTotalSizeStr(storage.formattedSize);
       setTotalBytes(storage.totalBytes);
     } catch (err) {
-      console.error('Failed to load downloaded episodes:', err);
+      console.warn('Failed to load downloaded episodes:', err);
     } finally {
       setLoading(false);
     }

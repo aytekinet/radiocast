@@ -23,6 +23,7 @@ import { ALL_TURKISH_STATIONS } from '../data/fallbackStations';
 import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
 import { searchStations } from '../services/radioApi';
 import { searchPodcasts } from '../services/podcastApi';
+import { AppLocale } from '../services/localization';
 
 interface DesktopHeaderProps {
   searchQuery: string;
@@ -41,6 +42,8 @@ interface DesktopHeaderProps {
   onPlayStation?: (station: RadioStation) => void;
   onPlayPodcastEpisode?: (episode: PodcastEpisode) => void;
   onOpenPodcastShow?: (show: PodcastShow) => void;
+  locale?: AppLocale;
+  onSelectLocale?: (loc: AppLocale) => void;
 }
 
 const TRENDING_SEARCH_CHIPS = [
@@ -69,7 +72,9 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
   onOpenSearch,
   onPlayStation,
   onPlayPodcastEpisode,
-  onOpenPodcastShow
+  onOpenPodcastShow,
+  locale = 'tr',
+  onSelectLocale
 }) => {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const paletteRef = useRef<HTMLDivElement>(null);
@@ -685,6 +690,25 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
             </>
           )}
         </button>
+
+        {/* Language Switcher (TR / EN / RU) */}
+        {onSelectLocale && (
+          <div className="flex items-center p-0.5 rounded-full bg-zinc-100 dark:bg-white/[0.06] border border-zinc-200/80 dark:border-white/[0.08] text-[10px] font-bold">
+            {(['tr', 'en', 'ru'] as AppLocale[]).map((loc) => (
+              <button
+                key={loc}
+                onClick={() => onSelectLocale(loc)}
+                className={`px-2 py-1 rounded-full uppercase transition-all cursor-pointer ${
+                  locale === loc
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                {loc}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </header>
   );

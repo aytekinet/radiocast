@@ -1,9 +1,10 @@
-import { AppSettings, Playlist, RadioStation, RecentlyPlayedItem, PlayableItem, PodcastEpisode } from '../types';
+import { AppSettings, Playlist, RadioStation, RecentlyPlayedItem, PlayableItem, PodcastEpisode, RadioGroup } from '../types';
 
 const FAVORITES_KEY = 'radyo_dunyasi_favorites_v1';
 const RECENTLY_PLAYED_KEY = 'radyo_dunyasi_recent_v1';
 const PLAYLISTS_KEY = 'radyo_dunyasi_playlists_v1';
 const SETTINGS_KEY = 'radyo_dunyasi_settings_v1';
+const RADIO_GROUPS_KEY = 'radiocast_radio_groups_v1';
 export interface PodcastProgressEntry {
   timeSeconds: number;
   durationSeconds?: number;
@@ -85,7 +86,7 @@ export function savePodcastProgress(
       }));
     }
   } catch (err) {
-    console.error('Failed to save podcast progress', err);
+    console.warn('Failed to save podcast progress', err);
   }
 }
 
@@ -116,17 +117,20 @@ export function clearPodcastProgress(episodeId?: string): void {
       window.dispatchEvent(new CustomEvent('podcastProgressChanged', { detail: {} }));
     }
   } catch (err) {
-    console.error('Failed to clear podcast progress', err);
+    console.warn('Failed to clear podcast progress', err);
   }
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   themeMode: 'dark',
-  themePalette: 'pure-carbon',
+  themePalette: 'cosmic-slate',
   lowDataMode: false,
   defaultCountry: 'TR',
   autoPlayLastStation: false,
-  volume: 0.8
+  volume: 0.8,
+  locale: 'tr',
+  podcastAutoNext: true,
+  clock24h: true
 };
 
 export function getStoredFavorites(): RadioStation[] {
@@ -142,7 +146,7 @@ export function saveFavorites(favorites: RadioStation[]): void {
   try {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
   } catch (err) {
-    console.error('Failed to save favorites to localStorage', err);
+    console.warn('Failed to save favorites to localStorage', err);
   }
 }
 
@@ -179,7 +183,7 @@ export function saveFavoritePodcasts(podcasts: any[]): void {
   try {
     localStorage.setItem(FAVORITE_PODCASTS_KEY, JSON.stringify(podcasts));
   } catch (err) {
-    console.error('Failed to save favorite podcasts', err);
+    console.warn('Failed to save favorite podcasts', err);
   }
 }
 
@@ -213,7 +217,7 @@ export function saveFavoriteEpisodes(episodes: any[]): void {
   try {
     localStorage.setItem(FAVORITE_EPISODES_KEY, JSON.stringify(episodes));
   } catch (err) {
-    console.error('Failed to save favorite episodes', err);
+    console.warn('Failed to save favorite episodes', err);
   }
 }
 
@@ -289,7 +293,7 @@ export function addRecentlyPlayed(item: PlayableItem): RecentlyPlayedItem[] {
     saveLastPlayedItem(item);
     return updated;
   } catch (err) {
-    console.error('Failed to save recently played item:', err);
+    console.warn('Failed to save recently played item:', err);
     return getRecentlyPlayed();
   }
 }
@@ -298,7 +302,7 @@ export function saveLastPlayedItem(item: PlayableItem): void {
   try {
     localStorage.setItem(LAST_ITEM_KEY, JSON.stringify(item));
   } catch (err) {
-    console.error('Failed to save last item', err);
+    console.warn('Failed to save last item', err);
   }
 }
 
@@ -344,7 +348,7 @@ export function savePlaylists(playlists: Playlist[]): void {
   try {
     localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(playlists));
   } catch (err) {
-    console.error('Failed to save playlists', err);
+    console.warn('Failed to save playlists', err);
   }
 }
 
@@ -361,7 +365,7 @@ export function saveSettings(settings: AppSettings): void {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch (err) {
-    console.error('Failed to save settings', err);
+    console.warn('Failed to save settings', err);
   }
 }
 
@@ -415,8 +419,68 @@ export function importUserData(jsonStr: string): boolean {
     }
     return true;
   } catch (err) {
-    console.error('Failed to import user data:', err);
+    console.warn('Failed to import user data:', err);
     return false;
   }
 }
+
+export function getStoredRadioGroups(): RadioGroup[] {
+  try {
+    const raw = localStorage.getItem(RADIO_GROUPS_KEY);
+    if (!raw) {
+      const initial: RadioGroup[] = [
+        { id: 'group-favorites', name: 'Favorilerim', stationIds: [], createdAt: Date.now() },
+        { id: 'group-night', name: 'Gece & Sakin', stationIds: [], createdAt: Date.now() }
+      ];
+      localStorage.setItem(RADIO_GROUPS_KEY, JSON.stringify(initial));
+      return initial;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveRadioGroups(groups: RadioGroup[]): void {
+  try {
+    localStorage.setItem(RADIO_GROUPS_KEY, JSON.stringify(groups));
+  } catch (err) {
+    console.warn('Failed to save radio groups:', err);
+  }
+}
+
+export function createRadioGroup(name: string): RadioGroup {
+  const groups = getStoredRadioGroups();
+  const newGroup: RadioGroup = {
+    id: `rg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    name: name.trim() || 'Yeni Grup',
+    stationIds: [],
+    createdAt: Date.now()
+  };
+  saveRadioGroups([...groups, newGroup]);
+  return newGroup;
+}
+
+export function deleteRadioGroup(groupId: string): RadioGroup[] {
+  const groups = getStoredRadioGroups().filter(g => g.id !== groupId);
+  saveRadioGroups(groups);
+  return groups;
+}
+
+export function toggleStationInGroup(groupId: string, stationId: string): RadioGroup[] {
+  const groups = getStoredRadioGroups();
+  const updated = groups.map(group => {
+    if (group.id !== groupId) return group;
+    const exists = group.stationIds.includes(stationId);
+    return {
+      ...group,
+      stationIds: exists 
+        ? group.stationIds.filter(id => id !== stationId)
+        : [...group.stationIds, stationId]
+    };
+  });
+  saveRadioGroups(updated);
+  return updated;
+}
+
 

@@ -81,7 +81,7 @@ export const CountriesView: React.FC<CountriesViewProps> = React.memo(({ onSelec
 
         setCountries(normalized);
       } catch (err) {
-        console.error('Failed to load countries', err);
+        console.warn('Failed to load countries', err);
         const fallbackList = ALL_COUNTRIES.map(c => ({
           name: c.name,
           iso_3166_1: c.code,

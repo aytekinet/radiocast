@@ -63,6 +63,8 @@ interface PlayerBarProps {
   themePalette: ThemePalette;
   onNavigateToDiscover?: () => void;
   onNavigateToPodcastShow?: (episode: PodcastEpisode) => void;
+  onOpenBigScreen?: () => void;
+  reconnectState?: { isReconnecting: boolean; attempt: number; maxAttempts: number; nextRetrySeconds: number };
 }
 
 export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
@@ -87,7 +89,9 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
   onOpenSleepTimer,
   themePalette,
   onNavigateToDiscover,
-  onNavigateToPodcastShow
+  onNavigateToPodcastShow,
+  onOpenBigScreen,
+  reconnectState
 }) => {
   const [localCurrentTime, setLocalCurrentTime] = useState(0);
   const [localDuration, setLocalDuration] = useState(0);
@@ -576,6 +580,20 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                   title="30 saniye ileri sar"
                 >
                   <RotateCw className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              )}
+
+              {/* Big Screen Button */}
+              {onOpenBigScreen && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenBigScreen();
+                  }}
+                  className="p-1.5 sm:p-2 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 transition-all active:scale-95 cursor-pointer ml-0.5 hidden sm:flex"
+                  title="Büyük Ekran Modu (Big Screen)"
+                >
+                  <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               )}
 

@@ -8,6 +8,8 @@ interface SleepTimerModalProps {
   activeTimerSeconds: number | null;
   onStartTimer: (minutes: number) => void;
   onCancelTimer: () => void;
+  onAddMinutes?: (minutes: number) => void;
+  isFadingOut?: boolean;
   isPodcast?: boolean;
   sleepOnEpisodeEnd?: boolean;
   onSetEndOfEpisodeTimer?: () => void;
@@ -19,6 +21,8 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
   activeTimerSeconds,
   onStartTimer,
   onCancelTimer,
+  onAddMinutes,
+  isFadingOut = false,
   isPodcast = false,
   sleepOnEpisodeEnd = false,
   onSetEndOfEpisodeTimer
@@ -74,19 +78,36 @@ export const SleepTimerModal: React.FC<SleepTimerModalProps> = ({
             </button>
           </div>
         ) : activeTimerSeconds !== null && activeTimerSeconds > 0 ? (
-          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center space-y-2">
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center space-y-3">
             <span className="text-xs text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider block">
               Geri Sayım Devam Ediyor
             </span>
-            <div className="text-3xl font-mono font-bold text-zinc-900 dark:text-zinc-100 tracking-wider">
+            <div className="text-4xl font-mono font-bold text-zinc-900 dark:text-zinc-100 tracking-wider">
               {formatRemaining(activeTimerSeconds)}
             </div>
-            <button
-              onClick={onCancelTimer}
-              className="mt-2 text-xs px-4 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 border border-rose-500/30 transition-colors font-medium"
-            >
-              Zamanlayıcıyı İptal Et
-            </button>
+
+            {isFadingOut && (
+              <div className="text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 py-1.5 px-3 rounded-lg font-medium animate-pulse">
+                Ses son 30 saniyede kademeli kısılıyor
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-2 pt-1">
+              {onAddMinutes && (
+                <button
+                  onClick={() => onAddMinutes(15)}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 border border-blue-500/30 transition-colors font-medium"
+                >
+                  +15 dk Ekle
+                </button>
+              )}
+              <button
+                onClick={onCancelTimer}
+                className="text-xs px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 border border-rose-500/30 transition-colors font-medium"
+              >
+                İptal Et
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">

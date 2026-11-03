@@ -2,32 +2,37 @@ import { RadioStation } from '../types';
 import excelStationsJson from './excelVerifiedStations.json';
 import allTurkishStationsJson from './allTurkishStations.json';
 
-// 145 Live-Tested & Fully Verified Stations from User Excel
+// High-Priority Live-Tested & Fully Verified Stations from User Excel
 export const VERIFIED_TURKISH_STATIONS: RadioStation[] = excelStationsJson as RadioStation[];
 
-// Combined Turkish Stations with Verified Stations guaranteed first
-const rawCombined: RadioStation[] = [
-  ...VERIFIED_TURKISH_STATIONS,
-  ...(allTurkishStationsJson as RadioStation[])
-];
-
-// Deduplicate by name and uuid
-const seenNames = new Set<string>();
-const seenUuids = new Set<string>();
-const deduplicatedCombined: RadioStation[] = [];
-
-for (const st of rawCombined) {
-  const norm = (st.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const uuid = st.stationuuid || st.id || '';
-  if (!norm || seenNames.has(norm) || (uuid && seenUuids.has(uuid))) {
-    continue;
+// Map verified streams by normalized name for quick stream enrichment
+const excelMap = new Map<string, RadioStation>();
+for (const e of VERIFIED_TURKISH_STATIONS) {
+  if (e && e.name) {
+    const k = e.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!excelMap.has(k)) {
+      excelMap.set(k, e);
+    }
   }
-  seenNames.add(norm);
-  if (uuid) seenUuids.add(uuid);
-  deduplicatedCombined.push(st);
 }
 
-export const ALL_TURKISH_STATIONS: RadioStation[] = deduplicatedCombined;
+// Exactly 629 Turkish stations, each enriched with high-quality verified stream URLs
+export const ALL_TURKISH_STATIONS: RadioStation[] = (allTurkishStationsJson as RadioStation[]).map(s => {
+  const k = (s.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const verified = excelMap.get(k);
+  if (verified) {
+    return {
+      ...s,
+      playUrl: verified.playUrl || verified.streamUrl || s.playUrl,
+      streamUrl: verified.streamUrl || verified.playUrl || s.streamUrl,
+      url_resolved: verified.url_resolved || verified.playUrl || s.url_resolved,
+      fallbackUrl: verified.fallbackUrl || s.fallbackUrl,
+      favicon: verified.favicon || s.favicon,
+      votes: (s.votes || 0) + 100 // Boost verified live stations
+    };
+  }
+  return s;
+});
 
 export interface VerifiedStationInfo {
   name: string;
@@ -51,7 +56,7 @@ export function getCandidateUrlsForStation(station: RadioStation): string[] {
   const allCandidates = [station.playUrl, station.streamUrl, station.fallbackUrl, station.url_resolved, station.url];
 
   if (isHttpsPage) {
-    // When served over HTTPS (AI Studio preview, Vercel), prioritize HTTPS streams first to prevent Mixed Content
+    // When served over HTTPS, prioritize HTTPS streams first to prevent Mixed Content
     for (const u of allCandidates) {
       if (u && u.toLowerCase().startsWith('https://')) {
         add(u);
@@ -65,4 +70,3 @@ export function getCandidateUrlsForStation(station: RadioStation): string[] {
 
   return urls;
 }
-

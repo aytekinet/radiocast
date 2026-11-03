@@ -9,7 +9,8 @@ import {
   Sparkles,
   Zap,
   Mic,
-  FolderDown
+  FolderDown,
+  Maximize2
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -19,6 +20,7 @@ interface SidebarProps {
   playlistsCount: number;
   currentlyPlayingName?: string;
   onSelectQuickFilter?: (filter: 'popular' | 'aac') => void;
+  onOpenBigScreen?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = memo(({
@@ -27,7 +29,8 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
   favoritesCount,
   playlistsCount,
   currentlyPlayingName,
-  onSelectQuickFilter
+  onSelectQuickFilter,
+  onOpenBigScreen
 }) => {
   const mainNavItems = [
     {
@@ -70,6 +73,13 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
       label: 'İndirilenler',
       icon: FolderDown,
       description: 'Çevrimdışı Bölümler'
+    },
+    {
+      id: 'bigscreen',
+      label: 'Büyük Ekran',
+      icon: Maximize2,
+      description: 'Saat & Çalar Modu',
+      action: onOpenBigScreen
     },
     {
       id: 'settings',
@@ -126,7 +136,13 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    if ((item as any).action) {
+                      (item as any).action();
+                    } else {
+                      setActiveTab(item.id);
+                    }
+                  }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group ${
                     isActive
                       ? 'bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20 shadow-sm'

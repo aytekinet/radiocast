@@ -48,7 +48,7 @@ function getDB(): Promise<IDBDatabase> {
     };
 
     request.onerror = () => {
-      console.error('Failed to open IndexedDB:', request.error);
+      console.warn('IndexedDB not accessible in this context:', request.error?.message || request.error);
       dbPromise = null;
       reject(request.error);
     };
