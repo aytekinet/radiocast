@@ -365,7 +365,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
   };
 
   const handleNextRate = () => {
-    const rates = [1, 1.25, 1.5, 2, 0.75];
+    const rates = [0.8, 1, 1.2, 1.5, 2];
     const next = rates[(rates.indexOf(playbackRate) + 1) % rates.length];
     setPlaybackRate(next);
     audioEngine.setPlaybackRate(next);
@@ -505,15 +505,15 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                 </button>
               )}
 
-              {/* Geri (-10s) Button for Podcast */}
+              {/* Geri (-15s) Button for Podcast */}
               {isPodcast && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleSkip(-10);
+                    handleSkip(-15);
                   }}
                   className="p-1.5 sm:p-2 rounded-full text-zinc-700 dark:text-zinc-300 hover:text-emerald-400 hover:bg-zinc-100 dark:hover:bg-white/[0.06] transition-all active:scale-90 cursor-pointer hidden xs:flex"
-                  title="10 saniye geri sar"
+                  title="15 saniye geri sar"
                 >
                   <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
@@ -889,13 +889,13 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                   )}
                 </div>
 
-                {/* SLOT 2 (INNER LEFT): Skip -10s for Podcast OR Previous for Radio */}
+                {/* SLOT 2 (INNER LEFT): Skip -15s for Podcast OR Previous for Radio */}
                 <div className="flex items-center justify-center">
                   {isPodcast ? (
                     <button
-                      onClick={() => handleSkip(-10)}
+                      onClick={() => handleSkip(-15)}
                       className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/[0.06] hover:bg-white/10 border border-white/[0.08] text-zinc-200 hover:text-emerald-400 transition-all active:scale-90 cursor-pointer flex items-center justify-center shadow-md"
-                      title="10 saniye geri sar"
+                      title="15 saniye geri sar"
                     >
                       <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>

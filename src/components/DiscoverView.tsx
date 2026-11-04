@@ -269,12 +269,18 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
                             : 'bg-white dark:bg-white/[0.04] hover:bg-zinc-100 dark:hover:bg-white/[0.08] border-zinc-200/70 dark:border-white/[0.06]'
                         }`}
                       >
-                        <img
-                          src={st.favicon || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100&q=80'}
-                          alt={st.name}
-                          className="w-8 h-8 rounded-lg object-cover bg-zinc-800 shrink-0"
-                          onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100&q=80'; }}
-                        />
+                        {st.favicon ? (
+                          <img
+                            src={st.favicon}
+                            alt={st.name}
+                            className="w-8 h-8 rounded-lg object-cover bg-zinc-800 shrink-0"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-xs shrink-0">
+                            {st.name ? st.name.slice(0, 2).toUpperCase() : <Radio className="w-4 h-4" />}
+                          </div>
+                        )}
                         <div className="min-w-0 pr-1">
                           <span className={`text-xs font-semibold truncate block max-w-[130px] ${
                             isThisPlaying ? 'text-emerald-500' : 'text-zinc-900 dark:text-zinc-100'

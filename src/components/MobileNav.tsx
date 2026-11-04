@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Compass, 
+  Search,
   Heart, 
   Mic, 
   Globe2, 
@@ -38,12 +39,13 @@ export const MobileNav: React.FC<MobileNavProps> = React.memo(({
 
   const mainTabs = [
     { id: 'discover', label: 'Keşfet', icon: Compass },
+    { id: 'search', label: 'Ara', icon: Search },
     { id: 'podcasts', label: 'Podcast', icon: Mic },
     { id: 'favorites', label: 'Favoriler', icon: Heart, count: favoritesCount },
-    { id: 'countries', label: 'Ülkeler', icon: Globe2 },
   ];
 
   const drawerItems = [
+    { id: 'countries', label: 'Dünya Radyoları', icon: Globe2, desc: 'Ülkelere göre canlı radyo keşfet' },
     { id: 'downloads', label: 'İndirilen Podcast’ler', icon: FolderDown, desc: 'Çevrimdışı internetsiz dinle' },
     { id: 'playlists', label: 'Çalma Listelerim', icon: ListMusic, count: playlistsCount, desc: 'Özel radyo listelerin' },
     { id: 'settings', label: 'Ayarlar & İletişim', icon: Settings, desc: 'Tema, ses & LinkedIn iletişim' },

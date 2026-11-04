@@ -1,0 +1,686 @@
+
+
+Yapıştırılan markdown(7).md
+Belge
+böyle dedi
+Gönderdiğin dosyayı baştan sona inceledim.
+
+Burada bir karışıklık var: Yüklediğin Yapıştırılan markdown(7).md dosyası, Google AI Studio'nun yeni uygulama planı değil. Önceki mesajımda sana hazırladığım RadioCast — Uygulama Öncesi Kritik Düzeltmeler belgesinin içeriğiyle aynı.
+
+Dolayısıyla şu anda Google AI Studio'nun:
+
+Düzeltmeleri mevcut plana ekleyip eklemediğini,
+
+Projenin dosyalarını gerçekten inceleyip incelemediğini,
+
+Kodlamaya başlayıp başlamadığını,
+
+Radyo, podcast ve arama sistemlerini çalıştırıp çalıştırmadığını
+
+bu dosyadan doğrulayamıyoruz.
+
+Google AI Studio'ya şu mesajı gönder:
+
+Sana verdiğim RadioCast Master Planı ve Kritik Düzeltmeler belgesini temel alarak mevcut projem için güncel uygulama planını hazırla.
+
+Öncelikle mevcut proje dosyalarını gerçekten incele. Çalışan özellikleri ve mevcut radyo/podcast verilerini koru.
+
+Bana özellikle şunları göster:
+
+Mevcut proje analizi ve tespit ettiğin eksikler.
+
+Yapacağın tüm ekranlar ve butonların çalışma mantığı.
+
+Radyo ve podcast arama sonuçlarının nasıl çalışacağı.
+
+Gerçek API, RSS ve ses oynatma mimarisi.
+
+Masaüstü ve mobil tasarım planı.
+
+Uygulama aşamaları ve her aşamanın test kriterleri.
+
+Eksikleri tamamlamadan kodlamayı bitmiş sayma. Önce güncellenmiş planı göster ve mevcut projede nelerin değişeceğini açıkla.
+
+AI Studio'nun buna vereceği gerçek güncellenmiş planı gönder. Onu inceleyip artık uygulamaya geçmeye hazır olup olmadığını, eksik kalan bir özellik varsa hangisi olduğunu söyleyeceğim.
+
+Kullanıcı eki
+
+implementation_plan.md
+Belge
+böyle dedi
+Evet, bu sefer Google AI Studio istediğimiz ayrıntılı uygulama planını hazırlamış. implementation_plan.md dosyasını inceledim. Artık projeyi geliştirme aşamasına geçirebiliriz.
+
+Plan onaylanabilir
+Planın durumu
+Özellik
+
+Durum
+
+629 radyo kaydının korunması
+
+ Planda var
+
+133 podcast kaydının korunması
+
+ Planda var
+
+TuneWake benzeri modern arayüz
+
+ Planda var
+
+Radyo + podcast birleşik arama
+
+ Planda var
+
+Gerçek podcast bölümleri ve RSS
+
+ Planda var
+
+Kesintisiz ortak oynatıcı
+
+ Planda var
+
+Mobil uyum ve alt oynatıcı
+
+ Planda var
+
+Favoriler, geçmiş, uyku zamanlayıcısı
+
+ Planda var
+
+Gerçek çalışma testleri
+
+ Henüz yapılmadı
+
+Özellikle mevcut audioEngine.ts, server.ts, RSS proxy ve radyo kataloglarını kullanacak olması olumlu. Sıfırdan proje oluşturmayacak.
+
+Ancak 629 radyo kaydı ve 133 podcast kaydı bulunması, hepsinin gerçekten çalıştığı anlamına gelmiyor. Kodlama sırasında gerçek kaynaklarla test yapılması gerekiyor.
+
+Şimdi ne yapmalısın?
+Proceed (Devam Et)
+
+Bu seçeneğe basarak planın uygulanmasını başlatabilirsin.
+
+Ancak öncesinde planın altındaki yorum alanına şu son talimatı eklemeni öneriyorum:
+
+Bu planı ONAYLIYORUM. Mevcut RadioCast projemi koruyarak Faz 0'dan Faz 4'e kadar uygulamaya geç.
+
+ÖNEMLİ KURALLAR:
+
+Mevcut 629 radyo ve 133 podcast kaydını, çalışan özellikleri, tasarımı ve kullanıcı verilerini kaybetme. Önce yedek ve proje envanteri oluştur.
+
+TuneWake'in sade kullanım mantığını ve modern tasarım yaklaşımını uygula. RadioCast marka kimliğini koru.
+
+Hiçbir buton dekoratif veya işlevsiz kalmasın. Arama sonuçları, istasyonlar, podcast bölümleri, filtreler, favoriler ve oynatıcı gerçek verilerle çalışsın.
+
+Özellikle podcast arama, RSS üzerinden bölüm listeleme, bölüm oynatma ve radyo yayınlarının gerçekten açılmasına öncelik ver.
+
+Masaüstü ve mobil arayüzleri eksiksiz tamamla. Alt oynatıcı bütün sayfalarda kesintisiz çalışsın.
+
+Her fazda gerçek build, typecheck ve mümkün olan testleri çalıştır. Test etmediğin veya doğrulayamadığın özelliği başarılı olarak raporlama.
+
+API erişimi, CORS, RSS ve ses yayını hatalarını gizleme. Sorunları mümkün olduğunca gider ve kalanları açıkça bildir.
+
+Faz 0 tamamlandıktan sonra gereksiz onay döngülerine girmeden sonraki fazlara devam et. Her fazın sonunda değişen dosyaları ve test sonuçlarını raporla.
+
+Hedefim yalnızca güzel görünen bir prototip değil; gerçekten çalışan, hızlı, kapsamlı ve kullanıma hazır bir radyo ve podcast web uygulaması.
+
+Uygulamaya başla.
+
+Benim kararım: Revise veya Reject seçmene gerek yok. Proceed seç.
+
+Şu anki plan yeterince ayrıntılı. Bundan sonraki önemli konu Google AI Studio'nun planı gerçekten kodlara uygulaması. Özellikle Faz 2 (podcast + RSS + arama) tamamlandığında ortaya çıkan uygulamayı mutlaka kontrol etmeliyiz. Çünkü RadioCast'in kalitesini en çok bu bölüm belirleyecek.
+
+revise diyip bu promtu eklemeyeyim mi son verdiğin promtu
+Hayır, Revise seçmene gerek yok. Çünkü Google AI Studio'nun hazırladığı son implementation_plan.md dosyasında istediğimiz özellikler zaten bulunuyor.
+
+En doğru yol şu:
+
+Proceed butonuna bas.
+
+AI Studio mevcut planı uygulamaya başlasın.
+
+Son verdiğim uzun promptu şimdilik gönderme. Çünkü aynı gereksinimleri tekrar ediyor ve gereksiz yere yeni bir plan oluşturmasına neden olabilir.
+
+Uygulama tamamlandığında çıkan sonuçları ve test raporunu bana gönder.
+
+Önemli: Proceed, uygulamanın tamamlandığı anlamına gelmiyor; yalnızca kodlama sürecini başlatıyor.
+
+Benim önerim: Proceed → Kodlama → Test → Eksikleri düzeltme. Artık planı tekrar tekrar düzenlemek yerine çalışan uygulamayı ortaya çıkarmaya odaklanalım.
+
+Kullanıcı eki
+Gemini 3.8 FlashRan for 12m 41s
+
+Action history
+
+Here are key actions taken for the app:
+
+Edited 13 files
+
+PROJECT_AUDIT.md
+
+src/types.ts
+
+src/services/storage.ts
+
+src/services/audioEngine.ts
+
+src/services/localization.ts
+
+src/components/BigScreenModal.tsx
+
+src/components/SleepTimerModal.tsx
+
+src/components/PlayerBar.tsx
+
+src/App.tsx
+
+src/components/Sidebar.tsx
+
+src/components/DesktopHeader.tsx
+
+FEATURE_CHECKLIST.md
+
+KNOWN_LIMITATIONS.md
+
+Built
+
+RadioCast master dönüşüm ve mimari uygulama süreci şartnameye, Faz 0 envanterine ve 16 kabul kriterine uygun şekilde tamamlandı.
+
+Faz Bazlı Uygulama Raporu
+
+
+böyle dedi arayüz değişmedi aramada sorun var arıyorum aramada çıkmıyor ve türkçe olacak podcastler sdece ama yok değil yabancılarda araya girmiş güncel olanlara göre sıralanacak.
+
+…
+RadioCast henüz istediğimiz seviyeye gelmemiş. Ekran görüntüsünü ve Gemini'nin uygulama raporunu inceledim. Şu anda yeni özellikler eklenmiş ancak asıl hedefimiz olan TuneWake benzeri modern tasarım, doğru çalışan arama motoru ve güncel Türkçe podcast keşfi tamamlanmamış.
+
+Tespit ettiğim sorunlar
+Sorun
+
+Ne yapılmalı?
+
+Arayüz büyük ölçüde aynı
+
+Gerçek bir UI/UX yeniden tasarımı
+
+Aramada içerikler bulunmuyor
+
+Yerel katalog + canlı API aramasını düzeltme
+
+Podcastlerde yabancı içerik var
+
+Yalnızca Türkçe yayınları gösterme
+
+Eski podcastler öne çıkıyor
+
+Son yayınlanan bölüm tarihine göre sıralama
+
+Ekranda 647 radyo, raporda 629 var
+
+Veri sayısını ve tekrarları açıklama
+
+4 errors running the code uyarısı
+
+Çalışma zamanı hatalarını giderme
+
+En önemli nokta şu: tsc --noEmit ve derleme testlerinin hatasız geçmesi, uygulamanın gerçekten sorunsuz çalıştığını kanıtlamaz. Ekranda görünen dört hata ayrıca incelenmeli.
+
+Podcastlerin güncelliğini belirlemek için programın kataloğa eklenme tarihini değil, RSS beslemesindeki en son gerçek bölümün yayın tarihini kullanmak gerekiyor. Apple'ın RSS belgeleri de bölüm yayın tarihini bu amaçla tanımlıyor. 
+
+Apple Podcasts for Creators
++1
+
+Google AI Studio'ya göndereceğin düzeltme komutu
+Bunu mevcut RadioCast projesinin mesaj alanına gönder. Yeni bir plan hazırlatmak yerine, mevcut kodu gerçekten düzeltmesini ve arayüzü yeniden tasarlamasını isteyeceğiz.
+
+RadioCast — Zorunlu UI/UX, Arama ve Türkçe Podcast Düzeltmesi
+Önceki dönüşüm sonrasında uygulamayı kontrol ettim. Sonuç beklentilerimi karşılamıyor. Arayüz büyük ölçüde eski haliyle kalmış, arama düzgün çalışmıyor, podcastler arasında yabancı yayınlar bulunuyor ve podcastler güncelliğe göre sıralanmıyor. Ayrıca Preview ekranında "4 errors running the code" uyarısı bulunuyor.
+
+Bu bir planlama isteği değildir. Mevcut kaynak kod üzerinde gerçek düzeltmeler ve görünür tasarım değişiklikleri yapmanı istiyorum.
+
+1. Öncelikle çalışma zamanı hatalarını gider.
+
+Preview ekranındaki dört hatanın gerçek hata mesajlarını, stack trace bilgilerini ve kaynak dosyalarını incele. Hataların kök nedenlerini düzelt. Sadece TypeScript derlemesinin başarılı olması yeterli değil. Preview açılmalı, uygulama çalışmalı ve konsolda çözülmemiş uygulama hataları kalmamalı.
+
+2. RadioCast arayüzünü gerçekten yeniden tasarla.
+
+TuneWake'in sade ve kullanışlı ürün yaklaşımını referans al; ancak RadioCast'e ait özgün, modern, premium bir tasarım geliştir.
+
+Sadece renk, font veya buton köşelerini değiştirmek yeterli değil. Mevcut sayfa yerleşimini ve bileşenlerin görsel hiyerarşisini gerçekten iyileştir.
+
+Temiz, profesyonel, koyu Slate ve Gece Mavisi tasarım.
+
+Masaüstünde düzenli navigasyon, geniş global arama ve modern içerik kartları.
+
+Keşfet ekranında canlı radyolar, güncel Türkçe podcastler, kategoriler ve son dinlenenler.
+
+Radyo ve podcast için ayrı, anlaşılır keşif alanları.
+
+Podcast kartlarında kaliteli kapak, program adı, yayıncı, kategori ve son bölüm tarihi.
+
+Podcast detayında büyük kapak, açıklama, takip butonu ve gerçek bölüm listesi.
+
+Her ekranda çalışan sabit mini oynatıcı.
+
+Mobilde gerçek responsive navigasyon ve tam ekran oynatıcı.
+
+Yükleniyor, hata, boş sonuç ve bağlantı kesilmesi ekranları.
+
+Gereksiz renkli etiketleri, kalabalık görünümü ve anlamsız dekoratif öğeleri azalt.
+
+Eski ekran ile yeni ekran arasında açıkça görülebilen tasarım farkı olmalı. TuneWake'in logosunu veya tescilli varlıklarını kopyalama.
+
+3. Arama motorunu kökten düzelt.
+
+Üst arama alanı, anlık öneriler ve /search sonuç sayfası tamamen işlevsel olsun.
+
+Arama şu kaynakları birleştirsin:
+
+Mevcut 629 yerel radyo kaydı.
+
+Radio Browser API üzerindeki gerçek dünya radyoları.
+
+Mevcut 133 Türkçe podcast.
+
+Gerçek Türkçe podcastleri keşfetmek için Apple Podcasts araması ve doğrulanmış RSS kaynakları.
+
+Arama sonuçlarında üç sekme olsun: Tümü, Radyolar, Podcastler.
+
+Arama yapılırken ilk olarak yerel kayıtlar kontrol edilsin; harici API sonuçları da getirilsin. Sonuçlar normalize edilsin, tekrarlar ayıklansın ve ilgili sonuçlar üstte gösterilsin.
+
+Şu özellikler çalışmalı: 300 ms debounce, temizle butonu, Enter ile arama, anlık öneriler, doğru sonuç sayfası, filtreler, sayfalama veya daha fazla yükleme, yükleniyor durumu, sonuç yok durumu, hata mesajı ve yeniden deneme.
+
+Türkçe karakterler ve büyük/küçük harfler doğru eşleşmeli. ı/i, İ/i, ş/s, ğ/g, ö/o, ü/u, ç/c gibi arama varyasyonlarını güvenli bir normalizasyonla destekle.
+
+Şu aramaları test et: Kafa Radyo, TRT, Kral Pop, Evrim Ağacı, Socrates, Beyhan Budak. Bunları sahte sonuç olarak ekleme; gerçek katalogda veya API'de mevcut olanları göster.
+
+Eski veya gecikmiş ağ yanıtları yeni arama sonuçlarını değiştirmesin.
+
+4. Podcast kataloğu yalnızca Türkçe olsun.
+
+BU ZORUNLU BİR ÜRÜN KURALIDIR.
+
+Podcast keşif, kategori, öneriler, popülerler ve arama sonuçlarında yalnızca Türkçe dilinde yayın yapan podcastler gösterilsin.
+
+Türkiye mağazasından gelen bir podcast otomatik olarak Türkçe kabul edilmesin. Apple API'sinde country=TR kullanmak tek başına yeterli değildir.
+
+Podcastin gerçek dilini RSS language bilgisi veya güvenilir katalog metadatasıyla doğrula. Mevcut doğrulanmış 133 Türkçe podcasti koru. Dil bilgisi belirsiz yeni podcastleri doğrulanana kadar genel katalogda gösterme.
+
+İngilizce, Rusça veya başka dilde podcastler Türkçe katalog arasına karışmasın. Bu sınırlama yalnızca podcastler içindir; dünya radyolarının dil ve ülke seçenekleri korunmalıdır.
+
+5. Podcastleri gerçek güncelliğe göre sırala.
+
+Podcast ana sayfasında varsayılan sıralama "En Yeni Bölüm" olsun.
+
+Her podcastin gerçek RSS beslemesindeki geçerli bölümleri incele. En yeni bölümün pubDate değerini hesapla ve podcastleri bu tarihe göre en yeniden eskiye sırala.
+
+Kataloğa eklenme tarihini, rastgele sıralamayı, eski popülerlik puanını veya doğrulanmamış Apple tarihlerini son bölüm tarihi olarak kullanma.
+
+Podcast kartlarında "Son bölüm: [gerçek tarih]" göster.
+
+Sıralama seçenekleri: En Yeni Bölüm, Popüler, A–Z.
+
+Podcast detay sayfasında bölümler varsayılan olarak yeniden eskiye sıralansın; kullanıcı eskiden yeniye de çevirebilsin.
+
+Çok uzun süredir yeni bölüm yayınlamayan podcastler silinmesin ama güncel podcastlerin önünde gösterilmesin.
+
+RSS beslemeleri uygun süreyle cache'lensin, eşzamanlı istekler sınırlansın ve katalog gereksiz yere her sayfa açılışında yeniden çekilmesin. Cache yenilenmesi kullanıcıya sahte tarih göstermesin.
+
+6. Podcast oynatma işlevlerini doğrula.
+
+Bir programa tıklandığında gerçek RSS bölümleri açılmalı.
+
+Her bölümde gerçek başlık, açıklama, tarih, süre ve oynatılabilir ses bağlantısı kullanılmalı.
+
+Oynat/Duraklat, 15 saniye geri, 30 saniye ileri, bölüm değiştirme, oynatma hızı ve kaldığı yerden devam özellikleri gerçekten çalışmalı.
+
+Podcast oynarken başka sayfaya geçmek sesi kesmemeli. Yeni bölüm veya radyo seçildiğinde yalnızca seçilen ses kaynağı çalmalı.
+
+RSS, CORS veya ses bağlantısı hatası olursa gerçek nedeni göster. Sahte ses dosyası veya placeholder içerik ekleme.
+
+7. Radyo kataloğunu ve sayaçları düzelt.
+
+Mevcut 629 yerel radyo kaydını koru.
+
+Preview ekranında "647 İstasyon" yazıyor. Bu farkın neden oluştuğunu kod üzerinden belirle. Yerel kayıtlar, fallback kayıtları ve API'den gelen istasyonlar nasıl birleşiyor, raporla.
+
+Aynı istasyonların tekrarını kaldır; ancak farklı ve gerçek istasyonları kaybetme.
+
+Gösterilen sayı, ekranda erişilebilir benzersiz istasyon sayısını doğru temsil etsin.
+
+Gerçek radyo yayınları, oynatma hataları, filtreler ve arama bağlantıları çalışmalı.
+
+8. Gerçek testleri yap ve kanıtla.
+
+Her değişiklikten sonra derleme ve erişilebilir testleri çalıştır.
+
+Şunları özel olarak doğrula:
+
+Preview çalışma zamanı hataları giderildi mi?
+
+Arama kutusundan radyo bulunuyor mu?
+
+Arama kutusundan Türkçe podcast bulunuyor mu?
+
+Yabancı dilde podcastler katalogdan ayıklandı mı?
+
+En yeni bölüme sahip podcastler gerçekten önce mi geliyor?
+
+Podcast detayında gerçek bölümler açılıyor mu?
+
+Bölüm ses dosyası oynatılabiliyor mu?
+
+Mobil ve masaüstünde tasarım gerçekten değişti mi?
+
+Sayfa geçişinde ses motoru korunuyor mu?
+
+Favoriler, geçmiş ve eski katalog verileri bozulmadan kaldı mı?
+
+Bir testi çalıştıramıyorsan test edildiğini veya başarılı olduğunu iddia etme.
+
+9. Mevcut projeyi koru ve uygulamayı tamamla.
+
+src/App.tsx, src/components/DesktopHeader.tsx, src/components/Sidebar.tsx, arama bileşenleri, podcast servisleri, src/services/audioEngine.ts, Express API katmanı ve ilgili stilleri inceleyerek gereken kod değişikliklerini yap.
+
+Mevcut kullanıcı verilerini, 133 podcast katalog kaydını, 629 radyo kaydını ve çalışan özellikleri koru.
+
+Sadece yeni bir implementation_plan.md veya kontrol listesi yazıp tamamlandı deme. Gerçek React bileşenlerini, servisleri ve stilleri güncelle.
+
+İşin sonunda değiştirdiğin dosyaları, düzelttiğin hataları, arama ve RSS testlerinin gerçek sonuçlarını ve doğrulanamamış noktaları raporla.
+
+Öncelik sırası: Önce dört çalışma zamanı hatası, ardından arama, ardından yalnızca Türkçe ve güncel podcast kataloğu, ardından belirgin UI/UX yenilemesi ve son olarak tüm sistem testleri.
+
+Hedefim çalışan, Türkçe podcast odaklı, dünya radyolarını da destekleyen, modern ve kullanımı kolay bir RadioCast uygulamasıdır. Kod değişikliklerini şimdi uygula.
+
+Apple Podcasts Search API'si podcast araması ve bölümler için destek sağlıyor; ancak yalnızca Türkiye mağazasını seçmek Türkçe içerik garantisi vermiyor. Bu nedenle komuttaki RSS dil doğrulaması önemli. 
+
+Apple Services Performance Partners
+
+Bundan sonra ne yapalım?
+Bu mesajı AI Studio'daki normal sohbet alanına gönder; şu aşamada yeniden Revise kullanmana gerek yok.
+
+Bir de önemli ayrıntı: Ekran görüntüsündeki 4 errors kutusunda Fix butonu var. Yeni komutu göndermeden önce ona basıp hata ayrıntılarını görüntüleyebilirsin. Çünkü arama sorununun bir kısmı bu çalışma zamanı hatalarından kaynaklanıyor olabilir.
+
+Bu sefer yalnızca Gemini'nin “tamamlandı” demesini kabul etmeyeceğiz. Gerçek arama sonuçlarında Türkçe podcastleri, en son bölüm tarihlerini ve değişmiş arayüzü birlikte kontrol edeceğiz.
+
+Kullanıcı eki
+Kullanıcı eki
+şöyle arama yapıyorum ama arama çok kullanışlı değil ki ve tüm sonuçlark keşfet diyince arama sayfası gelmesi lazım sonuçları yani ama anasayfa geliyor ayrıca vercelde podcastler yine ingilizce vs. geliyor ama https://radiocast.ai.studio/#discover
+
+
+burda normal
+
+
+vercel linkide şöyle:
+
+
+https://radiocastlive.vercel.app/#discover
+
+
+ikisinide detaylı analiz etsene ona göre promt verelim düzeltsin hatta başka ui felande düzeltmeleri vs. de olabilir
+
+İki adresi ve gönderdiğin ekran görüntülerini karşılaştırdım:
+
+RadioCast — AI Studio
+
+RadioCast — Vercel
+
+Temel problem yalnızca arama kutusunun tasarımı değil. Arama, sayfa yönlendirme, sonuçların alaka düzeyi, podcast dil filtresi ve yayınlanan sürümün tutarlılığı birlikte ele alınmalı.
+
+Bir sınır var: Her iki adresin sayfa kabuğuna web üzerinden erişebildim; ancak uygulamalar tarayıcıda JavaScript ile oluşturulduğundan canlı arama ve API yanıtlarını doğrudan çalıştırarak doğrulayamadım. Aşağıdaki görsel tespitler ekran görüntülerine, Vercel farkı ise senin bildirdiğin davranışa dayanıyor.
+
+1. Mevcut arama neden kullanışlı değil?
+Spotify, adding a filtering and search feature to improve podcast search and curation — Alis Atagan
+Arama sonuçları küçük bir açılır pencereye sıkışmış.
+
+Sen yazılım aradığında alt alta altı podcast çıkıyor. Liste kendi içinde kaydırılıyor, kategoriler net ayrılmıyor ve daha fazlasını görmek zorlaşıyor.
+
+Ekran görüntüsünde ayrıca şu sorunlar var:
+
+“Tüm sonuçları Keşfet sekmesinde listele” bağlantısı yanlış yönlendirme mantığına sahip. Arama sonuç sayfası yerine ana sayfaya dönüyor.
+
+“Yazılımcının Dünyası” hem büyük öneri kartında hem sonuç listesinde tekrar gösteriliyor.
+
+“FutbolEkonomi Seslendirilmiş Yazılar” gibi, yazılım aramasıyla zayıf ilişkili sonuçlar üst sıralara karışıyor.
+
+Arama sonucu kartlarında son bölüm tarihi, güncellik ve podcast dili görünmüyor.
+
+Radyo sonuçları, podcast sonuçları ve toplam sonuç sayıları yeterince açık değil.
+
+İstediğim değişiklik: Açılır panel en fazla 5–6 güçlü öneri göstersin. Kullanıcı Enter'a bastığında veya “Tüm sonuçlar” bağlantısını seçtiğinde, bütün sonuçlar ayrı bir tam sayfa arama ekranına taşınsın.
+
+2. Ana sayfanın tasarımındaki sorunlar
+Gönderdiğin masaüstü görüntüsünde de tasarım açısından iyileştirebileceğimiz noktalar var:
+
+Mevcut durum
+
+İstenen değişiklik
+
+Geniş ve birbirine benzer radyo kartları
+
+Daha kompakt, ayırt edilebilir istasyon kartları
+
+Farklı radyolarda aynı genel konser görseli
+
+Gerçek istasyon logosu, yoksa sade yedek görsel
+
+Son dinlenenlerde yatay kaydırma belirsiz
+
+Görünür kaydırma kontrolleri
+
+Radyo kataloğu ana sayfayı dolduruyor
+
+Radyo ve güncel Türkçe podcast bölümlerini dengeli dağıtma
+
+Alt oynatıcı içerik üzerine oturuyor
+
+İçeriğe yer ayıran, responsive sabit oynatıcı
+
+Bazı İngilizce tür ve sistem etiketleri
+
+Tam Türkçe kullanıcı arayüzü
+
+Burada RadioCast markasını ve koyu temasını koruyalım, fakat yalnızca renk değiştirmek yerine sayfa düzenini ve kullanıcı akışlarını gerçekten yenileyelim.
+
+3. AI Studio ile Vercel neden farklı çalışıyor olabilir?
+Bu farkı özellikle ciddiye alıyorum. Çünkü AI Studio'da Türkçe görünen podcastlerin Vercel'de yabancı yayınlarla karışması, yalnızca görsel bir sorun değil.
+
+Olası neden
+
+Yapılması gereken kontrol
+
+Vercel'de eski kod çalışıyor
+
+Commit ve deployment sürümlerini karşılaştır
+
+Üretimde farklı API kullanılıyor
+
+API adreslerini ve yanıtlarını kontrol et
+
+Express/RSS sunucusu eksik dağıtılmış
+
+Vercel Functions ve API rotalarını doğrula
+
+Dil filtresi sadece bazı ekranlarda var
+
+Ortak podcast veri servisinde filtre uygula
+
+Eski veriler önbellekte kalmış
+
+Cache sürümünü ve yenileme mantığını kontrol et
+
+Vercel'in Preview ve Production ortamları ayrı değişkenler kullanabiliyor. Üstelik Express uygulaması doğru yapılandırılmazsa önizlemede çalışan API, üretimde aynı şekilde çalışmayabilir. Bu yüzden yalnızca yeniden deploy etmek yerine bu iki konunun da denetlenmesi gerekiyor. 
+
+Vercel
++2
+
+Bir başka önemli ayrıntı: RadioCast şu anda #discover biçiminde adres kullanıyor. Bu, hash tabanlı navigasyona işaret ediyor. Dolayısıyla arama sonuç sayfasını eklerken mevcut rota sistemine uygun bir URL oluşturulmalı; sırf /search yazmak yeterli olmayabilir. 
+
+React Router
+
+4. Google AI Studio için kapsamlı düzeltme dosyası
+RadioCast — Arama, Türkçe Podcast, UI ve Vercel Master Düzeltme
+
+Markdown · 18,6 KB · 129 satır · 5 uygulama fazı
+
+ Düzeltme dosyasını indir
+
+Dosya, ekran görüntülerindeki sorunlara özel hazırlandı. Arama sonuç sayfasının davranışını, sonuçların alaka sıralamasını, Türkçe podcast doğrulamasını, RSS güncellik hesabını, görsel yeniden tasarımı ve Vercel üretim testlerini kapsıyor.
+
+Özellikle podcastler için RSS language alanını ve gerçek bölüm pubDate bilgisini esas almasını istiyorum. Bu iki alan Apple Podcasts'in RSS tanımlarında da yer alıyor. 
+
+help.apple.com
+
+AI Studio'ya göndereceğin komut
+Dosyayı mevcut projeye ekle ve aşağıdaki mesajı gönder:
+
+RadioCast uygulamamın AI Studio ve Vercel sürümlerini karşılaştırdım. Hâlâ önemli işlevsel ve tasarımsal sorunlar var.
+
+Eklediğim RadioCast — Arama, Türkçe Podcast, UI ve Vercel Master Düzeltme dosyasındaki tüm maddeleri mevcut kaynak koduma uygula.
+
+Bu bir yeni proje oluşturma veya yalnızca plan hazırlama isteği değildir. Gerçek kod değişiklikleri yapmanı istiyorum.
+
+ÖNCELİKLER:
+
+Arama kutusunun çalışma mantığını yeniden düzenle. Enter veya "Tüm sonuçları gör" butonu kullanıcıyı Keşfet ana sayfasına değil, aradığı sorgunun tam sonuç sayfasına götürsün.
+
+Arama sonuçları alakalı, düzenli ve kolay kullanılabilir olsun. Aynı sonuçları tekrarlama. Radyo ve podcast sonuçlarını ayrı sekmelerde göster.
+
+Podcastler yalnızca Türkçe olsun. Bu kural tüm keşif, öneri, kategori ve arama ekranlarında, hem AI Studio hem Vercel sürümünde geçerli olsun.
+
+Podcastleri RSS üzerinden gerçek son yayınlanan bölüm tarihine göre en yeniden eskiye sırala. Her podcast kartında son bölüm tarihini göster.
+
+Mevcut RadioCast arayüzünü belirgin şekilde yeniden tasarla. Sadece renk ve font değiştirme. Kartları, arama ekranını, menüleri, podcast keşif alanını, filtreleri, oynatıcıyı ve mobil tasarımı iyileştir.
+
+AI Studio'da doğru görünen verilerin Vercel'de neden farklı çıktığını gerçek kod, API, cache, environment ve deployment kayıtlarından araştır. Kök nedeni gider.
+
+Mevcut radyo ve podcast kataloglarını, kullanıcı favorilerini, geçmişi ve çalışan özellikleri koru.
+
+Her özelliği gerçek kullanıcı akışıyla test et. Yalnızca derleme başarılı diye projeyi tamamlanmış sayma.
+
+ÖNEMLİ: Vercel ortamına doğrudan erişimin yoksa bunu açıkça bildir ve gerekli production düzeltmelerini kod ve deployment yapılandırmasında hazırla. Erişemediğin sistemi test edilmiş gibi gösterme.
+
+Dosyadaki kabul testlerini tek tek uygula, sonrasında yapılan değişiklikleri, gerçek test sonuçlarını ve kalan hataları raporla.
+
+Artık yeniden plan oluşturma. Gerekli dosyaları incele ve uygulamayı gerçekten düzeltmeye başla.
+
+Benim önerim, önce bu düzeltmeyi yaptırman ve özellikle yazılım aramasının tam sonuç sayfasına geçmesini, podcastlerin yalnızca Türkçe görünmesini ve en güncel bölüm tarihlerine göre sıralanmasını kontrol etmen.
+
+Bu üçü doğru çalıştıktan sonra arayüzün görsel kalitesine ve Vercel'deki gerçek kullanıcı deneyimine odaklanabiliriz.
+
+
+RadioCast_AIStudio_Vercel_Arama_Podcast_UI_Master_Duzeltme.md
+Belge
+RADIOCAST — GOOGLE AI STUDIO + VERCEL ORTAK DÜZELTME TALİMATI
+Arama deneyimi, Türkçe podcast filtreleme, son bölüm tarihine göre sıralama, tasarım ve deployment eşitliği
+İSTEK TÜRÜ: Mevcut kaynak kod üzerinde doğrudan uygulama + gerçek test + dağıtım teşhisi. Yeni bir plan üretip durma. Gereksiz sıfırdan yeniden yazma yapma.
+
+İncelenecek ortamlar:
+
+AI Studio: https://radiocast.ai.studio/#discover
+Production/Vercel: https://radiocastlive.vercel.app/#discover
+Kullanıcının bildirdiği, düzeltilmesi gereken somut problemler:
+
+Arama kutusuna yazılım yazıldığında yalnızca uzun/kaydırmalı bir öneri popup'ı açılıyor; "Tüm sonuçları Keşfet sekmesinde listele" seçilince arama sonuç sayfası yerine ana sayfaya dönüyor.
+Aynı podcast hem öne çıkan öneride hem listede yineleniyor; arama alaka düzeyi düşük sonuçlar da gösteriyor. Radyo ve podcast arama sonuçlarının tam sayfada düzenli görülmesi gerekiyor.
+AI Studio'da Türkçe görünen podcast kataloğuna Vercel'de yabancı dilde podcastler karışıyor. Genel podcast keşif ve aramada yalnızca Türkçe içerik bulunmalı. Radyo kataloğu global kalacak.
+Podcastlerin varsayılan sırası gerçek son yayınlanan bölüm tarihine (RSS pubDate) göre en yeniden en eskiye olmalı; içerik yoksa güncel gibi gösterme.
+Ana sayfa eskimiş/yoğun: aynı görseller birçok farklı radyoda tekrar ediyor; yatay son dinlenenler şeridi, yerleşim, alt oynatıcı ve kart hiyerarşisi iyileştirilmeli.
+AI Studio ve Vercel aynı davranışı göstermeli; yalnız derleme başarısıyla 'tamamlandı' denmemeli.
+BAĞLAYICI ÜRÜN KURALLARI
+RadioCast adı korunsun. TuneWake'in sade kullanım fikrinden yararlan, logosunu veya özgün materyalini kopyalama. Kullanıcıya sunulan varsayılan arayüz Türkçe olsun. Uygulamanın başka arayüz dillerine geçişi korunabilir, podcast içeriği daima sadece Türkçe olsun.
+Var olan 133 kayıtlı podcast, 629 yerel radyo, 34 fallback, favori listeleri, oynatma geçmişi, çalma listeleri, saklama anahtarları, ses motoru ve işleyen özellikler yedeksiz silinmesin. Katalog varlığını korumak, tamamını filtrelemeden kamuya göstermek anlamına gelmez.
+Sahte veri, sahte 'oynuyor', sahte podcast bölüm tarihi, sabitlenmiş örnek arama cevabı, sahte test sonucu ekleme.
+Mevcut #discover hash tabanlı gezinmenin gerçek uygulamasını önce tespit et; var olan bağlantıları bozmadan arama için gerçek rota ekle.
+Önce gerçek kod ve dağıtım sorununu teşhis et, ardından kod değişikliği yap; yalnız plan veya checklist yazma.
+FAZ A — GERÇEK KOD VE İKİ ORTAM DENETİMİ (ÖNCELİKLİ)
+Projede şu dosyaları ve gerçek karşılıklarını incele: src/App.tsx, arama input/popover/sonuç komponentleri, src/components/DesktopHeader.tsx, src/components/Sidebar.tsx, src/services/*search*, src/data/generatedPodcastCatalog.json, src/data/allTurkishStations.json, src/services/audioEngine.ts, server.ts, src/serverApp.ts, RSS proxy ve Apple/Radio Browser servisleri, package.json, vite.config.*, vercel.json, CI/Git/deployment ayarları.
+AI Studio'da çalışan commit/bundle sürümü ile Vercel production'da sunulan commit/bundle sürümünü karşılaştır. Gerçek build commit SHA, deployment ID, timestamp ve API base URL kaynaklarını raporla. Her iki ortam gerçekten aynı kaynak kodu ve veriyi mi sunuyor?
+Vercel'de Production ile Preview çevre değişkenleri, Vite build-time env değerleri, deploy branch, output directory ve son başarılı production deployment'ı kontrol et. Gizli değerleri loglama.
+server.ts/`src/serverApp.ts` Express kaynaklarının Vercel'de fiilen deploy edilip edilmediğini, /api/... isteklerinin gerçek HTTP durumlarını, response content-type'larını, serverless/rewrite yapılandırmasını kontrol et. HTML dönen yanlış API adresini 'başarılı JSON' sayma. Vite SPA catch-all rewrite kuralının /api fonksiyonlarını yutmamasını sağla.
+10 örnek RSS isteğinde, 10 radyo aramasında ve 5 podcast aramasında browser DevTools Network + Console, Vercel function logs ve response statuslarını kontrol et: 404/405/500, CORS, timeouts, 429, cache, JSON.parse hatası, response shape farkı, başarısız RSS parse, fallback'e sessiz geçiş, yanlış ülkede/ dilde Apple search.
+Eğer eski service worker, localStorage cached catalog veya CDN eski bundle'a neden oluyorsa sürümlemeyle çöz; kullanıcı favorilerini/kişisel kayıtlarını temizleyerek sorunu gizleme.
+AI Studio ve Vercel'in farklı sonuç vermesinin kanıtlanmış nedenini belirle. Doğrulanmayan nedeni kesinmiş gibi raporlama. Deployment erişimin yoksa eksik erişimi belirt; proje tarafındaki gerekli dosyaları yine de düzelt ve deploy için somut komutları yaz.
+FAZ B — ARAMA: HIZLI ÖNERİ + GERÇEK TAM SAYFA SONUÇLARI
+Yeni akış
+Kullanıcı üst aramaya yazılım yazınca debounce (~250–350 ms) ile az sayıda gerçek, alakalı öneri göster. Öneri paneli tüm uygulamayı kaplamasın ve iç içe gereksiz scrollbar olmasın.
+Popup'ta en fazla 3 radyo + 5 podcast veya sorguya uygun daha az öğe; kayıt iki kez gösterilmesin. Kayda tıklama detayına gider; ses çalmak için ayrı oynat butonu olsun.
+Popup sonunda büyük, anlaşılır “yazılım” için tüm sonuçları gör bağlantısı olsun; Enter, arama ikonunun gönder eylemi ve bu bağlantı AYNI tam sayfa sonuç ekranını açsın. Hiçbiri #discover ana sayfasına geri dönmesin.
+Hash routing mevcutsa gerçek uygulamayla uyumlu /#search?q=yaz%C4%B1l%C4%B1m&type=all ya da /#/search?q=... gibi tek ve tutarlı rota seç; mevcut router'a uygun kod kullan. Hard-coded rota varsayma. Geri/ileri gezinme, yenileme, link kopyalama ve doğrudan açma çalışsın. Yer imine alınan sonuç sayfası aynı sorguyu geri getirsin.
+Tam sonuç ekranında büyük “yazılım” için arama sonuçları başlığı; arama kutusu; Tümü | Radyolar | Podcastler sekmeleri; doğru (gerçek veya açıklanmış) sonuç adetleri; radyo için ülke/tür/dil, podcast için kategori/güncellik filtreleri; Alaka | En yeni bölüm | A–Z sıralama seçenekleri ilgili moda göre görünsün.
+Tümü sayfasında radyo ve podcast bölümleri ayrı başlıklarda; her bölümde Tüm radyoları gör / Tüm podcastleri gör eylemi olsun. Her alt sekmede kendi filtreleri ve Daha fazla yükle veya sayfalama çalışsın. URL'de sorgu + aktif tür + filtreler senkronize olsun.
+Boş sonuç, hata, yükleniyor, çevrimdışı ve tekrar dene durumları birbirinden ayrı olsun. API toplam sayıyı vermiyorsa kesin sayı uydurma. Escape ile öneri kapanmalı; X aramayı temizlemeli; klavyede yukarı/aşağı + Enter ve odak yönetimi çalışmalı.
+Relevance / skor
+Sorguyu Unicode-aware ve Türkçe diline duyarlı normalize et. yazılım ile yazilim gibi varyantlar çalışmalı, ancak dönüşümler gereğinden geniş yanlış eşleşme yaratmamalı.
+Öncelik: tam başlık eşleşmesi > başlık başında kelime/ifade eşleşmesi > başlık içi sözcük > yayıncı eşleşmesi > konu/kategori/etiket > açıklama. Sadece açıklamada tesadüfen geçen kelimeyle çok zayıf sonuçları başa taşıma.
+yazılım testinde Yazılımcının Dünyası ve uygun teknoloji/yazılım yayınları yüksek; alakasız görünen FutbolEkonomi Seslendirilmiş Yazılar, Ekspertiz Yazılımı gibi programlar yalnız gerçek konu ilişkisi varsa daha aşağıda olmalı. Sonucu yalnız bu örnekler için elle sabitleme; genel sıralama algoritmasını düzelt.
+Türkçe + Kiril dahil Unicode araması ve boş sorgu politikası; input güvenliği; stale result cancellation (AbortController, request ID); farklı veri kaynaklarından dedup. Podcast için feed URL / collection ID; radyo için stationUUID + normalize edilen stream/name kimliği.
+Popover ve full-page query aynı arama servisini kullansın; görünüm değişince sonuç kümesi tutarlı kalsın. Arama algoritması API yanıtlarını sabit biçime normalize etsin.
+FAZ C — PODCASTLER SADECE TÜRKÇE, GERÇEK GÜNCELLİĞE GÖRE
+Dil tutarlılığı
+country=TR yalnızca Apple arama mağazası kapsamıdır; podcastin dilinin Türkçe olduğu kanıtı değildir. RSS channel.language (tr, tr-TR gibi), var olan güvenilir yerel katalog onayı ve destekleyici metadata ile isTurkishPodcast benzeri merkezi bir filtre oluştur.
+Bu kural tek noktada sunucu/veri katmanında uygulanmalı ve discover, podcasts, search, recommendations, categories, trending, recent, related gibi bütün genel podcast listeleri aynı filtrelenmiş katalogdan beslenmeli. Sadece ekranda filtrelemek yasak; başka sayfa veya Vercel API sonucu filtresiz kalmamalı.
+Mevcut 133 kaydı silme; güvenilir Türkçe içeriği koru. Dil doğrulanmıyorsa yeni dış podcasti genel sonuçlara sokma; kontrollü pending/unknown statüsü saklayabilirsin. Mevcut kullanıcı tarafından manuel RSS eklenen yabancı yayını kişisel kütüphanede saklamak ayrı bir karar olabilir fakat genel keşfe karıştırma.
+Arayüz TR/EN/RU dillerine çevrilse dahi genel podcast içeriği Türkçe kalsın. Radyo filtreleri ve dünya radyo kataloğu etkilenmesin.
+AI Studio ve Vercel'de aynı dil filtresi, aynı katalog sürümü, aynı RSS/API response işleme, aynı cache anahtarı ve source=local/api kararları kullanılmalı. Farklı localStorage tercihlerinin neden olduğu farklılık varsa kullanıcıya anlaşılır hale getir.
+Güncellik
+Her podcastin latestEpisodeAt değeri RSS'deki gerçekten yayınlanmış oynatılabilir bölümlerden en son geçerli pubDate alınarak hesaplanmalı. lastBuildDate, kataloğa eklenme zamanı veya API cache refresh tarihi bölüm tarihi yerine kullanılmamalı.
+Tarihleri timezone-aware parse et; geçersiz, aşırı gelecek veya eksik tarihli bölümleri dikkatle ele al. RSS çekilemediyse son başarıyla doğrulanan veriyi stale olarak etiketle; güncelmiş gibi new Date() üretme.
+Podcast keşfinde varsayılan sıra En yeni bölüme göre azalan; ikinci sıra Popüler, üçüncü A–Z. Kullanıcı seçimi URL ve tercihte korunabilir. Aynı tarihte adla stabil sıralama.
+Program kartında Son bölüm: 2 Kasım 2026 gibi gerçek tarih (varsa) + zaman aşımı durumunu; program detayında gerçek kronolojik bölüm listesi, yayıncı, kapak, açıklama ve oynatılabilir enclosure bilgisi olsun. Bölüm bilgisi alınamadı gibi dürüst durumlar göster.
+Yenileme maliyetini azaltmak için merkezi caching ve sınırlı concurrency kullan, örneğin 3–6 saatlik TTL ve stale-while-revalidate, ETag/Last-Modified desteklenirse koşullu istek. Tüm 133 beslemeyi her aramada istemci tarafında tekrar çekme.
+Tekilleştirme, bozuk RSS, eksik enclosure, rate-limit, CORS, SSRF redirect/DNS kontrolü, başlık HTML sanitization ve cache invalidation ele alınmalı. Kullanıcı tarafında yalnız izin verilen kaynaklar görünmeli.
+FAZ D — GÖRSEL KALİTEYİ BELİRGİN YÜKSELT
+Görsel hedef
+Mevcut koyu kimliği kullan ama şimdiki kara arka plana sıkışmış ve büyük, birbirini tekrarlayan kart yerleşimini premium ve sade bir ürüne dönüştür. Renkler #0A0F17 / #111A26 ve yeşil/mavi vurgu tek tutarlı sistemde seçilsin; tüm butonları neonlaştırma.
+Masaüstü: kompakt 220–240px sol menü, temiz üst arama, anlamlı bölüm hiyerarşisi, geniş içerik alanı, görünür tablar/filtreler, yüksek okunabilirlik. Keşfet'te son dinlenenler, popüler canlı yayın, en yeni Türkçe podcastler, kategoriler; her blokta Tümünü gör gerçek rotaya gider.
+İstasyon kartlarını daha az ama daha anlamlı verilerle düzenle. Gerçek istasyon görseli varsa göster; yoksa aynı mikrofon/konser fotoğrafını herkese yapıştırma, radyo adından üretilen tipografik/monogram placeholder göster. Görsellerde aspect ratio ve lazy loading.
+Podcast kartları: gerçek kare kapak, program adı, yayıncı, Son bölüm tarihi, takip, detay ve play ayrı davranışlı. Kategori etiketleri Technology, Football, Management gibi ham İngilizce kalmasın; Türkçe karşılıklarını tanımla.
+Uzun yatay şeritlerin kaydırma yönü anlaşılır olsun; ileri/geri oklar, fade veya snap, klavyeyle kullanım. Sayfanın çift scrollbar oluşturmasını ve arama popup'ının arkasını okunmaz bırakmasını engelle.
+Kalıcı player masaüstünde alanı mantıklı kullansın; içerik player altında kaybolmasın, responsive bottom inset hesapla. Sadece podcastte seek/süre/hız/15sn geri-30sn ileri; radyoda LIVE; tüm durumlar gerçek audio state'e bağlı.
+Mobil 360, 390, 430, tablet 768, desktop 1280/1440 genişliklerinde uygun sayıda sütun, 44px dokunma hedefi, fixed mini-player + mobil nav çakışmasız, safe-area, erişilebilir arama dialog'u, klavye/focus ve reduced motion.
+Boş durum, error, skeleton, no artwork, no last date ve offline için tutarlı tasarım. Arama popup'ında Tüm sonuçlar büyük ve net erişilebilir aksiyon olsun.
+UX akış tanımı
+Ana sayfa → üst aramaya yazılım → 5–6 güçlü öneri → Enter / tüm sonuçlar → gerçek arama sayfası → Podcastler filtresi → podcast detayı → gerçek bölüm → oynatma.
+Radyo araması → istasyon kartından oynat → farklı sekme/routelara git → ses sürsün.
+Podcast keşif → En yeni bölüm → gerçek son tarih → detaya git → bölüm oynat → 15 sn geri/30 sn ileri → yenile ve dinleme konumunu koru.
+FAZ E — VERCEL DEPLOYMENT EŞİTLİĞİ VE ZORUNLU TEST
+Değişiklikten sonra AI Studio Preview ve Vercel Production ayrı ayrı test edilmeli. Aynı uygulama kodu, katalog kuralları ve sorgu mantığına sahip oldukları build/commit/versiyon ile doğrulanmalı. Yalnız preview testini production başarısı sayma.
+Vercel'de Express API endpointleri Vercel Function olarak ya da doğrulanmış alternatif backend olarak çalışmalı. Frontend static Vite ise, API fonksiyonlarını ayırıp doğru route ve rewrite kur; express.static ile API varmış gibi davranma. Public RSS proxy'yi SSRF korunaksız açık proxy'ye dönüştürme.
+Network'te 200 dönen API çağrılarının gerçekten JSON/data olup olmadığını kontrol et; API rotasının SPA index.html HTML'sine düşmesini engelle. CORS, 429, 5xx ve timeouts raporla.
+Eğer doğrudan Vercel deploy yetkin yoksa kaynak kodu/prod config hazırlayıp deploy yapılmadı diye belirt ve kullanıcıya gerekli dağıtım adımını açıkla. Hiç erişmediğin domaini 'canlı test başarılı' gösterme.
+Geçmesi gereken somut acceptance testleri
+yazılım yaz: popup önerileri açılır, aynı öğe iki kez çıkmaz, alakasız içerikler üst sıralara çıkmaz.
+Enter → URL'de search rotası ve yazılım sorgusu görünür; Keşfet ana sayfasına dönmez.
+Tüm sonuçları gör → Enter ile aynı sonuç sayfası. Tümü / Radyolar / Podcastler sekmeleri gerçek veriyi değiştirir.
+URL'yi kopyala, yeni sekmede doğrudan aç, yenile, geri/ileri: sorgu ve filtre aynı kalır.
+Yazılımcının Dünyası, Evrim Ağacı, Socrates, Kafa Radyo, TRT, Kral Pop aramalarında gerçekten mevcut olan sonuçları doğru kategoride göster; uydurma sonuç ekleme.
+asdasdxyzq gibi anlamsız sorgu boş durum verir. API başarısızsa retry gerçek istek başlatır.
+AI Studio ve Vercel podcast Keşfet/Arama/Kategori sayfalarında yalnız Türkçe yayınları gösterir; İngilizce örnekler karışmaz.
+country=TR geldiği halde RSS dili en olan yeni podcast, genel Türkçe podcast kataloğuna alınmaz.
+Güncel podcastler gerçekten latestEpisodeAt DESC sıralıdır; tarih olarak RSS pubDate kullanılır; invalid/undated podcasti en yeni yapma.
+Podcast detayında gerçek RSS bölüm listesi ve oynatılabilir enclosure vardır; API fail olunca yalancı liste göstermez.
+İstasyon resmi yoksa aynı genel fotoğraf yerine ayırt edilebilir fallback; kartlar ve scrollbar her ekranda temizdir.
+360px ve 1440px arama/podcast/radyo ekranları taşmadan çalışır; player alttaki kartları kapatmaz.
+Favoriler, dinleme geçmişi, 133/629 kayıtları korunur; tek global audio engine rota geçişinde remount olmaz.
+Her iki ortamda da network/console ve gerçek kullanıcı testleri raporlanır. Sadece tsc/build/checklist PASS ile iş bitmiş sayılmaz.
+ÇIKTI RAPORU (ZORUNLU)
+Teşhis: AI Studio neden farklı / Vercel neden farklı? somut kanıt: build/commit ID, endpoint HTTP durumları, env farkları, RSS/dil filtresi ve cache durumları. Bilinemiyorsa bunu yaz.
+Kod değişiklikleri: Dosya yolları, ne değişti, ilgili rota/servis/component.
+Arama demo: yazılım için önce/sonra davranışı, gerçek sayfa URL'si, gerçek sonuç örnekleri, alaka sıralaması.
+Podcast doğrulama: Test edilen en az 5 Türkçe ve 2 yabancı podcast için feedUrl (gizli değilse), RSS language, latestEpisodeAt, included/excluded gerekçesi ve response kaynağı.
+Prod eşitliği: AI Studio + Vercel deploy edilen sürümler, arama sonucu karşılaştırması, gerçek prod testinin durumu.
+UI kanıtı: Yeni ana sayfa, tam sayfa arama sonuçları, podcast keşif/detay, mobil 390px ve desktop 1440px ekran görüntüleri mümkünse.
+Testler: Çalıştırılmış komutlar + test case PASS/FAIL/BLOCKED ve kalan kısıtlar.
+SON KOMUT: Bu belgedeki maddeleri mevcut RadioCast kaynak koduna şimdi uygula. Uygulama sonrası gerçek test yap. Plan veya rapor yazarak tamamlandı deme. Production erişimin yoksa preview'de kodu bitir, Vercel için kesin uygulanacak adımları ayrı belirt. Kod ve kullanıcı verilerini koru.
+
+Kaynak dokümantasyon
+Vercel Production / Preview env: https://vercel.com/docs/deployments/environments
+Vercel Express: https://vercel.com/docs/frameworks/backend/express
+Vercel Vite SPA routing: https://vercel.com/docs/frameworks/frontend/vite
+React Router HashRouter: https://reactrouter.com/api/declarative-routers/HashRouter
+Apple Podcasts RSS language, episode pubDate: https://help.apple.com/itc/podcasts_connect/en.lproj/itcb54353390.html
+
+
+⋮⋮⋮⋮⋮⋮⋮⋮⋮⋮⋮⋮⋮⋮⋮⋮

@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { 
   Compass, 
+  Search,
   Heart, 
   ListMusic, 
   Globe2, 
@@ -38,6 +39,12 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
       label: 'Keşfet',
       icon: Compass,
       description: 'Canlı Radyolar & Türler'
+    },
+    {
+      id: 'search',
+      label: 'Arama',
+      icon: Search,
+      description: 'Radyo & Podcast Ara'
     },
     {
       id: 'podcasts',

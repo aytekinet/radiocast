@@ -38,6 +38,7 @@ interface DesktopHeaderProps {
   setLowDataMode: (val: boolean) => void;
   activeTab: string;
   onNavigateToDiscover?: () => void;
+  onNavigateToSearch?: (query: string, type?: 'all' | 'radio' | 'podcast') => void;
   onOpenSearch?: () => void;
   onPlayStation?: (station: RadioStation) => void;
   onPlayPodcastEpisode?: (episode: PodcastEpisode) => void;
@@ -69,6 +70,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
   lowDataMode,
   setLowDataMode,
   onNavigateToDiscover,
+  onNavigateToSearch,
   onOpenSearch,
   onPlayStation,
   onPlayPodcastEpisode,
@@ -239,7 +241,14 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
       inputRef.current?.blur();
     } else if (e.key === 'Enter') {
       setIsSearchOpen(false);
-      if (onNavigateToDiscover) onNavigateToDiscover();
+      const q = searchQuery.trim();
+      if (q) {
+        if (onNavigateToSearch) {
+          onNavigateToSearch(q, searchFilterTab);
+        } else if (onNavigateToDiscover) {
+          onNavigateToDiscover();
+        }
+      }
     }
   };
 
@@ -472,84 +481,104 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
             )}
 
             {/* Radio Stations List */}
-            {normalizedQuery && (searchFilterTab === 'all' || searchFilterTab === 'radio') && matchingStations.length > 0 && (
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-1 block">
-                  Radyo İstasyonları ({matchingStations.length})
-                </span>
-                <div className="space-y-1">
-                  {matchingStations.map((station) => (
-                    <div
-                      key={station.stationuuid || station.id}
-                      onClick={() => {
-                        onPlayStation?.(station);
-                        setIsSearchOpen(false);
-                      }}
-                      className="px-2.5 py-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-white/[0.06] flex items-center justify-between gap-2.5 cursor-pointer transition-colors group"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-7 h-7 rounded-lg bg-zinc-200 dark:bg-white/10 flex items-center justify-center text-zinc-600 dark:text-zinc-300 shrink-0 group-hover:bg-emerald-500 group-hover:text-zinc-950 transition-colors">
-                          <Radio className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate block group-hover:text-emerald-500 transition-colors">
-                            {station.name}
-                          </span>
-                          <span className="text-[10px] text-zinc-400 truncate block">
-                            {station.country || 'Global'} • {station.codec || 'MP3'} {station.bitrate ? `${station.bitrate}kbps` : ''}
-                          </span>
-                        </div>
-                      </div>
+            {normalizedQuery && (searchFilterTab === 'all' || searchFilterTab === 'radio') && (
+              (() => {
+                const displayStations = (searchFilterTab === 'all' && topResult?.type === 'station')
+                  ? matchingStations.filter(s => (s.stationuuid || s.id) !== (topResult.item as RadioStation).stationuuid && s.name.toLowerCase() !== (topResult.item as RadioStation).name.toLowerCase()).slice(0, 3)
+                  : matchingStations.slice(0, 4);
 
-                      <button
-                        className="p-1.5 rounded-full text-zinc-400 group-hover:text-emerald-500 group-hover:bg-emerald-500/10 transition-colors"
-                        title="Oynat"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                      </button>
+                if (displayStations.length === 0) return null;
+
+                return (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-1 block">
+                      Radyo İstasyonları ({matchingStations.length})
+                    </span>
+                    <div className="space-y-1">
+                      {displayStations.map((station) => (
+                        <div
+                          key={station.stationuuid || station.id}
+                          onClick={() => {
+                            onPlayStation?.(station);
+                            setIsSearchOpen(false);
+                          }}
+                          className="px-2.5 py-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-white/[0.06] flex items-center justify-between gap-2.5 cursor-pointer transition-colors group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-zinc-200 dark:bg-white/10 flex items-center justify-center text-zinc-600 dark:text-zinc-300 shrink-0 group-hover:bg-emerald-500 group-hover:text-zinc-950 transition-colors">
+                              <Radio className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate block group-hover:text-emerald-500 transition-colors">
+                                {station.name}
+                              </span>
+                              <span className="text-[10px] text-zinc-400 truncate block">
+                                {station.country || 'Global'} • {station.codec || 'MP3'} {station.bitrate ? `${station.bitrate}kbps` : ''}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            className="p-1.5 rounded-full text-zinc-400 group-hover:text-emerald-500 group-hover:bg-emerald-500/10 transition-colors"
+                            title="Oynat"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                );
+              })()
             )}
 
             {/* Podcasts List */}
-            {normalizedQuery && (searchFilterTab === 'all' || searchFilterTab === 'podcast') && matchingPodcasts.length > 0 && (
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-1 block">
-                  Podcastler ({matchingPodcasts.length})
-                </span>
-                <div className="space-y-1">
-                  {matchingPodcasts.map((podcast) => (
-                    <div
-                      key={podcast.id || podcast.feedUrl}
-                      onClick={() => {
-                        onOpenPodcastShow?.(podcast);
-                        setIsSearchOpen(false);
-                      }}
-                      className="px-2.5 py-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-white/[0.06] flex items-center justify-between gap-2.5 cursor-pointer transition-colors group"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <img
-                          src={podcast.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100'}
-                          alt=""
-                          className="w-7 h-7 rounded-lg object-cover shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate block group-hover:text-amber-500 transition-colors">
-                            {podcast.title}
-                          </span>
-                          <span className="text-[10px] text-zinc-400 truncate block">
-                            {podcast.publisher} • {podcast.category}
-                          </span>
-                        </div>
-                      </div>
+            {normalizedQuery && (searchFilterTab === 'all' || searchFilterTab === 'podcast') && (
+              (() => {
+                const displayPodcasts = (searchFilterTab === 'all' && topResult?.type === 'podcast')
+                  ? matchingPodcasts.filter(p => (p.feedUrl || p.title) !== ((topResult.item as PodcastShow).feedUrl || (topResult.item as PodcastShow).title)).slice(0, 4)
+                  : matchingPodcasts.slice(0, 5);
 
-                      <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-500 transition-colors shrink-0" />
+                if (displayPodcasts.length === 0) return null;
+
+                return (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-1 block">
+                      Türkçe Podcastler ({matchingPodcasts.length})
+                    </span>
+                    <div className="space-y-1">
+                      {displayPodcasts.map((podcast) => (
+                        <div
+                          key={podcast.id || podcast.feedUrl}
+                          onClick={() => {
+                            onOpenPodcastShow?.(podcast);
+                            setIsSearchOpen(false);
+                          }}
+                          className="px-2.5 py-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-white/[0.06] flex items-center justify-between gap-2.5 cursor-pointer transition-colors group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <img
+                              src={podcast.coverUrl || 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=100'}
+                              alt=""
+                              className="w-7 h-7 rounded-lg object-cover shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate block group-hover:text-amber-500 transition-colors">
+                                {podcast.title}
+                              </span>
+                              <span className="text-[10px] text-zinc-400 truncate block">
+                                {podcast.publisher} • {podcast.category}
+                              </span>
+                            </div>
+                          </div>
+
+                          <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-amber-500 transition-colors shrink-0" />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                );
+              })()
             )}
 
             {/* No Results Found */}
@@ -559,11 +588,16 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
                 <button
                   onClick={() => {
                     setIsSearchOpen(false);
-                    if (onNavigateToDiscover) onNavigateToDiscover();
+                    const q = searchQuery.trim();
+                    if (onNavigateToSearch) {
+                      onNavigateToSearch(q, searchFilterTab);
+                    } else if (onNavigateToDiscover) {
+                      onNavigateToDiscover();
+                    }
                   }}
                   className="px-3.5 py-1.5 rounded-xl bg-emerald-500 text-zinc-950 font-bold text-xs transition-all active:scale-95 cursor-pointer"
                 >
-                  Keşfet Sayfasında Canlı Ara
+                  Tam Arama Ekranını Aç
                 </button>
               </div>
             )}
@@ -574,11 +608,16 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
                 <button
                   onClick={() => {
                     setIsSearchOpen(false);
-                    if (onNavigateToDiscover) onNavigateToDiscover();
+                    const q = searchQuery.trim();
+                    if (onNavigateToSearch) {
+                      onNavigateToSearch(q, searchFilterTab);
+                    } else if (onNavigateToDiscover) {
+                      onNavigateToDiscover();
+                    }
                   }}
-                  className="font-bold text-emerald-500 hover:text-emerald-400 flex items-center gap-1 transition-colors cursor-pointer"
+                  className="font-bold text-emerald-500 hover:text-emerald-400 flex items-center gap-1.5 transition-colors cursor-pointer py-1"
                 >
-                  <span>Tüm sonuçları Keşfet sekmesinde listele</span>
+                  <span>"{searchQuery}" için tüm sonuçları gör</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
                 <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline">

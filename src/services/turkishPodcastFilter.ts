@@ -2,6 +2,22 @@
 
 const NON_LATIN_FOREIGN_REGEX = /[\u0600-\u06FF\u0400-\u04FF\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uAC00-\uD7AF\u0900-\u0D7F]/;
 
+const NON_TURKISH_LANG_CODES = new Set([
+  'en', 'en-us', 'en-gb', 'en-ca', 'en-au',
+  'de', 'de-de', 'de-at', 'de-ch',
+  'fr', 'fr-fr', 'fr-ca',
+  'es', 'es-es', 'es-mx',
+  'it', 'it-it',
+  'ru', 'ru-ru',
+  'ar', 'ar-sa',
+  'zh', 'zh-cn', 'zh-tw',
+  'ja', 'ja-jp',
+  'ko', 'ko-kr',
+  'pt', 'pt-br', 'pt-pt',
+  'nl', 'nl-nl',
+  'el', 'hi', 'sv', 'pl'
+]);
+
 const EXPLICIT_FOREIGN_PATTERNS: RegExp[] = [
   // Language learning (English, German, French, Spanish, Italian, Japanese, Korean etc.)
   /\blearn\s+english\b/i,
@@ -123,40 +139,41 @@ const EXPLICIT_FOREIGN_PATTERNS: RegExp[] = [
   /\bder\s+podcast\b/i,
   /\bde\s+podcast\b/i,
   /\bil\s+podcast\b/i,
-  /\bel\s+p[oó]dcast\b/i
+  /\bel\s+p[oó]dcast\b/i,
+  /\bmonocle\s+radio\b/i,
+  /\bfinancial\s+times\b/i,
+  /\bwall\s+street\s+journal\b/i,
+  /\bnew\s+york\s+times\b/i
 ];
 
 const TURKISH_CHARS_REGEX = /[çğışöüÇĞİŞÖÜ]/;
 
-const TURKISH_WORDS_SET = new Set([
-  've', 'bir', 'bu', 'ile', 'için', 'daha', 'en', 'kadar', 'göre', 'bölüm', 'bölümü',
-  'yayın', 'yayını', 'sohbet', 'muhabbet', 'türkçe', 'turkce', 'türkiye', 'turkey',
-  'nasıl', 'neden', 'hakkında', 'üzerine', 'günlük', 'haftalık', 'tarihi', 'haber',
-  'haberler', 'gündem', 'bilim', 'dünya', 'dünyası', 'sanat', 'insan', 'yaşam',
+// Unambiguous distinct Turkish keywords (no short tokens like 'en', 've', 'in', 'so', 'de')
+const DISTINCT_TURKISH_WORDS = new Set([
+  'bölüm', 'bölümü', 'yayın', 'yayını', 'sohbet', 'muhabbet', 'türkçe', 'turkce',
+  'türkiye', 'turkey', 'nasıl', 'neden', 'hakkında', 'üzerine', 'günlük', 'haftalık',
+  'tarihi', 'gündem', 'bilim', 'dünya', 'dünyası', 'sanat', 'insan', 'yaşam',
   'çocuk', 'çocuklar', 'psikoloji', 'edebiyat', 'kitap', 'gece', 'masal', 'masallar',
-  'sinema', 'felsefe', 'ekonomi', 'finans', 'teknoloji', 'yazılım', 'oyun', 'spor',
-  'futbol', 'kulübü', 'kulüp', 'radyo', 'sesler', 'sesleri', 'sesi', 'kafası',
+  'sinema', 'felsefe', 'ekonomi', 'finans', 'teknoloji', 'yazılım', 'yazılımcı',
+  'yazılımcının', 'oyun', 'kulübü', 'kulüp', 'sesler', 'sesleri', 'sesi', 'kafası',
   'dersleri', 'notları', 'saati', 'öyküleri', 'hikayeleri', 'hikaye', 'öykü',
-  'gecesi', 'rehberi', 'rehber', 'konuşmaları', 'masalları', 'masalı', 'geceleri',
-  'yolculuk', 'hayat', 'fikir', 'fikirleri', 'zaman', 'kadın', 'adam', 'anne',
-  'baba', 'aile', 'sağlık', 'doktor', 'hoca', 'öğretmen', 'öğrenci', 'okul',
-  'tarihten', 'bugün', 'sabah', 'akşam', 'hafta', 'ay', 'yıl', 'osmanlı', 'anadolu',
-  'istanbul', 'ankara', 'izmir', 'türk', 'türkü', 'türküler', 'müzik', 'şarkı',
-  'kültür', 'farkındalık', 'başarı', 'motivasyon', 'gelişim', 'kariyer', 'para',
-  'borsa', 'kripto', 'yatırım', 'girişim', 'girişimcilik', 'hukuk', 'adalet', 'suç',
-  'cinayet', 'vaka', 'olay', 'dosya', 'belgesel', 'röportaj', 'söyleşi', 'özet',
-  'kütüphane', 'yazar', 'şiir', 'roman', 'tiyatro', 'film', 'dizi', 'mizah',
+  'gecesi', 'rehberi', 'rehber', 'konuşmaları', 'masalları', 'geceleri', 'yolculuk',
+  'hayat', 'fikir', 'fikirleri', 'zaman', 'kadın', 'adam', 'anne', 'baba', 'aile',
+  'sağlık', 'doktor', 'hoca', 'öğretmen', 'öğrenci', 'okul', 'tarihten', 'bugün',
+  'sabah', 'akşam', 'hafta', 'osmanlı', 'anadolu', 'istanbul', 'ankara', 'izmir',
+  'türk', 'türkü', 'türküler', 'şarkı', 'kültür', 'farkındalık', 'başarı', 'motivasyon',
+  'gelişim', 'kariyer', 'borsa', 'kripto', 'yatırım', 'girişim', 'girişimcilik',
+  'hukuk', 'adalet', 'suç', 'cinayet', 'vaka', 'belgesel', 'röportaj', 'söyleşi',
+  'özet', 'kütüphane', 'yazar', 'şiir', 'roman', 'tiyatro', 'dizi', 'mizah',
   'komedi', 'eğlence', 'yapay', 'zeka', 'uygulama', 'içerik', 'yayıncılık',
   'politika', 'siyaset', 'yorum', 'analiz', 'dergi', 'gazete', 'bülten', 'rapor',
-  'tıp', 'diyet', 'lig', 'takım', 'beşiktaş', 'fenerbahçe', 'galatasaray', 'trabzonspor',
-  'bebek', 'ebeveyn', 'eğitim', 'gezi', 'seyahat', 'tatil', 'yemek', 'mutfak',
-  'lezzet', 'kahve', 'çay', 'demode', 'socrates', 'farklı', 'kaydet', 'kaşifler',
-  'aydal', 'genel', 'aposto', 'dülgeroğlu', 'terapi', 'kuzuloğlu', 'kıvrımları',
-  'cabas', 'özcan', 'evrim', 'ağacı', 'entellik', 'fularsız', 'budak', 'bonomo',
-  'kısa', 'dalga', 'üretim', 'bandı', 'açık', 'dinle', 'anlat', 'konuşma', 'bilişim',
-  'meali', 'tasavvuf', 'serisi', 'kutusu', 'odası', 'köşesi', 'memleket', 'şehir',
-  'deniz', 'doğa', 'orman', 'bahçe', 'hayvanlar', 'kedi', 'köpek', 'muhabbeti',
-  'otobüs', 'araba', 'motosiklet', 'tamir', 'usta', 'şef', 'aşçı', 'gurme'
+  'beşiktaş', 'fenerbahçe', 'galatasaray', 'trabzonspor', 'bebek', 'ebeveyn', 'eğitim',
+  'gezi', 'seyahat', 'yemek', 'mutfak', 'lezzet', 'kahve', 'socrates', 'farklı',
+  'kaydet', 'kaşifler', 'aydal', 'genel', 'aposto', 'dülgeroğlu', 'terapi', 'kuzuloğlu',
+  'kıvrımları', 'cabas', 'özcan', 'evrim', 'ağacı', 'entellik', 'fularsız', 'budak',
+  'bonomo', 'dalga', 'üretim', 'bandı', 'açık', 'dinle', 'anlat', 'konuşma', 'bilişim',
+  'tasavvuf', 'serisi', 'memleket', 'şehir', 'deniz', 'doğa', 'orman', 'hayvanlar',
+  'muhabbeti', 'tamer', 'durusu', 'kafa', 'radyo', 'trt'
 ]);
 
 const ENGLISH_FOREIGN_WORDS = new Set([
@@ -164,7 +181,8 @@ const ENGLISH_FOREIGN_WORDS = new Set([
   'podcast', 'podcasts', 'show', 'episodes', 'episode', 'hosted', 'by', 'stories',
   'sleep', 'science', 'kids', 'good', 'things', 'life', 'history', 'conversations',
   'accent', 'fluency', 'radio', 'media', 'der', 'die', 'das', 'und', 'le', 'la',
-  'les', 'del', 'los', 'las', 'con', 'para', 'una', 'uno', 'world', 'news'
+  'les', 'del', 'los', 'las', 'con', 'para', 'una', 'uno', 'world', 'news',
+  'interview', 'interviews', 'guide', 'business', 'tech', 'entertainment'
 ]);
 
 export function isExplicitForeignText(text: string): boolean {
@@ -197,6 +215,14 @@ export function isTurkishPodcastStrict(item: {
   if (!item) return false;
   if (item.isCurated) return true;
 
+  // If explicit RSS language is declared and is a known foreign language, reject immediately
+  if (item.language) {
+    const lang = item.language.trim().toLowerCase().replace('_', '-');
+    if (NON_TURKISH_LANG_CODES.has(lang) || (!lang.startsWith('tr') && !lang.includes('turk') && lang.length >= 2 && lang !== 'und' && lang !== 'unknown')) {
+      return false;
+    }
+  }
+
   const title = (item.title || '').trim();
   const pub = (item.publisher || '').trim();
   const desc = (item.description || '').trim();
@@ -204,36 +230,54 @@ export function isTurkishPodcastStrict(item: {
 
   if (!fullText) return false;
 
-  // 1. Reject explicit foreign signatures
+  // 1. Reject non-Latin scripts (Arabic, Cyrillic, Chinese, etc.)
+  if (NON_LATIN_FOREIGN_REGEX.test(fullText)) {
+    return false;
+  }
+
+  // 2. Reject explicit language teaching or global media shows
   if (isExplicitForeignText(fullText)) {
     return false;
   }
 
-  // 2. Scan for Turkish characters
+  // 3. If RSS declared language is explicitly Turkish (e.g. 'tr', 'tr-TR', 'turkish'):
+  // Trust the metadata so Turkish tech podcasts with technical English terminology (cloud, devops, software, backend) are NOT filtered out.
+  const declaredLang = (item.language || '').trim().toLowerCase().replace('_', '-');
+  const isDeclaredTurkish = declaredLang.startsWith('tr') || declaredLang.includes('turk');
+
+  if (isDeclaredTurkish) {
+    // Only reject if it clearly matches an explicit foreign language show (already checked above)
+    return true;
+  }
+
+  // 4. Scan for authentic Turkish characters (ç, ğ, ı, ö, ş, ü, Ç, Ğ, İ, Ö, Ş, Ü)
   const hasTurkishChar = TURKISH_CHARS_REGEX.test(fullText);
 
-  // 3. Scan words
+  // 5. Scan words against distinct Turkish keywords and foreign stopwords
   const tokens = fullText.split(/[\s,.:;!?/"'()\[\]\-_#+]+/).filter(Boolean);
   let turkishWordHits = 0;
   let foreignWordHits = 0;
 
   for (const tok of tokens) {
-    if (TURKISH_WORDS_SET.has(tok)) {
+    if (DISTINCT_TURKISH_WORDS.has(tok)) {
       turkishWordHits++;
-    } else if (ENGLISH_FOREIGN_WORDS.has(tok)) {
+    }
+    if (ENGLISH_FOREIGN_WORDS.has(tok)) {
       foreignWordHits++;
     }
   }
 
-  // Strong negative indicator: multiple dominant foreign words and no Turkish words/chars
-  if (!hasTurkishChar && turkishWordHits === 0) {
-    return false;
+  // If authentic Turkish character is found:
+  if (hasTurkishChar) {
+    // Only accept if not overwhelmed by foreign words
+    return foreignWordHits <= 6 || turkishWordHits >= 1;
   }
 
-  if (foreignWordHits >= 3 && turkishWordHits === 0 && !hasTurkishChar) {
-    return false;
+  // No Turkish characters: MUST have at least 2 distinct verified Turkish vocabulary words
+  // and foreign words must not dominate
+  if (turkishWordHits >= 2 && foreignWordHits <= 3) {
+    return true;
   }
 
-  // Must have either authentic Turkish character or verified Turkish vocabulary
-  return hasTurkishChar || turkishWordHits >= 1;
+  return false;
 }

@@ -57,6 +57,17 @@ function decodeHtmlEntities(str: string): string {
     .trim();
 }
 
+function formatPodcastCardDate(millis?: number): string {
+  if (!millis || millis <= 0) return 'Güncel';
+  try {
+    const d = new Date(millis);
+    if (isNaN(d.getTime())) return 'Güncel';
+    return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch {
+    return 'Güncel';
+  }
+}
+
 interface PodcastViewProps {
   currentEpisodeId: string | null;
   isPlaying: boolean;
@@ -158,6 +169,17 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
   const [totalPodcasts, setTotalPodcasts] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(false);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [catalogSort, setCatalogSort] = useState<'newest' | 'popular' | 'az'>('newest');
+
+  const sortedCatalogPodcasts = React.useMemo(() => {
+    const list = [...podcasts];
+    if (catalogSort === 'newest') {
+      list.sort((a, b) => (b.releaseDateMillis || 0) - (a.releaseDateMillis || 0));
+    } else if (catalogSort === 'az') {
+      list.sort((a, b) => a.title.localeCompare(b.title, 'tr'));
+    }
+    return list;
+  }, [podcasts, catalogSort]);
 
   const PODCAST_CATEGORIES = [
     { id: 'all', name: 'Tüm Podcastler', query: '' },
@@ -1613,18 +1635,56 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
       ) : (
         <div className="space-y-10">
           <section className="space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-800">
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <Mic className="w-5 h-5 text-amber-500" />
-                Öne Çıkan Türkçe Podcast Yayınları
-              </h2>
-              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                {podcasts.length} / {totalPodcasts || podcasts.length} Türkçe Podcast
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-zinc-800">
+              <div className="space-y-0.5">
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <Mic className="w-5 h-5 text-emerald-500" />
+                  Öne Çıkan Türkçe Podcast Yayınları
+                </h2>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {totalPodcasts || podcasts.length} doğrulanmış Türkçe yayın • Gerçek RSS akışıyla güncellenir
+                </p>
+              </div>
+
+              {/* Recency and Sorting Controls */}
+              <div className="flex items-center space-x-1.5 text-xs">
+                <span className="text-zinc-400 text-[11px] font-medium hidden sm:inline">Sıralama:</span>
+                <button
+                  onClick={() => setCatalogSort('newest')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center space-x-1 cursor-pointer ${
+                    catalogSort === 'newest'
+                      ? 'bg-emerald-500 text-zinc-950 shadow-sm'
+                      : 'bg-zinc-100 dark:bg-white/[0.04] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>En Yeni Bölüm</span>
+                </button>
+                <button
+                  onClick={() => setCatalogSort('popular')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                    catalogSort === 'popular'
+                      ? 'bg-emerald-500 text-zinc-950 shadow-sm'
+                      : 'bg-zinc-100 dark:bg-white/[0.04] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  Popüler
+                </button>
+                <button
+                  onClick={() => setCatalogSort('az')}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                    catalogSort === 'az'
+                      ? 'bg-emerald-500 text-zinc-950 shadow-sm'
+                      : 'bg-zinc-100 dark:bg-white/[0.04] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                  }`}
+                >
+                  A – Z
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {podcasts.map((show) => {
+              {sortedCatalogPodcasts.map((show) => {
                 const showEpIds = show.episodes ? show.episodes.map(e => e.id) : [];
                 const listenedInShow = showEpIds.filter(id => progressMap[id]);
                 const completedInShow = showEpIds.filter(id => progressMap[id]?.completed);
@@ -1649,6 +1709,13 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <span className="w-12 h-12 bg-emerald-500 text-zinc-950 rounded-full shadow-xl shadow-emerald-500/30 flex items-center justify-center transform translate-y-2 group-hover:translate-y-0 transition-all font-bold">
                             <Play className="w-5 h-5 fill-current ml-0.5" />
+                          </span>
+                        </div>
+
+                        {/* Category badge on cover */}
+                        <div className="absolute bottom-2 left-2 pointer-events-none">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-black/70 text-emerald-400 backdrop-blur-md border border-white/10 uppercase">
+                            {show.category || 'Podcast'}
                           </span>
                         </div>
 
@@ -1695,11 +1762,12 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                     </div>
 
                     <div className="pt-3 mt-2 border-t border-zinc-200/70 dark:border-white/[0.06] flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
-                      <span className="flex items-center gap-1 text-emerald-500 font-medium">
-                        <Layers className="w-3.5 h-3.5" /> Canlı Yayın Akışı
+                      <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300 font-medium">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <span>Son bölüm: {formatPodcastCardDate(show.releaseDateMillis)}</span>
                       </span>
-                      <span className="flex items-center gap-1 group-hover:text-emerald-400 transition-colors">
-                        Bölümleri Gör <ChevronRight className="w-3.5 h-3.5" />
+                      <span className="flex items-center gap-1 group-hover:text-emerald-400 transition-colors font-semibold">
+                        Bölümler <ChevronRight className="w-3.5 h-3.5" />
                       </span>
                     </div>
                   </div>

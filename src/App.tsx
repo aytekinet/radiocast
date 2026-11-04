@@ -44,6 +44,7 @@ import { SleepTimerModal } from './components/SleepTimerModal';
 import { BigScreenModal } from './components/BigScreenModal';
 import { LegalView, LegalPageType } from './components/LegalView';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { SearchResultsView } from './components/SearchResultsView';
 import { IOSInstallGuideModal } from './components/IOSInstallGuideModal';
 import { WifiOff, DownloadCloud, Smartphone, Share, X, SquarePlus, ChevronRight } from 'lucide-react';
 import { ReconnectState } from './types';
@@ -51,6 +52,7 @@ import { ReconnectState } from './types';
 export default function App() {
   // Navigation & Settings
   const [activeTab, setActiveTab] = useState<string>('discover');
+  const [searchTabType, setSearchTabType] = useState<'all' | 'radio' | 'podcast'>('all');
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   // Scroll Position Preservation Container Ref
@@ -63,6 +65,9 @@ export default function App() {
   const [favoritePodcasts, setFavoritePodcasts] = useState<PodcastShow[]>(() => getStoredFavoritePodcasts());
   const [favoriteEpisodes, setFavoriteEpisodes] = useState<PodcastEpisode[]>(() => getStoredFavoriteEpisodes());
 
+  // Search & Filters
+  const [searchQuery, setSearchQuery] = useState('');
+
   // History & Tab Navigation
   const changeTab = useCallback((newTab: string, pushHistory = true) => {
     if (mainRef.current) {
@@ -71,8 +76,12 @@ export default function App() {
     setActiveTab(newTab);
     if (pushHistory && typeof window !== 'undefined' && window.history) {
       try {
-        if (window.location.hash !== `#${newTab}`) {
-          window.history.pushState({ tab: newTab }, '', `#${newTab}`);
+        let targetHash = `#${newTab}`;
+        if (newTab === 'search' && searchQuery) {
+          targetHash = `#search?q=${encodeURIComponent(searchQuery)}${searchTabType !== 'all' ? `&type=${searchTabType}` : ''}`;
+        }
+        if (window.location.hash !== targetHash) {
+          window.history.pushState({ tab: newTab, q: searchQuery, type: searchTabType }, '', targetHash);
         }
       } catch {
         // Ignore iframe sandbox restriction
@@ -83,7 +92,7 @@ export default function App() {
         mainRef.current.scrollTop = tabScrollPositions.current[newTab];
       }
     }, 10);
-  }, [activeTab]);
+  }, [activeTab, searchQuery, searchTabType]);
 
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -146,13 +155,24 @@ export default function App() {
   // Sync initial tab and listen to browser back/forward buttons (popstate)
   useEffect(() => {
     const legalRoutes = ['copyright', 'dmca', 'takedown', 'counter-notice', 'privacy', 'terms', 'content-policy'];
-    const validTabs = ['discover', 'podcasts', 'downloads', 'favorites', 'playlists', 'countries', 'settings', ...legalRoutes];
+    const validTabs = ['discover', 'search', 'podcasts', 'downloads', 'favorites', 'playlists', 'countries', 'settings', ...legalRoutes];
 
     const syncFromLocation = () => {
       const pathname = window.location.pathname.replace(/^\//, '').toLowerCase();
-      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-      const rawTarget = pathname || hash;
-      const target = rawTarget.split('/')[0];
+      const rawHash = window.location.hash.replace(/^#\/?/, '');
+      const rawTarget = pathname || rawHash.toLowerCase();
+      const target = rawTarget.split('/')[0].split('?')[0];
+
+      if (rawHash.includes('?')) {
+        const queryPart = rawHash.slice(rawHash.indexOf('?') + 1);
+        try {
+          const searchParams = new URLSearchParams(queryPart);
+          const q = searchParams.get('q');
+          const type = searchParams.get('type') as 'all' | 'radio' | 'podcast' | null;
+          if (q) setSearchQuery(q);
+          if (type && (type === 'all' || type === 'radio' || type === 'podcast')) setSearchTabType(type);
+        } catch {}
+      }
 
       if (validTabs.includes(target)) {
         setActiveTab(target);
@@ -219,7 +239,6 @@ export default function App() {
   }, []);
 
   // Search & Filters
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('all_groups');
   const [selectedCountry, setSelectedCountry] = useState('TR');
@@ -869,7 +888,6 @@ export default function App() {
         searchQuery={searchQuery}
         setSearchQuery={(q) => {
           setSearchQuery(q);
-          if (q && activeTab !== 'discover') setActiveTab('discover');
         }}
         selectedCountry={selectedCountry}
         setSelectedCountry={(c) => {
@@ -888,6 +906,20 @@ export default function App() {
           setSelectedCategory('');
           setSearchQuery('');
           changeTab('discover');
+        }}
+        onNavigateToSearch={(q, type) => {
+          setSearchQuery(q);
+          if (type) setSearchTabType(type);
+          setActiveTab('search');
+          if (typeof window !== 'undefined' && window.history) {
+            try {
+              window.history.pushState(
+                { tab: 'search', q, type: type || 'all' },
+                '',
+                `#search?q=${encodeURIComponent(q)}${type ? `&type=${type}` : ''}`
+              );
+            } catch {}
+          }
         }}
         onOpenSearch={() => setIsSearchModalOpen(true)}
         onPlayStation={handlePlayStation}
@@ -1031,6 +1063,40 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* Dedicated Full Search Results View */}
+          <div className={activeTab === 'search' ? 'block' : 'hidden'}>
+            <SearchResultsView
+              initialQuery={searchQuery}
+              initialType={searchTabType}
+              onPlayStation={handlePlayStation}
+              onPlayPodcastEpisode={handlePlayPodcastEpisode}
+              onOpenPodcastShow={handleOpenPodcastShowFromFav}
+              onToggleFavoriteStation={handleToggleFavorite}
+              onToggleFavoritePodcast={handleToggleFavoritePodcast}
+              favorites={favorites}
+              favoritePodcasts={favoritePodcasts}
+              currentStation={currentStation}
+              currentEpisodeId={currentItem?.type === 'podcast' ? (currentItem.podcastEpisode?.id || null) : null}
+              isPlaying={playbackStatus === 'playing'}
+              playbackStatus={playbackStatus}
+              playlists={playlists}
+              onAddToPlaylist={handleAddToPlaylist}
+              themePalette={settings.themePalette}
+              onUpdateQuery={(newQ) => {
+                setSearchQuery(newQ);
+                if (typeof window !== 'undefined' && window.history && newQ) {
+                  try {
+                    window.history.replaceState(
+                      { tab: 'search', q: newQ, type: searchTabType },
+                      '',
+                      `#search?q=${encodeURIComponent(newQ)}${searchTabType !== 'all' ? `&type=${searchTabType}` : ''}`
+                    );
+                  } catch {}
+                }
+              }}
+            />
+          </div>
 
           <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
             <DiscoverView

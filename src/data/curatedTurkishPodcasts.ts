@@ -16,6 +16,36 @@ export interface CuratedTurkishPodcast {
 
 export const CURATED_TURKISH_PODCASTS: CuratedTurkishPodcast[] = [
   {
+    "id": "apple-1502441989",
+    "title": "Yazılımcının Dünyası",
+    "publisher": "Uğur Aktaş",
+    "feedUrl": "https://www.spreaker.com/show/4198931/episodes/feed",
+    "coverUrl": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts221/v4/26/9c/64/269c64ed-498c-d1c4-bad8-2f3b9e10c36d/mza_3768046433717475833.jpg/600x600bb.jpg",
+    "category": "Technology",
+    "description": "Yazılım, kodlama, geliştirici deneyimi, frontend, backend ve modern teknolojiler üzerine Türkçe yazılım podcasti.",
+    "language": "tr",
+    "verifiedAt": "2026-10-30",
+    "enabled": true,
+    "releaseDate": "2026-10-30T20:13:00Z",
+    "releaseDateMillis": 1793391180000,
+    "trackCount": 29
+  },
+  {
+    "id": "apple-1438991201",
+    "title": "Yazılımcı Kafası",
+    "publisher": "Furkan Aydın",
+    "feedUrl": "https://www.spreaker.com/show/1858106/episodes/feed",
+    "coverUrl": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts125/v4/c0/2b/d7/c02bd79a-9c50-3c19-9b5a-bebc87d0c07c/mza_3889119145345551878.jpg/600x600bb.jpg",
+    "category": "Technology",
+    "description": "Yazılım geliştirme, yazılımcı kültürü, kariyer tavsiyeleri ve teknoloji sohbetleri.",
+    "language": "tr",
+    "verifiedAt": "2026-09-01",
+    "enabled": true,
+    "releaseDate": "2021-02-14T21:09:00Z",
+    "releaseDateMillis": 1613336940000,
+    "trackCount": 6
+  },
+  {
     "id": "apple-1488399831",
     "title": "Aposto Altı Otuz",
     "publisher": "Aposto Radyo",

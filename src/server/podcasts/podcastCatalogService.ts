@@ -4,6 +4,7 @@ import { fetchPodcastIndexTrending, fetchPodcastIndexRecent, searchPodcastIndexB
 import { fetchApplePodcastsByKeyword } from './applePodcastClient';
 import { buildUnifiedPodcastCatalog, WebPodcast } from './podcastDeduplicator';
 import { getFromCache, setToCache } from '../cache';
+import { turkishIncludes } from '../../utils/turkishSearch';
 
 let globalCatalogMemory: WebPodcast[] = [];
 let lastCatalogBuildTime = 0;
@@ -140,13 +141,13 @@ export async function queryPodcastCatalogPage(options: {
     });
   }
 
-  // Text query filtering
+  // Text query filtering with Turkish normalization (ı/i, ç/c, ş/s, ğ/g, ö/o, ü/u)
   if (searchQ && searchQ !== 'podcast' && searchQ !== 'popular') {
     filtered = filtered.filter(p =>
-      p.title.toLowerCase().includes(searchQ) ||
-      p.author.toLowerCase().includes(searchQ) ||
-      p.description.toLowerCase().includes(searchQ) ||
-      p.categories.some(c => c.toLowerCase().includes(searchQ))
+      turkishIncludes(p.title, searchQ) ||
+      turkishIncludes(p.author, searchQ) ||
+      turkishIncludes(p.description, searchQ) ||
+      p.categories.some(c => turkishIncludes(c, searchQ))
     );
   }
 
