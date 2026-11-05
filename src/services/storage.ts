@@ -245,6 +245,17 @@ export function getRecentlyPlayed(): RecentlyPlayedItem[] {
   }
 }
 
+export function clearRecentlyPlayed(): void {
+  try {
+    localStorage.removeItem(RECENTLY_PLAYED_KEY);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('recentlyPlayedChanged', { detail: [] }));
+    }
+  } catch (err) {
+    console.warn('Failed to clear recently played', err);
+  }
+}
+
 export function addRecentlyPlayed(item: PlayableItem): RecentlyPlayedItem[] {
   try {
     const list = getRecentlyPlayed();

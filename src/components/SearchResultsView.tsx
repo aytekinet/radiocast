@@ -276,14 +276,14 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
         <div className="relative z-10 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="flex items-center space-x-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
+              <div className="flex items-center space-x-2 text-xs font-bold text-teal-400 uppercase tracking-wider">
                 <Search className="w-3.5 h-3.5" />
                 <span>Arama Merkezi</span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1">
                 {query ? (
                   <>
-                    <span className="text-emerald-400">"{query}"</span> için Arama Sonuçları
+                    <span className="text-teal-400">"{query}"</span> için Arama Sonuçları
                   </>
                 ) : (
                   'Radyo ve Podcast Ara'
@@ -312,7 +312,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
                 if (onUpdateQuery) onUpdateQuery(e.target.value);
               }}
               placeholder="Radyo istasyonu, podcast, tür veya sanatçı ara..."
-              className="w-full pl-11 pr-24 py-3 text-sm rounded-2xl bg-black/40 text-white placeholder-zinc-400 border border-white/10 focus:outline-none focus:border-emerald-500/80 focus:bg-black/60 transition-all shadow-inner"
+              className="w-full pl-11 pr-24 py-3 text-sm rounded-2xl bg-black/40 text-white placeholder-zinc-400 border border-white/10 focus:outline-none focus:border-teal-500/80 focus:bg-black/60 transition-all shadow-inner"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
               {query && (
@@ -327,7 +327,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
               )}
               <button
                 type="submit"
-                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs transition-all active:scale-95 shadow cursor-pointer"
+                className="px-3 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-zinc-950 font-bold text-xs transition-all active:scale-95 shadow cursor-pointer"
               >
                 Ara
               </button>
@@ -340,7 +340,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
               onClick={() => setActiveTab('all')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
                 activeTab === 'all'
-                  ? 'bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/20'
+                  ? 'bg-teal-500 text-zinc-950 shadow-md shadow-teal-500/20'
                   : 'bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 border border-white/[0.06]'
               }`}
             >
@@ -352,7 +352,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
               onClick={() => setActiveTab('radio')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
                 activeTab === 'radio'
-                  ? 'bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/20'
+                  ? 'bg-teal-500 text-zinc-950 shadow-md shadow-teal-500/20'
                   : 'bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 border border-white/[0.06]'
               }`}
             >
@@ -364,7 +364,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
               onClick={() => setActiveTab('podcast')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
                 activeTab === 'podcast'
-                  ? 'bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/20'
+                  ? 'bg-teal-500 text-zinc-950 shadow-md shadow-teal-500/20'
                   : 'bg-white/[0.04] hover:bg-white/[0.08] text-zinc-300 border border-white/[0.06]'
               }`}
             >
@@ -405,7 +405,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
                     setQuery(term);
                     if (onUpdateQuery) onUpdateQuery(term);
                   }}
-                  className="px-3 py-1.5 rounded-full bg-white/[0.05] hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/40 text-zinc-300 border border-white/[0.08] text-xs transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-full bg-white/[0.05] hover:bg-teal-500/20 hover:text-teal-400 hover:border-teal-500/40 text-zinc-300 border border-white/[0.08] text-xs transition-all cursor-pointer"
                 >
                   {term}
                 </button>
@@ -423,14 +423,14 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
             <section className="space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <div className="flex items-center space-x-2">
-                  <Mic className="w-5 h-5 text-emerald-400" />
+                  <Mic className="w-5 h-5 text-teal-400" />
                   <h2 className="text-lg font-bold text-white">Türkçe Podcastler</h2>
                   <span className="text-xs text-zinc-400">({scoredPodcasts.length})</span>
                 </div>
                 {scoredPodcasts.length > 4 && (
                   <button
                     onClick={() => setActiveTab('podcast')}
-                    className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center space-x-1 cursor-pointer transition-colors"
+                    className="text-xs font-bold text-teal-400 hover:text-teal-300 flex items-center space-x-1 cursor-pointer transition-colors"
                   >
                     <span>Tümünü Gör ({scoredPodcasts.length})</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -457,14 +457,14 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
             <section className="space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
                 <div className="flex items-center space-x-2">
-                  <Radio className="w-5 h-5 text-emerald-400" />
+                  <Radio className="w-5 h-5 text-teal-400" />
                   <h2 className="text-lg font-bold text-white">Radyo İstasyonları</h2>
                   <span className="text-xs text-zinc-400">({scoredRadios.length})</span>
                 </div>
                 {scoredRadios.length > 8 && (
                   <button
                     onClick={() => setActiveTab('radio')}
-                    className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center space-x-1 cursor-pointer transition-colors"
+                    className="text-xs font-bold text-teal-400 hover:text-teal-300 flex items-center space-x-1 cursor-pointer transition-colors"
                   >
                     <span>Tümünü Gör ({scoredRadios.length})</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -499,7 +499,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/[0.06]">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center space-x-2">
-                <Radio className="w-5 h-5 text-emerald-400" />
+                <Radio className="w-5 h-5 text-teal-400" />
                 <span>Radyo Sonuçları ({scoredRadios.length})</span>
               </h2>
               <p className="text-xs text-zinc-400">Canlı çalmak için istasyonun üzerine tıklayın</p>
@@ -511,7 +511,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
                 onClick={() => setRadioFilter('all')}
                 className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                   radioFilter === 'all'
-                    ? 'bg-emerald-500 text-zinc-950'
+                    ? 'bg-teal-500 text-zinc-950'
                     : 'bg-white/[0.04] text-zinc-400 hover:text-white'
                 }`}
               >
@@ -521,7 +521,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
                 onClick={() => setRadioFilter('popular')}
                 className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                   radioFilter === 'popular'
-                    ? 'bg-emerald-500 text-zinc-950'
+                    ? 'bg-teal-500 text-zinc-950'
                     : 'bg-white/[0.04] text-zinc-400 hover:text-white'
                 }`}
               >
@@ -531,7 +531,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
                 onClick={() => setRadioFilter('aac')}
                 className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                   radioFilter === 'aac'
-                    ? 'bg-emerald-500 text-zinc-950'
+                    ? 'bg-teal-500 text-zinc-950'
                     : 'bg-white/[0.04] text-zinc-400 hover:text-white'
                 }`}
               >
@@ -565,7 +565,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/[0.06]">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center space-x-2">
-                <Mic className="w-5 h-5 text-emerald-400" />
+                <Mic className="w-5 h-5 text-teal-400" />
                 <span>Türkçe Podcast Sonuçları ({scoredPodcasts.length})</span>
               </h2>
               <p className="text-xs text-zinc-400">Program detaylarına gidip tüm gerçek RSS bölümlerini dinleyin</p>
@@ -578,7 +578,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
                 onClick={() => setPodcastSort('newest')}
                 className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center space-x-1 cursor-pointer ${
                   podcastSort === 'newest'
-                    ? 'bg-emerald-500 text-zinc-950'
+                    ? 'bg-teal-500 text-zinc-950'
                     : 'bg-white/[0.04] text-zinc-400 hover:text-white'
                 }`}
               >
@@ -589,7 +589,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
                 onClick={() => setPodcastSort('popular')}
                 className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                   podcastSort === 'popular'
-                    ? 'bg-emerald-500 text-zinc-950'
+                    ? 'bg-teal-500 text-zinc-950'
                     : 'bg-white/[0.04] text-zinc-400 hover:text-white'
                 }`}
               >
@@ -599,7 +599,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({
                 onClick={() => setPodcastSort('az')}
                 className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                   podcastSort === 'az'
-                    ? 'bg-emerald-500 text-zinc-950'
+                    ? 'bg-teal-500 text-zinc-950'
                     : 'bg-white/[0.04] text-zinc-400 hover:text-white'
                 }`}
               >
@@ -638,7 +638,7 @@ const PodcastCard: React.FC<PodcastCardProps> = ({ podcast, onOpen, isFavorite, 
   return (
     <div
       onClick={onOpen}
-      className="group p-3.5 rounded-2xl bg-[#111A26] hover:bg-[#162233] border border-white/[0.08] hover:border-emerald-500/40 transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-lg hover:shadow-2xl hover:-translate-y-1 relative"
+      className="group p-3.5 rounded-2xl bg-[#111A26] hover:bg-[#162233] border border-white/[0.08] hover:border-teal-500/40 transition-all duration-200 cursor-pointer flex flex-col justify-between shadow-lg hover:shadow-2xl hover:-translate-y-1 relative"
     >
       <div className="space-y-3">
         {/* Cover artwork with overlay button */}
@@ -653,7 +653,7 @@ const PodcastCard: React.FC<PodcastCardProps> = ({ podcast, onOpen, isFavorite, 
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 text-emerald-400 p-4">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 text-teal-400 p-4">
               <Mic className="w-8 h-8 mb-1" />
               <span className="text-[10px] font-bold uppercase text-zinc-400 text-center line-clamp-1">
                 {podcast.title.slice(0, 14)}
@@ -663,7 +663,7 @@ const PodcastCard: React.FC<PodcastCardProps> = ({ podcast, onOpen, isFavorite, 
 
           {/* Hover play button overlay */}
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <span className="w-11 h-11 rounded-full bg-emerald-500 text-zinc-950 flex items-center justify-center shadow-xl shadow-emerald-500/40 font-bold transform translate-y-1 group-hover:translate-y-0 transition-transform">
+            <span className="w-11 h-11 rounded-full bg-teal-500 text-zinc-950 flex items-center justify-center shadow-xl shadow-teal-500/40 font-bold transform translate-y-1 group-hover:translate-y-0 transition-transform">
               <Play className="w-5 h-5 fill-current ml-0.5" />
             </span>
           </div>
@@ -686,7 +686,7 @@ const PodcastCard: React.FC<PodcastCardProps> = ({ podcast, onOpen, isFavorite, 
 
           {/* Category Tag on cover */}
           <div className="absolute bottom-2 left-2 pointer-events-none">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-black/70 text-emerald-400 backdrop-blur-md border border-white/10 uppercase">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-black/70 text-teal-400 backdrop-blur-md border border-white/10 uppercase">
               {podcast.category || 'Podcast'}
             </span>
           </div>
@@ -694,7 +694,7 @@ const PodcastCard: React.FC<PodcastCardProps> = ({ podcast, onOpen, isFavorite, 
 
         {/* Title & Publisher */}
         <div>
-          <h3 className="font-bold text-sm text-white line-clamp-1 group-hover:text-emerald-400 transition-colors">
+          <h3 className="font-bold text-sm text-white line-clamp-1 group-hover:text-teal-400 transition-colors">
             {podcast.title}
           </h3>
           <p className="text-xs text-zinc-400 line-clamp-1 mt-0.5">
@@ -711,10 +711,10 @@ const PodcastCard: React.FC<PodcastCardProps> = ({ podcast, onOpen, isFavorite, 
       {/* Recency Footer: Son Bölüm Tarihi */}
       <div className="pt-3 mt-3 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-zinc-400 font-medium">
         <span className="flex items-center gap-1.5 text-zinc-300">
-          <Calendar className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+          <Calendar className="w-3.5 h-3.5 text-teal-400 shrink-0" />
           <span>Son bölüm: {formatDate(podcast.releaseDateMillis)}</span>
         </span>
-        <span className="text-emerald-400 text-[10px] font-bold group-hover:translate-x-0.5 transition-transform">
+        <span className="text-teal-400 text-[10px] font-bold group-hover:translate-x-0.5 transition-transform">
           Bölümleri Aç →
         </span>
       </div>

@@ -188,7 +188,7 @@ export const DownloadsView: React.FC<DownloadsViewProps> = ({
               <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 flex items-center space-x-2">
                 <span>{downloadedItems.length} İndirilmiş Bölüm</span>
                 <span>•</span>
-                <span className="text-emerald-500 dark:text-emerald-400 font-semibold flex items-center">
+                <span className="text-teal-500 dark:text-teal-400 font-semibold flex items-center">
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> IndexedDB İzolasyonu
                 </span>
               </div>
@@ -354,7 +354,7 @@ export const DownloadsView: React.FC<DownloadsViewProps> = ({
 
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center space-x-2">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30 flex items-center">
                           <CheckCircle2 className="w-3 h-3 mr-1" /> Çevrimdışı İndirildi
                         </span>
                         <span className="text-[10px] text-zinc-400 font-mono">

@@ -717,7 +717,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
 
           {(completedCount > 0 || inProgressCount > 0) && (
             <div className="flex items-center gap-2 text-xs">
-              <span className="font-bold text-emerald-500 flex items-center gap-1">
+              <span className="font-bold text-teal-500 flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" /> {completedCount} Tamamlandı
               </span>
               {inProgressCount > 0 && (
@@ -809,9 +809,9 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
         )}
 
         {!activeResumeEp && recommendedNextEp && (
-          <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/40 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-teal-500/15 via-teal-500/5 to-transparent border border-teal-500/40 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1 flex-1 min-w-0">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-500 text-zinc-950 font-extrabold text-[10px] uppercase tracking-wider shadow-sm">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-teal-500 text-zinc-950 font-extrabold text-[10px] uppercase tracking-wider shadow-sm">
                 <CheckCircle2 className="w-3 h-3 fill-current" /> Sıradaki Bölüm Önerisi
               </span>
               <h3 className="text-sm md:text-base font-black text-zinc-900 dark:text-zinc-100 line-clamp-1">
@@ -823,7 +823,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
             </div>
             <button
               onClick={() => onPlayEpisode(recommendedNextEp!, showEpisodes)}
-              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-95 shrink-0 cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-zinc-950 font-black text-xs md:text-sm flex items-center gap-2 shadow-lg shadow-teal-500/20 transition-all active:scale-95 shrink-0 cursor-pointer"
             >
               <Play className="w-4 h-4 fill-current ml-0.5" />
               <span>Sonraki Bölümü Başlat</span>
@@ -870,8 +870,8 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                   onClick={() => setEpisodeFilter('completed')}
                   className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
                     episodeFilter === 'completed'
-                      ? 'bg-emerald-500 text-zinc-950 shadow-sm'
-                      : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
+                      ? 'bg-teal-500 text-zinc-950 shadow-sm'
+                      : 'text-teal-600 dark:text-teal-400 hover:bg-teal-500/10'
                   }`}
                 >
                   <CheckCircle2 className="w-3 h-3" /> Tamamlanan ({completedCount})
@@ -944,7 +944,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                     isThisPlaying
                       ? 'bg-amber-500/10 border-amber-500 shadow-md shadow-amber-500/10'
                       : epState.isCompleted
-                      ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/30'
+                      ? 'bg-teal-500/5 dark:bg-teal-950/20 border-teal-500/30'
                       : epState.hasProgress
                       ? 'bg-amber-500/5 dark:bg-amber-950/20 border-amber-500/30'
                       : 'bg-white dark:bg-zinc-900/70 border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-300 dark:hover:border-zinc-700'
@@ -963,8 +963,8 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
 
                         {/* Status Badges */}
                         {epState.isCompleted ? (
-                          <span className="font-bold text-[10px] px-2.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Tamamlandı
+                          <span className="font-bold text-[10px] px-2.5 py-0.5 rounded-md bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-teal-500" /> Tamamlandı
                           </span>
                         ) : epState.hasProgress ? (
                           <span className="font-bold text-[10px] px-2.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
@@ -1018,11 +1018,11 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                             title={isDownloaded ? "Çevrimdışı İndirildi (Tıkla ve Sil)" : "Çevrimdışı İndir (İnternetsiz Dinle)"}
                             className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
                               isDownloaded
-                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/25'
+                                ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/40 hover:bg-teal-500/25'
                                 : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-400 hover:text-amber-500 border-zinc-200 dark:border-zinc-700'
                             }`}
                           >
-                            <DownloadCloud className={`w-4 h-4 ${isDownloaded ? 'text-emerald-500' : ''}`} />
+                            <DownloadCloud className={`w-4 h-4 ${isDownloaded ? 'text-teal-500' : ''}`} />
                           </button>
                         );
                       })()}
@@ -1051,8 +1051,8 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                         title={epState.isCompleted ? "Tamamlandı olarak işaretlendi (Tıkla ve sıfırla)" : "Tamamlandı olarak işaretle"}
                         className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
                           epState.isCompleted
-                            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30'
-                            : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-400 hover:text-emerald-500 border-zinc-200 dark:border-zinc-700'
+                            ? 'bg-teal-500/20 text-teal-600 dark:text-teal-400 border-teal-500/40 hover:bg-teal-500/30'
+                            : 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-400 hover:text-teal-500 border-zinc-200 dark:border-zinc-700'
                         }`}
                       >
                         <CheckCircle2 className="w-4 h-4" />
@@ -1067,7 +1067,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                             : epState.hasProgress
                             ? 'bg-amber-500 text-zinc-950 hover:bg-amber-400 shadow-amber-500/20'
                             : epState.isCompleted
-                            ? 'bg-zinc-100 dark:bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700'
+                            ? 'bg-zinc-100 dark:bg-zinc-800 hover:bg-teal-500 hover:text-zinc-950 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700'
                             : 'bg-zinc-100 dark:bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700'
                         }`}
                       >
@@ -1097,7 +1097,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                     <div className="mt-3 pt-2 border-t border-zinc-200 dark:border-zinc-800/60 space-y-1">
                       <div className="flex justify-between text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
                         {epState.isCompleted ? (
-                          <span className="text-emerald-500 font-bold flex items-center gap-1">
+                          <span className="text-teal-500 font-bold flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" /> Tüm bölüm dinlendi (%100)
                           </span>
                         ) : (
@@ -1110,7 +1110,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                       <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all duration-300 ${
-                            epState.isCompleted ? 'bg-emerald-500' : 'bg-amber-500'
+                            epState.isCompleted ? 'bg-teal-500' : 'bg-amber-500'
                           }`}
                           style={{ width: `${epState.pct}%` }}
                         />
@@ -1135,15 +1135,15 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
       <div className="relative overflow-hidden rounded-3xl bg-white/80 dark:bg-white/[0.03] p-6 md:p-8 border border-zinc-200/70 dark:border-white/[0.06] shadow-sm">
         <div className="relative z-10 max-w-2xl space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold tracking-wide uppercase border border-emerald-500/30">
-              <Mic className="w-3.5 h-3.5 text-emerald-500" /> Canlı Apple Podcast Ağı
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 text-xs font-bold tracking-wide uppercase border border-teal-500/30">
+              <Mic className="w-3.5 h-3.5 text-teal-500" /> Canlı Apple Podcast Ağı
             </div>
 
             <button
               onClick={() => setIsWrappedOpen(true)}
-              className="px-3.5 py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 font-bold text-xs flex items-center space-x-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 text-teal-600 dark:text-teal-300 font-bold text-xs flex items-center space-x-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
             >
-              <BarChart2 className="w-3.5 h-3.5 text-emerald-500" />
+              <BarChart2 className="w-3.5 h-3.5 text-teal-500" />
               <span>Podcast Wrapped & Isı Haritası</span>
             </button>
           </div>
@@ -1163,12 +1163,12 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Podcast veya konu ara (örn: felsefe, haber)..."
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-white/[0.06] border border-zinc-200/80 dark:border-white/[0.08] rounded-full text-xs md:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:border-emerald-500 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-zinc-100 dark:bg-white/[0.06] border border-zinc-200/80 dark:border-white/[0.08] rounded-full text-xs md:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:border-teal-500 transition-all"
               />
             </div>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs md:text-sm rounded-full transition-all shadow-md active:scale-95 flex items-center gap-2 shrink-0 cursor-pointer"
+              className="px-5 py-2.5 bg-teal-500 hover:bg-teal-400 text-zinc-950 font-bold text-xs md:text-sm rounded-full transition-all shadow-md active:scale-95 flex items-center gap-2 shrink-0 cursor-pointer"
             >
               Ara
             </button>
@@ -1184,7 +1184,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                   onClick={() => handleCategorySelect(cat.id)}
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all active:scale-95 border cursor-pointer ${
                     isActive
-                      ? 'bg-emerald-500 text-zinc-950 border-emerald-500 font-bold shadow-md shadow-emerald-500/20'
+                      ? 'bg-teal-500 text-zinc-950 border-teal-500 font-bold shadow-md shadow-teal-500/20'
                       : 'bg-white dark:bg-white/[0.05] hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-300 border-zinc-200/70 dark:border-white/[0.06]'
                   }`}
                 >
@@ -1373,7 +1373,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                   onClick={() => setHistoryFilter('completed')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
                     historyFilter === 'completed'
-                      ? 'bg-emerald-500 text-zinc-950 shadow-sm'
+                      ? 'bg-teal-500 text-zinc-950 shadow-sm'
                       : 'bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                   }`}
                 >
@@ -1443,7 +1443,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                         isThisPlaying
                           ? 'bg-amber-500/10 border-amber-500/50 shadow-amber-500/10'
                           : isCompleted
-                          ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40'
+                          ? 'bg-teal-500/5 dark:bg-teal-950/20 border-teal-500/20 hover:border-teal-500/40'
                           : 'bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border-zinc-200 dark:border-zinc-800'
                       }`}
                     >
@@ -1468,7 +1468,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                             {isThisPlaying ? (
                               <Pause className="w-5 h-5 text-amber-400 fill-current" />
                             ) : isCompleted ? (
-                              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                              <CheckCircle2 className="w-5 h-5 text-teal-400" />
                             ) : (
                               <Play className="w-5 h-5 text-white fill-current ml-0.5" />
                             )}
@@ -1488,13 +1488,13 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                       <div className="mt-3 pt-2.5 border-t border-zinc-100 dark:border-zinc-800/60 space-y-1.5">
                         <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                            className={`h-full rounded-full ${isCompleted ? 'bg-teal-500' : 'bg-amber-500'}`}
                             style={{ width: `${pct}%` }}
                           />
                         </div>
                         <div className="flex justify-between items-center text-[10px] font-medium">
                           {isCompleted ? (
-                            <span className="text-emerald-500 font-bold flex items-center gap-1">
+                            <span className="text-teal-500 font-bold flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3" /> Tamamlandı
                             </span>
                           ) : savedSecs > 0 ? (
@@ -1504,7 +1504,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                           ) : (
                             <span className="text-zinc-400 font-bold">Başlatıldı</span>
                           )}
-                          <span className={isCompleted ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
+                          <span className={isCompleted ? 'text-teal-500 font-bold' : 'text-amber-500 font-bold'}>
                             %{pct}
                           </span>
                         </div>
@@ -1532,7 +1532,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                           isThisPlaying
                             ? 'bg-amber-500/10 border-amber-500/50'
                             : isCompleted
-                            ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40'
+                            ? 'bg-teal-500/5 dark:bg-teal-950/20 border-teal-500/20 hover:border-teal-500/40'
                             : 'bg-white dark:bg-zinc-900/80 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 border-zinc-200 dark:border-zinc-800'
                         }`}
                       >
@@ -1547,7 +1547,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                             {isThisPlaying ? (
                               <Pause className="w-5 h-5 text-amber-400 fill-current" />
                             ) : isCompleted ? (
-                              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                              <CheckCircle2 className="w-5 h-5 text-teal-400" />
                             ) : (
                               <Play className="w-5 h-5 text-white fill-current ml-0.5" />
                             )}
@@ -1564,13 +1564,13 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                           <div className="space-y-1">
                             <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                               <div
-                                className={`h-full rounded-full ${isCompleted ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                                className={`h-full rounded-full ${isCompleted ? 'bg-teal-500' : 'bg-amber-500'}`}
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
                             <div className="flex justify-between text-[9px] font-medium">
                               {isCompleted ? (
-                                <span className="text-emerald-500 font-bold flex items-center gap-1">
+                                <span className="text-teal-500 font-bold flex items-center gap-1">
                                   <CheckCircle2 className="w-2.5 h-2.5" /> Tamamlandı
                                 </span>
                               ) : savedSecs > 0 ? (
@@ -1580,7 +1580,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                               ) : (
                                 <span className="text-zinc-400 font-bold">Başlatıldı</span>
                               )}
-                              <span className={isCompleted ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>%{pct}</span>
+                              <span className={isCompleted ? 'text-teal-500 font-bold' : 'text-amber-500 font-bold'}>%{pct}</span>
                             </div>
                           </div>
                         </div>
@@ -1638,7 +1638,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-zinc-200 dark:border-zinc-800">
               <div className="space-y-0.5">
                 <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                  <Mic className="w-5 h-5 text-emerald-500" />
+                  <Mic className="w-5 h-5 text-teal-500" />
                   Öne Çıkan Türkçe Podcast Yayınları
                 </h2>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -1653,7 +1653,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                   onClick={() => setCatalogSort('newest')}
                   className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center space-x-1 cursor-pointer ${
                     catalogSort === 'newest'
-                      ? 'bg-emerald-500 text-zinc-950 shadow-sm'
+                      ? 'bg-teal-500 text-zinc-950 shadow-sm'
                       : 'bg-zinc-100 dark:bg-white/[0.04] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                   }`}
                 >
@@ -1664,7 +1664,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                   onClick={() => setCatalogSort('popular')}
                   className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                     catalogSort === 'popular'
-                      ? 'bg-emerald-500 text-zinc-950 shadow-sm'
+                      ? 'bg-teal-500 text-zinc-950 shadow-sm'
                       : 'bg-zinc-100 dark:bg-white/[0.04] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                   }`}
                 >
@@ -1674,7 +1674,7 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                   onClick={() => setCatalogSort('az')}
                   className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                     catalogSort === 'az'
-                      ? 'bg-emerald-500 text-zinc-950 shadow-sm'
+                      ? 'bg-teal-500 text-zinc-950 shadow-sm'
                       : 'bg-zinc-100 dark:bg-white/[0.04] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                   }`}
                 >
@@ -1707,14 +1707,14 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <span className="w-12 h-12 bg-emerald-500 text-zinc-950 rounded-full shadow-xl shadow-emerald-500/30 flex items-center justify-center transform translate-y-2 group-hover:translate-y-0 transition-all font-bold">
+                          <span className="w-12 h-12 bg-teal-500 text-zinc-950 rounded-full shadow-xl shadow-teal-500/30 flex items-center justify-center transform translate-y-2 group-hover:translate-y-0 transition-all font-bold">
                             <Play className="w-5 h-5 fill-current ml-0.5" />
                           </span>
                         </div>
 
                         {/* Category badge on cover */}
                         <div className="absolute bottom-2 left-2 pointer-events-none">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-black/70 text-emerald-400 backdrop-blur-md border border-white/10 uppercase">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-black/70 text-teal-400 backdrop-blur-md border border-white/10 uppercase">
                             {show.category || 'Podcast'}
                           </span>
                         </div>
@@ -1739,18 +1739,18 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
 
                         {/* Listening indicator badge on cover */}
                         {completedInShow.length > 0 ? (
-                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-emerald-500 text-zinc-950 font-bold text-[10px] shadow-md flex items-center gap-1">
+                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-teal-500 text-zinc-950 font-bold text-[10px] shadow-md flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" /> {completedInShow.length} Dinlendi
                           </div>
                         ) : listenedInShow.length > 0 ? (
-                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold text-[10px] shadow-md flex items-center gap-1 backdrop-blur-md">
+                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-400 border border-teal-500/40 font-bold text-[10px] shadow-md flex items-center gap-1 backdrop-blur-md">
                             <Clock className="w-3 h-3" /> Devam Ediyor
                           </div>
                         ) : null}
                       </div>
 
                       <div>
-                        <h3 className="font-bold text-zinc-900 dark:text-white text-sm line-clamp-1 group-hover:text-emerald-400 transition-colors">
+                        <h3 className="font-bold text-zinc-900 dark:text-white text-sm line-clamp-1 group-hover:text-teal-400 transition-colors">
                           {show.title}
                         </h3>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1 mt-0.5">{show.publisher}</p>
@@ -1763,10 +1763,10 @@ export const PodcastView: React.FC<PodcastViewProps> = React.memo(({
 
                     <div className="pt-3 mt-2 border-t border-zinc-200/70 dark:border-white/[0.06] flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
                       <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300 font-medium">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        <Calendar className="w-3.5 h-3.5 text-teal-500 shrink-0" />
                         <span>Son bölüm: {formatPodcastCardDate(show.releaseDateMillis)}</span>
                       </span>
-                      <span className="flex items-center gap-1 group-hover:text-emerald-400 transition-colors font-semibold">
+                      <span className="flex items-center gap-1 group-hover:text-teal-400 transition-colors font-semibold">
                         Bölümler <ChevronRight className="w-3.5 h-3.5" />
                       </span>
                     </div>

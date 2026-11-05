@@ -45,6 +45,7 @@ import { BigScreenModal } from './components/BigScreenModal';
 import { LegalView, LegalPageType } from './components/LegalView';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { SearchResultsView } from './components/SearchResultsView';
+import { HistoryView } from './components/HistoryView';
 import { IOSInstallGuideModal } from './components/IOSInstallGuideModal';
 import { WifiOff, DownloadCloud, Smartphone, Share, X, SquarePlus, ChevronRight } from 'lucide-react';
 import { ReconnectState } from './types';
@@ -155,7 +156,7 @@ export default function App() {
   // Sync initial tab and listen to browser back/forward buttons (popstate)
   useEffect(() => {
     const legalRoutes = ['copyright', 'dmca', 'takedown', 'counter-notice', 'privacy', 'terms', 'content-policy'];
-    const validTabs = ['discover', 'search', 'podcasts', 'downloads', 'favorites', 'playlists', 'countries', 'settings', ...legalRoutes];
+    const validTabs = ['discover', 'search', 'radios', 'podcasts', 'history', 'downloads', 'favorites', 'playlists', 'countries', 'settings', ...legalRoutes];
 
     const syncFromLocation = () => {
       const pathname = window.location.pathname.replace(/^\//, '').toLowerCase();
@@ -1129,6 +1130,31 @@ export default function App() {
               onAddToPlaylist={handleAddToPlaylist}
               onRefresh={() => fetchStationsData(1, false)}
               searchQuery={searchQuery}
+              onNavigateToRadios={() => changeTab('radios')}
+              onNavigateToPodcasts={() => changeTab('podcasts')}
+              onOpenPodcastShow={handleOpenPodcastShowFromFav}
+            />
+          </div>
+
+          {/* Full Radios & Countries View */}
+          <div className={activeTab === 'radios' ? 'block' : 'hidden'}>
+            <CountriesView
+              onSelectCountry={(countryCode) => {
+                setSelectedCountry(countryCode);
+                setSelectedCategory('');
+                setSearchQuery('');
+                changeTab('discover');
+              }}
+            />
+          </div>
+
+          {/* Listening History View */}
+          <div className={activeTab === 'history' ? 'block' : 'hidden'}>
+            <HistoryView
+              onPlayStation={handlePlayStation}
+              onPlayPodcastEpisode={handlePlayPodcastEpisode}
+              currentStation={currentStation}
+              isPlaying={playbackStatus === 'playing'}
             />
           </div>
 

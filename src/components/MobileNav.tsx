@@ -54,7 +54,7 @@ export const MobileNav: React.FC<MobileNavProps> = React.memo(({
   return (
     <>
       {/* Mobile Bottom Navigation Bar (Visible only on < md screens) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-lg border-t border-zinc-200 dark:border-zinc-800/80 px-2 py-1.5 flex items-center justify-around shadow-2xl pb-[calc(0.5rem+env(safe-area-inset-bottom))] transition-colors">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0D1219]/95 backdrop-blur-lg border-t border-[#1E2836] px-2 py-1.5 flex items-center justify-around shadow-2xl pb-[calc(0.5rem+env(safe-area-inset-bottom))] transition-colors">
         {mainTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -66,15 +66,15 @@ export const MobileNav: React.FC<MobileNavProps> = React.memo(({
                 setIsMenuOpen(false);
               }}
               className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl min-w-[56px] min-h-[44px] transition-all relative active:scale-95 ${
-                isActive ? 'text-amber-500 font-bold' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                isActive ? 'text-teal-400 font-bold' : 'text-zinc-400 hover:text-white'
               }`}
             >
               <div className="relative">
-                <Icon className={`w-5 h-5 ${isActive ? 'text-amber-500 scale-110' : 'text-zinc-500 dark:text-zinc-400'}`} />
+                <Icon className={`w-5 h-5 ${isActive ? 'text-teal-400 scale-110' : 'text-zinc-400'}`} />
               </div>
               <span className="text-[10px] mt-1 tracking-tight leading-none">{tab.label}</span>
               {isActive && (
-                <span className="absolute bottom-0 w-8 h-0.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500" />
+                <span className="absolute bottom-0 w-8 h-0.5 rounded-full bg-teal-400 shadow-sm shadow-teal-500/50" />
               )}
             </button>
           );
@@ -84,9 +84,9 @@ export const MobileNav: React.FC<MobileNavProps> = React.memo(({
         <button
           onClick={() => setIsMenuOpen(true)}
           className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl min-w-[56px] min-h-[44px] transition-all active:scale-95 ${
-            isMenuOpen || ['playlists', 'settings'].includes(activeTab)
-              ? 'text-amber-500 font-bold'
-              : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+            isMenuOpen || ['playlists', 'settings', 'countries', 'history'].includes(activeTab)
+              ? 'text-teal-400 font-bold'
+              : 'text-zinc-400 hover:text-white'
           }`}
         >
           <Menu className="w-5 h-5" />

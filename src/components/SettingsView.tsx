@@ -93,7 +93,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Header */}
       <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4">
         <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 flex items-center space-x-2.5">
-          <Settings className="w-5 h-5 text-amber-500" />
+          <Settings className="w-5 h-5 text-teal-400" />
           <span>Uygulama Ayarları</span>
         </h1>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
@@ -102,8 +102,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
 
       {/* Mobil Uygulama Kurulum Kartı */}
-      <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 p-5 rounded-2xl border border-amber-500/30 space-y-3 shadow-sm transition-colors">
-        <div className="flex items-center space-x-2 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+      <div className="bg-gradient-to-r from-teal-400/10 via-rose-500/10 to-purple-500/10 p-5 rounded-2xl border border-teal-400/30 space-y-3 shadow-sm transition-colors">
+        <div className="flex items-center space-x-2 text-xs font-bold text-teal-400 dark:text-teal-300 uppercase tracking-wider">
           <Smartphone className="w-4 h-4" />
           <span>Mobil & Masaüstü Uygulama Kurulumu (PWA)</span>
         </div>
@@ -112,7 +112,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </p>
 
         {isStandalone ? (
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+          <div className="p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-600 dark:text-teal-400 text-xs font-bold flex items-center gap-2">
             <Check className="w-4 h-4" />
             <span>RadioCast uygulamanız ana ekranınıza başarıyla yüklenmiş durumda!</span>
           </div>
@@ -121,7 +121,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             {hasDeferredPrompt && onInstallPWA && (
               <button
                 onClick={onInstallPWA}
-                className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-teal-400 hover:bg-teal-300 text-zinc-950 font-bold text-xs flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
               >
                 <Smartphone className="w-4 h-4" />
                 <span>Tek Tıkla Yükle (Android / Chrome)</span>
@@ -133,7 +133,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 onClick={onOpenIOSGuide}
                 className="px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
               >
-                <Share className="w-4 h-4 text-amber-400" />
+                <Share className="w-4 h-4 text-teal-300" />
                 <span>iPhone / iPad Yükleme Rehberi (Safari)</span>
               </button>
             )}
@@ -144,43 +144,43 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Yasal & Telif Hakları Politikaları */}
       <div className="bg-white dark:bg-zinc-900/80 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-3 shadow-sm dark:shadow-md transition-colors">
         <div className="flex items-center space-x-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-          <Settings className="w-4 h-4 text-amber-500" />
+          <Settings className="w-4 h-4 text-teal-400" />
           <span>Yasal Haklar & Politikalar</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
           <button
             onClick={() => onNavigate?.('copyright')}
-            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-medium transition-colors text-left"
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-teal-400 hover:text-teal-400 font-medium transition-colors text-left"
           >
             Telif Hakkı Politikası
           </button>
           <button
             onClick={() => onNavigate?.('dmca')}
-            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-medium transition-colors text-left"
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-teal-400 hover:text-teal-400 font-medium transition-colors text-left"
           >
             DMCA Bildirimi
           </button>
           <button
             onClick={() => onNavigate?.('takedown')}
-            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-bold text-amber-600 dark:text-amber-400 transition-colors text-left"
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-teal-400 hover:text-teal-400 font-bold text-teal-400 dark:text-teal-300 transition-colors text-left"
           >
             İçerik Kaldırma Formu
           </button>
           <button
             onClick={() => onNavigate?.('privacy')}
-            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-medium transition-colors text-left"
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-teal-400 hover:text-teal-400 font-medium transition-colors text-left"
           >
             Gizlilik Politikası
           </button>
           <button
             onClick={() => onNavigate?.('terms')}
-            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-medium transition-colors text-left"
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-teal-400 hover:text-teal-400 font-medium transition-colors text-left"
           >
             Kullanım Şartları
           </button>
           <button
             onClick={() => onNavigate?.('content-policy')}
-            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-amber-500 hover:text-amber-500 font-medium transition-colors text-left"
+            className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 hover:border-teal-400 hover:text-teal-400 font-medium transition-colors text-left"
           >
             İçerik Politikası
           </button>
@@ -190,7 +190,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Theme Palettes Section */}
       <div className="bg-white dark:bg-zinc-900/80 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-4 shadow-sm dark:shadow-md transition-colors">
         <div className="flex items-center space-x-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-          <Palette className="w-4 h-4 text-amber-500" />
+          <Palette className="w-4 h-4 text-teal-400" />
           <span>Tema & Renk Paletleri</span>
         </div>
 
@@ -200,7 +200,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             onClick={() => onUpdateSettings({ themePalette: 'pure-carbon' })}
             className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
               settings.themePalette === 'pure-carbon'
-                ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400 font-bold'
+                ? 'bg-teal-400/10 border-teal-400 text-teal-400 dark:text-teal-300 font-bold'
                 : 'bg-zinc-50 dark:bg-zinc-950/60 border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:border-zinc-400 dark:hover:border-zinc-700'
             }`}
           >
@@ -216,7 +216,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             onClick={() => onUpdateSettings({ themePalette: 'neon-ocean' })}
             className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
               settings.themePalette === 'neon-ocean'
-                ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400 font-bold'
+                ? 'bg-teal-400/10 border-teal-400 text-teal-400 dark:text-teal-300 font-bold'
                 : 'bg-zinc-50 dark:bg-zinc-950/60 border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:border-zinc-400 dark:hover:border-zinc-700'
             }`}
           >
@@ -232,7 +232,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             onClick={() => onUpdateSettings({ themePalette: 'cyber-orchid' })}
             className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
               settings.themePalette === 'cyber-orchid'
-                ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400 font-bold'
+                ? 'bg-teal-400/10 border-teal-400 text-teal-400 dark:text-teal-300 font-bold'
                 : 'bg-zinc-50 dark:bg-zinc-950/60 border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:border-zinc-400 dark:hover:border-zinc-700'
             }`}
           >
@@ -240,7 +240,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <span className="font-semibold block">Warm Amber</span>
               <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Sıcak Kehribar & Ahşap Dokunuş</span>
             </div>
-            <div className="w-5 h-5 rounded-full bg-amber-500 border border-amber-600" />
+            <div className="w-5 h-5 rounded-full bg-teal-400 border border-teal-400" />
           </button>
 
           {/* Cosmic Slate */}
@@ -248,7 +248,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             onClick={() => onUpdateSettings({ themePalette: 'cosmic-slate' })}
             className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
               settings.themePalette === 'cosmic-slate'
-                ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400 font-bold'
+                ? 'bg-teal-400/10 border-teal-400 text-teal-400 dark:text-teal-300 font-bold'
                 : 'bg-zinc-50 dark:bg-zinc-950/60 border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 hover:border-zinc-400 dark:hover:border-zinc-700'
             }`}
           >
@@ -256,7 +256,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <span className="font-semibold block">Midnight Emerald</span>
               <span className="text-[10px] text-zinc-500 dark:text-zinc-400">Zümrüt Derinlik & Gece Modu</span>
             </div>
-            <div className="w-5 h-5 rounded-full bg-emerald-600 border border-emerald-500" />
+            <div className="w-5 h-5 rounded-full bg-teal-600 border border-teal-500" />
           </button>
         </div>
 
@@ -271,7 +271,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               onClick={() => onUpdateSettings({ themeMode: 'dark' })}
               className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition-all active:scale-95 ${
                 settings.themeMode === 'dark'
-                  ? 'bg-zinc-900 text-amber-400 font-bold shadow-md'
+                  ? 'bg-zinc-900 text-teal-300 font-bold shadow-md'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
@@ -282,7 +282,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               onClick={() => onUpdateSettings({ themeMode: 'light' })}
               className={`px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition-all active:scale-95 ${
                 settings.themeMode === 'light'
-                  ? 'bg-amber-500 text-zinc-950 font-bold shadow-md'
+                  ? 'bg-teal-400 text-zinc-950 font-bold shadow-md'
                   : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
@@ -296,7 +296,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Network & Audio Quality Section */}
       <div className="bg-white dark:bg-zinc-900/80 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-4 shadow-sm dark:shadow-md transition-colors">
         <div className="flex items-center space-x-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-          <Wifi className="w-4 h-4 text-amber-500" />
+          <Wifi className="w-4 h-4 text-teal-400" />
           <span>Ağ & Ses Akış Yönetimi</span>
         </div>
 
@@ -311,7 +311,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <button
             onClick={() => onUpdateSettings({ lowDataMode: !settings.lowDataMode })}
             className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${
-              settings.lowDataMode ? 'bg-amber-500' : 'bg-zinc-300 dark:bg-zinc-800'
+              settings.lowDataMode ? 'bg-teal-400' : 'bg-zinc-300 dark:bg-zinc-800'
             }`}
           >
             <div
@@ -326,7 +326,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Backup & Restore Data */}
       <div className="bg-white dark:bg-zinc-900/80 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-3 shadow-sm dark:shadow-md transition-colors">
         <div className="flex items-center space-x-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-          <Download className="w-4 h-4 text-amber-500" />
+          <Download className="w-4 h-4 text-teal-400" />
           <span>Veri Yedekleme & Geri Yükleme</span>
         </div>
         <p className="text-zinc-600 dark:text-zinc-400 text-xs">
@@ -336,7 +336,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="flex flex-wrap items-center gap-3 pt-1">
           <button
             onClick={handleExport}
-            className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-teal-400 hover:bg-teal-300 text-zinc-950 font-bold text-xs flex items-center gap-2 transition-all shadow-sm cursor-pointer"
           >
             <Download className="w-4 h-4" />
             <span>Yedeği İndir (.json)</span>
@@ -359,7 +359,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </button>
 
           {importStatus === 'success' && (
-            <span className="text-xs font-bold text-emerald-500 flex items-center gap-1">
+            <span className="text-xs font-bold text-teal-500 flex items-center gap-1">
               <Check className="w-4 h-4" /> Yükleme başarılı, yenileniyor...
             </span>
           )}
