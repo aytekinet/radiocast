@@ -51,7 +51,7 @@ class AudioEngine {
   
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
   private watchdogStartTime: number = 0;
-  private watchdogDurationMs: number = 9500;
+  private watchdogDurationMs: number = 5500;
   private progressSaveTimer: ReturnType<typeof setInterval> | null = null;
   
   private candidates: string[] = [];
@@ -64,10 +64,10 @@ class AudioEngine {
   private currentSessionId: number = 0;
   private timeUpdateListeners = new Set<(curr: number, dur: number) => void>();
 
-  // 6-stage exponential reconnect for live radio
+  // 3-stage fast exponential reconnect for live radio
   private reconnectAttempt: number = 0;
-  private readonly maxReconnectAttempts: number = 6;
-  private readonly reconnectDelaysSec: number[] = [1, 2, 4, 8, 16, 30];
+  private readonly maxReconnectAttempts: number = 3;
+  private readonly reconnectDelaysSec: number[] = [1, 2, 4];
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectCountdownTimer: ReturnType<typeof setInterval> | null = null;
   private reconnectNextInSec: number = 0;
@@ -324,13 +324,13 @@ class AudioEngine {
         const isIpHost = /^https?:\/\/\d+\.\d+\.\d+\.\d+/i.test(cleanUrl);
         if (isHttpsOrigin) {
           // On HTTPS pages:
-          // 1. Local backend proxy FIRST (bypasses browser mixed-content block & Shoutcast ICY headers)
-          rawCandidates.push(proxyUrl);
-          // 2. If domain name, try upgraded HTTPS
+          // 1. If domain name, try upgraded HTTPS first (direct browser audio has lowest latency & zero proxy load)
           if (!isIpHost) {
             rawCandidates.push(cleanUrl.replace(/^http:\/\//i, 'https://'));
           }
-          // 3. Public CORS proxy
+          // 2. Local backend proxy (bypasses browser mixed-content block & Shoutcast ICY headers)
+          rawCandidates.push(proxyUrl);
+          // 3. Public CORS proxy as backup
           rawCandidates.push(corsProxy);
           // 4. Raw HTTP
           rawCandidates.push(cleanUrl);
@@ -535,15 +535,15 @@ class AudioEngine {
         this.hlsInstance = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
-          manifestLoadingTimeOut: 6000,
-          manifestLoadingMaxRetry: 2,
-          levelLoadingTimeOut: 6000,
-          levelLoadingMaxRetry: 2,
-          fragLoadingTimeOut: 6000,
-          fragLoadingMaxRetry: 2,
-          maxBufferLength: 10,
-          maxMaxBufferLength: 20,
-          maxBufferSize: 15 * 1024 * 1024,
+          manifestLoadingTimeOut: 4500,
+          manifestLoadingMaxRetry: 1,
+          levelLoadingTimeOut: 4500,
+          levelLoadingMaxRetry: 1,
+          fragLoadingTimeOut: 4500,
+          fragLoadingMaxRetry: 1,
+          maxBufferLength: 8,
+          maxMaxBufferLength: 16,
+          maxBufferSize: 10 * 1024 * 1024,
           backBufferLength: 0
         });
         this.hlsInstance.loadSource(playableUrl);
@@ -556,23 +556,15 @@ class AudioEngine {
         this.hlsInstance.on(Hls.Events.ERROR, (_: any, data: any) => {
           if (sessionId !== this.currentSessionId) return;
           if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                this.hlsInstance?.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                this.hlsInstance?.recoverMediaError();
-                break;
-              default:
-                this.tryNextCandidate(sessionId);
-                break;
-            }
+            console.warn('[AudioEngine] Fatal HLS error on candidate:', currentUrl, data.type, data.details);
+            this.destroyHls();
+            this.tryNextCandidate(sessionId);
           }
         });
-        // Immediately invoke safePlay within the user interaction callstack to preserve browser gesture
+        // Invoke safePlay to preserve browser user gesture
         safePlay();
       } else if (this.audio.canPlayType('application/vnd.apple.mpegurl')) {
-        // Native HLS for Safari
+        // Native HLS for Safari (iOS and macOS)
         this.audio.src = playableUrl;
         this.audio.load();
         safePlay();

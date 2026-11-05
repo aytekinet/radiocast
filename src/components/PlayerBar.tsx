@@ -277,16 +277,16 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
 
   if (!currentItem) {
     return (
-      <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] md:bottom-3 inset-x-2 sm:inset-x-4 max-w-5xl mx-auto z-40 rounded-2xl border border-zinc-200/80 dark:border-white/[0.08] bg-white/90 dark:bg-[#121316]/95 backdrop-blur-xl px-4 py-2.5 shadow-xl shrink-0 select-none flex items-center justify-between gap-3 transition-all duration-300">
+      <div className="fixed bottom-14 md:bottom-0 inset-x-0 z-40 h-14 md:h-20 bg-[#0D1219] border-t border-[#1E2836] px-3.5 sm:px-6 flex items-center justify-between gap-3 select-none transition-colors">
         <div className="flex items-center space-x-3 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center text-zinc-950 font-black shadow-md shadow-emerald-500/20 shrink-0">
-            <Radio className="w-4 h-4 text-zinc-950" />
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-teal-500/10 border border-teal-500/25 flex items-center justify-center text-teal-400 shrink-0">
+            <Radio className="w-4 h-4 text-teal-400" />
           </div>
           <div className="min-w-0">
-            <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 truncate">
-              <span>Canlı Radyo & Podcast Çalar</span>
+            <h4 className="text-xs sm:text-sm font-bold text-white truncate">
+              Canlı Radyo & Podcast Çalar
             </h4>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
+            <p className="text-[10px] sm:text-xs text-zinc-400 truncate">
               Dinlemek istediğiniz radyo istasyonu veya podcast bölümüne dokunun
             </p>
           </div>
@@ -295,9 +295,9 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
         <div className="flex items-center space-x-2 shrink-0">
           <button
             onClick={onOpenSleepTimer}
-            className="px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-white/[0.06] border border-zinc-200/80 dark:border-white/[0.08] text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white text-xs flex items-center space-x-1.5 active:scale-95 transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-full bg-[#131B24] border border-[#1F2937] hover:bg-[#182330] text-zinc-300 hover:text-white text-xs flex items-center space-x-1.5 transition-colors cursor-pointer"
           >
-            <Timer className="w-3.5 h-3.5 text-emerald-400" />
+            <Timer className="w-3.5 h-3.5 text-teal-400" />
             <span className="hidden sm:inline">Uyku Zamanlayıcı</span>
           </button>
         </div>
@@ -449,20 +449,36 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                   <h4 className="font-bold text-xs sm:text-sm text-white truncate group-hover:text-teal-400 transition-colors">
                     {title}
                   </h4>
-                  {!isPodcast && (
+                  {!isPodcast && status === 'connecting' && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
+                      <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                      Bağlanıyor...
+                    </span>
+                  )}
+                  {!isPodcast && status === 'buffering' && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
+                      Tamponlanıyor...
+                    </span>
+                  )}
+                  {!isPodcast && status === 'playing' && (
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-500/15 text-teal-400 border border-teal-500/30 shrink-0">
                       <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
                       Canlı
                     </span>
                   )}
+                  {!isPodcast && status === 'error' && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 shrink-0">
+                      Bağlantı Hatası
+                    </span>
+                  )}
                 </div>
                 <p className="text-[11px] text-zinc-400 truncate mt-0.5">
-                  {subtitle}
+                  {status === 'error' ? 'Yayın başlatılamadı. Tekrar deneyin.' : subtitle}
                 </p>
               </div>
             </div>
 
-            {/* Center Controls: [Shuffle] [Prev] [Big Play/Pause] [Next] [Repeat/Skip] */}
+            {/* Center Controls: [Shuffle] [Prev] [Big Play/Pause] [Next] [Tekrar Dene] */}
             <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
               {/* Shuffle (desktop) */}
               <button
@@ -493,20 +509,35 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                   onPlayPause();
                 }}
                 className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all shadow-lg active:scale-95 cursor-pointer ${
-                  status === 'playing'
-                    ? 'bg-white text-black hover:scale-105'
+                  status === 'error'
+                    ? 'bg-rose-500 text-white hover:bg-rose-400 hover:scale-105'
                     : 'bg-white text-black hover:scale-105'
                 }`}
-                title={status === 'playing' ? 'Duraklat' : 'Oynat'}
+                title={status === 'error' ? 'Tekrar Dene' : status === 'playing' ? 'Duraklat' : 'Oynat'}
               >
                 {status === 'connecting' || status === 'buffering' ? (
                   <RefreshCw className="w-4 h-4 animate-spin text-black" />
                 ) : status === 'playing' ? (
                   <Pause className="w-5 h-5 fill-current text-black" />
+                ) : status === 'error' ? (
+                  <RefreshCw className="w-4 h-4 text-white" />
                 ) : (
                   <Play className="w-5 h-5 fill-current text-black ml-0.5" />
                 )}
               </button>
+
+              {status === 'error' && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPlayPause();
+                  }}
+                  className="hidden sm:flex px-2.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:bg-rose-500/30 text-[11px] font-bold items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Tekrar Dene</span>
+                </button>
+              )}
 
               {/* Next */}
               {onNext && (

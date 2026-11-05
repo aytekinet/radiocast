@@ -287,15 +287,16 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
       {/* Right Controls: Country Selector & Moon Theme Button */}
       <div className="flex items-center space-x-2 text-xs shrink-0">
         {/* Country Selector */}
-        <div className="relative flex items-center">
+        <div className="relative flex items-center" title="Radyo ülkesi">
           <Globe2 className="w-3.5 h-3.5 text-zinc-400 absolute left-3 pointer-events-none" />
           <select
+            aria-label="Radyo ülkesi"
+            title="Radyo ülkesi"
             value={selectedCountry}
             onChange={(e) => setSelectedCountry(e.target.value)}
             className="pl-8 pr-7 py-1.5 text-xs font-medium rounded-full bg-[#131B24] text-zinc-200 border border-[#1F2937] focus:outline-none focus:border-teal-500 appearance-none cursor-pointer hover:bg-[#182330] transition-colors"
           >
             <option value="TR">Türkiye</option>
-            <option value="">Tüm Dünya</option>
             {ALL_COUNTRIES.filter(c => c.code !== 'TR').map((c) => (
               <option key={c.code} value={c.code}>
                 {c.flag} {c.name}

@@ -8,7 +8,8 @@ import {
   Layers, 
   Clock, 
   ArrowRight,
-  Sparkles
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 import { RadioStation, Playlist } from '../types';
 import { PlaybackStatus } from '../services/audioEngine';
@@ -102,25 +103,88 @@ const CURATED_PODCAST_CARDS = [
   }
 ];
 
+const COUNTRY_POPULAR_TITLES: Record<string, string> = {
+  TR: "Türkiye'de Popüler Radyolar",
+  DE: "Almanya'da Popüler Radyolar",
+  RU: "Rusya'da Popüler Radyolar",
+  US: "ABD'de Popüler Radyolar",
+  GB: "İngiltere'de Popüler Radyolar",
+  FR: "Fransa'da Popüler Radyolar",
+  IT: "İtalya'da Popüler Radyolar",
+  ES: "İspanya'da Popüler Radyolar",
+  NL: "Hollanda'da Popüler Radyolar",
+  AZ: "Azerbaycan'da Popüler Radyolar",
+  GR: "Yunanistan'da Popüler Radyolar",
+  UA: "Ukrayna'da Popüler Radyolar",
+  BR: "Brezilya'da Popüler Radyolar",
+  JP: "Japonya'da Popüler Radyolar",
+  CA: "Kanada'da Popüler Radyolar",
+  AU: "Avustralya'da Popüler Radyolar",
+  CH: "İsviçre'de Popüler Radyolar",
+  AT: "Avusturya'da Popüler Radyolar",
+  BE: "Belçika'da Popüler Radyolar",
+  SE: "İsveç'te Popüler Radyolar",
+  NO: "Norveç'te Popüler Radyolar",
+  PL: "Polonya'da Popüler Radyolar",
+  RO: "Romanya'da Popüler Radyolar",
+  BG: "Bulgaristan'da Popüler Radyolar"
+};
+
+function getStationMonogram(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
+function getBadgeStyle(name: string): string {
+  const styles = [
+    'bg-teal-950/80 border border-teal-500/40 text-teal-300',
+    'bg-sky-950/80 border border-sky-500/40 text-sky-300',
+    'bg-indigo-950/80 border border-indigo-500/40 text-indigo-300',
+    'bg-purple-950/80 border border-purple-500/40 text-purple-300',
+    'bg-rose-950/80 border border-rose-500/40 text-rose-300',
+    'bg-amber-950/80 border border-amber-500/40 text-amber-300',
+    'bg-emerald-950/80 border border-emerald-500/40 text-emerald-300'
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i);
+    hash |= 0;
+  }
+  return styles[Math.abs(hash) % styles.length];
+}
+
 export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
   stations,
+  isLoading,
+  selectedCategory,
+  setSelectedCategory,
+  selectedCountry,
+  setSelectedCountry,
   currentStation,
   isPlaying,
-  playbackStatus,
   favorites,
   onPlayStation,
   onToggleFavorite,
-  selectedCategory,
-  setSelectedCategory,
   onNavigateToPodcasts,
   onNavigateToRadios,
   onOpenPodcastShow
 }) => {
   const [showAllPriority, setShowAllPriority] = useState(false);
-  const favoriteSet = useMemo(() => new Set(favorites.map((f) => f.stationuuid)), [favorites]);
+  const favoriteSet = useMemo(() => new Set(favorites.map((f) => f.stationuuid || f.id)), [favorites]);
 
-  // Map priority stations to real objects
-  const priorityRadios = useMemo(() => {
+  const isTurkey = !selectedCountry || selectedCountry === 'TR';
+
+  // Section title dynamically computed from selectedCountry
+  const sectionTitle = useMemo(() => {
+    if (isTurkey) return "Türkiye'de Popüler Radyolar";
+    return COUNTRY_POPULAR_TITLES[selectedCountry.toUpperCase()] || 'Popüler Dünya Radyoları';
+  }, [isTurkey, selectedCountry]);
+
+  // When country is Turkey, render the 12 editorial priority stations (or 8 by default)
+  const turkeyRadios = useMemo(() => {
     return EDITORIAL_PRIORITY_STATIONS.map((def: PriorityStationDef, idx: number) => {
       const cleanDef = def.name.toLowerCase().replace(/[^a-z0-9]/g, '');
       const matched = stations.find((s) => {
@@ -148,20 +212,48 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
 
       return {
         radio: radioObj,
-        def
+        badgeText: def.badgeText,
+        badgeBg: `${def.badgeBg} ${def.badgeTextColor}`,
+        tags: def.tags
       };
     });
   }, [stations]);
 
-  // Display top 8 by default, or all 18 if expanded
-  const displayRadios = useMemo(() => {
-    return showAllPriority ? priorityRadios : priorityRadios.slice(0, 8);
-  }, [priorityRadios, showAllPriority]);
+  // When country is NOT Turkey, render actual loaded stations from `stations` prop
+  const foreignRadios = useMemo(() => {
+    if (isTurkey) return [];
+    const limit = showAllPriority ? 24 : 10;
+    return stations.slice(0, limit).map((s) => ({
+      radio: s,
+      badgeText: getStationMonogram(s.name),
+      badgeBg: getBadgeStyle(s.name),
+      tags: s.tags ? s.tags.replace(/,/g, ' • ').slice(0, 32) : (s.country || 'Dünya Radyosu')
+    }));
+  }, [isTurkey, stations, showAllPriority]);
 
-  // Recent history items
+  const activeDisplayList = useMemo(() => {
+    if (isTurkey) {
+      return showAllPriority ? turkeyRadios : turkeyRadios.slice(0, 8);
+    }
+    return foreignRadios;
+  }, [isTurkey, turkeyRadios, foreignRadios, showAllPriority]);
+
+  // Recent history items - deduplicated by title and ID
   const recentItems = useMemo(() => {
     const list = getRecentlyPlayed();
-    return list.slice(0, 6);
+    const seen = new Set<string>();
+    const deduplicated = [];
+    for (const item of list) {
+      const key = item.type === 'radio' && item.radioStation 
+        ? `radio-${item.radioStation.name.toLowerCase().trim()}`
+        : item.id;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduplicated.push(item);
+      }
+      if (deduplicated.length >= 6) break;
+    }
+    return deduplicated;
   }, [currentStation, isPlaying]);
 
   return (
@@ -173,14 +265,19 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
         </h1>
       </div>
 
-      {/* 1. Türkiye'de Popüler Radyolar */}
+      {/* 1. Popüler Radyolar (Country-aware) */}
       <section className="space-y-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Radio className="w-5 h-5 text-teal-400" />
             <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-              Türkiye'de Popüler Radyolar
+              {sectionTitle}
             </h2>
+            {!isTurkey && stations.length > 0 && (
+              <span className="text-[11px] font-semibold text-teal-400/80 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20">
+                {stations.length} istasyon
+              </span>
+            )}
           </div>
           <button
             onClick={() => {
@@ -197,79 +294,116 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
           </button>
         </div>
 
-        {/* 2-Column Compact Station Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {displayRadios.map(({ radio, def }) => {
-            const isFav = favoriteSet.has(radio.stationuuid);
-            const isCurrent = currentStation?.stationuuid === radio.stationuuid || currentStation?.name === radio.name;
-            const isPlayingThis = isCurrent && isPlaying;
-
-            return (
-              <div
-                key={radio.stationuuid}
-                onClick={() => onPlayStation(radio)}
-                className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group ${
-                  isCurrent
-                    ? 'bg-[#152331] border-teal-500/40 shadow-md ring-1 ring-teal-500/30'
-                    : 'bg-[#131B24] border-[#1F2937]/80 hover:bg-[#182330] hover:border-zinc-700/80'
-                }`}
+        {/* Loading State for foreign country */}
+        {isLoading && !isTurkey ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div 
+                key={i}
+                className="p-3 rounded-xl bg-[#131B24] border border-[#1F2937]/80 flex items-center justify-between gap-3 animate-pulse"
               >
-                {/* Left: Badge Logo + Info */}
-                <div className="flex items-center space-x-3 min-w-0">
-                  {/* Styled Monogram / Brand Badge */}
-                  <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-xs shadow-md tracking-wider ${def.badgeBg} ${def.badgeTextColor}`}>
-                    {def.badgeText}
-                  </div>
-
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-sm text-white group-hover:text-teal-300 transition-colors truncate">
-                      {radio.name}
-                    </h3>
-                    <p className="text-xs text-zinc-400 truncate mt-0.5">
-                      {def.tags}
-                    </p>
+                <div className="flex items-center space-x-3">
+                  <div className="w-11 h-11 rounded-xl bg-zinc-800" />
+                  <div className="space-y-2">
+                    <div className="w-32 h-3.5 rounded bg-zinc-800" />
+                    <div className="w-20 h-2.5 rounded bg-zinc-800/60" />
                   </div>
                 </div>
-
-                {/* Right: Heart & Play Actions */}
-                <div className="flex items-center space-x-2 shrink-0">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite(radio);
-                    }}
-                    className="p-1.5 rounded-full text-zinc-500 hover:text-white transition-colors cursor-pointer"
-                    title={isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
-                  >
-                    <Heart className={`w-4 h-4 ${isFav ? 'text-teal-400 fill-teal-400' : ''}`} />
-                  </button>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPlayStation(radio);
-                    }}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow ${
-                      isPlayingThis
-                        ? 'bg-teal-500 text-black'
-                        : 'bg-white/10 text-white group-hover:bg-teal-500 group-hover:text-black'
-                    }`}
-                    title={isPlayingThis ? 'Durdur' : 'Oynat'}
-                  >
-                    {isPlayingThis ? (
-                      <Pause className="w-4 h-4 fill-current" />
-                    ) : (
-                      <Play className="w-4 h-4 fill-current ml-0.5" />
-                    )}
-                  </button>
-                </div>
+                <div className="w-9 h-9 rounded-full bg-zinc-800" />
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        ) : !isLoading && !isTurkey && stations.length === 0 ? (
+          /* Empty State for foreign country without leaking Turkish stations */
+          <div className="p-8 rounded-xl bg-[#131B24] border border-[#1F2937] text-center space-y-3">
+            <Radio className="w-8 h-8 text-zinc-500 mx-auto" />
+            <h3 className="font-bold text-sm text-white">Bu ülkede radyo istasyonu bulunamadı</h3>
+            <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+              Seçilen ülke için istasyon bilgisi alınamadı. Farklı bir ülke seçebilir veya Türkiye radyolarına dönebilirsiniz.
+            </p>
+            <button
+              onClick={() => setSelectedCountry('TR')}
+              className="px-4 py-2 rounded-full bg-teal-500 text-black font-bold text-xs hover:bg-teal-400 transition-colors cursor-pointer"
+            >
+              Türkiye Radyolarına Dön
+            </button>
+          </div>
+        ) : (
+          /* 2-Column Compact Station Cards Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {activeDisplayList.map(({ radio, badgeText, badgeBg, tags }) => {
+              const stId = radio.stationuuid || radio.id;
+              const isFav = favoriteSet.has(stId);
+              const isCurrent = currentStation?.stationuuid === radio.stationuuid || currentStation?.name === radio.name;
+              const isPlayingThis = isCurrent && isPlaying;
+
+              return (
+                <div
+                  key={stId}
+                  onClick={() => onPlayStation(radio)}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group ${
+                    isCurrent
+                      ? 'bg-[#152331] border-teal-500/40 shadow-md ring-1 ring-teal-500/30'
+                      : 'bg-[#131B24] border-[#1F2937]/80 hover:bg-[#182330] hover:border-zinc-700/80'
+                  }`}
+                >
+                  {/* Left: Badge Logo + Info */}
+                  <div className="flex items-center space-x-3 min-w-0">
+                    {/* Styled Monogram / Brand Badge */}
+                    <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-xs shadow-md tracking-wider ${badgeBg}`}>
+                      {badgeText}
+                    </div>
+
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-sm text-white group-hover:text-teal-300 transition-colors truncate">
+                        {radio.name}
+                      </h3>
+                      <p className="text-xs text-zinc-400 truncate mt-0.5">
+                        {tags}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right: Heart & Play Actions */}
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(radio);
+                      }}
+                      className="p-1.5 rounded-full text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                      title={isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+                    >
+                      <Heart className={`w-4 h-4 ${isFav ? 'text-teal-400 fill-teal-400' : ''}`} />
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPlayStation(radio);
+                      }}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow ${
+                        isPlayingThis
+                          ? 'bg-teal-500 text-black'
+                          : 'bg-white/10 text-white group-hover:bg-teal-500 group-hover:text-black'
+                      }`}
+                      title={isPlayingThis ? 'Durdur' : 'Oynat'}
+                    >
+                      {isPlayingThis ? (
+                        <Pause className="w-4 h-4 fill-current" />
+                      ) : (
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
-      {/* 2. Güncel Türkçe Podcastler */}
+      {/* 2. Güncel Türkçe Podcastler - (Remains 100% Turkish regardless of radio country) */}
       <section className="space-y-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">

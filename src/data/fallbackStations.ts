@@ -41,6 +41,76 @@ export interface VerifiedStationInfo {
   favicon: string;
 }
 
+const VERIFIED_STATION_STREAM_MAP: Record<string, string[]> = {
+  kafaradyo: [
+    'https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8',
+    'https://moondigitaledge.radyotvonline.net/kafaradyo/playlist.m3u8'
+  ],
+  trtfm: [
+    'https://rd-trtfm.medya.trt.com.tr/master_128.m3u8',
+    'https://rd-trtfm.medya.trt.com.tr/master.m3u8'
+  ],
+  radyofenomen: [
+    'https://live.radyofenomen.com/fenomen/128/icecast.audio',
+    'https://live.radyofenomen.com/fenomen/abr/playlist.m3u8'
+  ],
+  bestfm: [
+    'https://ssldyg.radyotvonline.com/best/bestfm.stream/playlist.m3u8'
+  ],
+  alemfm: [
+    'https://turkmedya.radyotvonline.net/alemfmaac',
+    'https://turkmedya.radyotvonline.net/alemfm/playlist.m3u8'
+  ],
+  kralpop: [
+    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8',
+    'https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8'
+  ],
+  kralfm: [
+    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8'
+  ],
+  powerturk: [
+    'https://listen.powerapp.com.tr/powerturkslow/mpeg/icecast.audio',
+    'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8',
+    'https://live.powerapp.com.tr/powerturk/abr/powerturk/128/playlist.m3u8'
+  ],
+  superfm: [
+    'https://yayin.superfmradyo.com.tr/superfm/stream',
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC'
+  ],
+  radyo7: [
+    'https://moondigitaledge.radyotvonline.net/radyo7/playlist.m3u8',
+    'http://46.20.3.251/stream/169/'
+  ],
+  ntvradyo: [
+    'https://dygedge2.radyotvonline.net/ntvradyo/playlist.m3u8'
+  ],
+  slowturk: [
+    'https://radyo.duhnet.tv/ak_dtvh_slowturk'
+  ],
+  acikradyo: [
+    'http://stream.34bit.net/ar.aac'
+  ],
+  metrofm: [
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/METRO_FM_SC'
+  ],
+  joyturk: [
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_SC'
+  ],
+  powerfm: [
+    'https://live.powerapp.com.tr/powerfm/abr/playlist.m3u8'
+  ],
+  radyod: [
+    'https://moondigitaledge.radyotvonline.net/radyod/playlist.m3u8',
+    'https://dygedge2.radyotvonline.net/radyod/playlist.m3u8'
+  ],
+  radyo45lik: [
+    'https://stream.radyo45lik.com:4545/'
+  ],
+  virginradioturkiye: [
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/VIRGIN_RADIO_SC'
+  ]
+};
+
 export function getCandidateUrlsForStation(station: RadioStation): string[] {
   const urls: string[] = [];
   const add = (u?: string | null) => {
@@ -53,13 +123,35 @@ export function getCandidateUrlsForStation(station: RadioStation): string[] {
   };
 
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
-  const allCandidates = [station.playUrl, station.streamUrl, station.fallbackUrl, station.url_resolved, station.url];
+  
+  // 1. Look for known verified streams for this exact station by normalized name
+  const cleanName = (station.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (cleanName && VERIFIED_STATION_STREAM_MAP[cleanName]) {
+    for (const verifiedUrl of VERIFIED_STATION_STREAM_MAP[cleanName]) {
+      add(verifiedUrl);
+    }
+  }
+
+  // 2. Collect candidate URLs from station object
+  const allCandidates = [
+    station.url_resolved,
+    station.playUrl,
+    station.streamUrl,
+    station.url,
+    station.fallbackUrl
+  ];
 
   if (isHttpsPage) {
     // When served over HTTPS, prioritize HTTPS streams first to prevent Mixed Content
     for (const u of allCandidates) {
       if (u && u.toLowerCase().startsWith('https://')) {
         add(u);
+      }
+    }
+    // Also try HTTPS upgraded URLs for domain names (non-IP)
+    for (const u of allCandidates) {
+      if (u && u.toLowerCase().startsWith('http://') && !/^http:\/\/\d+\.\d+\.\d+\.\d+/i.test(u)) {
+        add(u.replace(/^http:\/\//i, 'https://'));
       }
     }
   }

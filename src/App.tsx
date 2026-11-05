@@ -242,11 +242,31 @@ export default function App() {
   // Search & Filters
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('all_groups');
-  const [selectedCountry, setSelectedCountry] = useState('TR');
+  const [selectedCountry, setSelectedCountry] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('radiocast_selected_country') || 'TR';
+      } catch {
+        return 'TR';
+      }
+    }
+    return 'TR';
+  });
   const [quickFilter, setQuickFilter] = useState<'all' | 'popular' | 'aac'>('all');
 
+  const handleCountryChange = useCallback((newCountry: string) => {
+    setSelectedCountry(newCountry);
+    setSelectedCategory('');
+    try {
+      localStorage.setItem('radiocast_selected_country', newCountry);
+    } catch {}
+  }, []);
+
   // Stations Data & Pagination
-  const [stations, setStations] = useState<RadioStation[]>(() => ALL_TURKISH_STATIONS);
+  const [stations, setStations] = useState<RadioStation[]>(() => {
+    const initCountry = typeof window !== 'undefined' ? (localStorage.getItem('radiocast_selected_country') || 'TR') : 'TR';
+    return initCountry === 'TR' ? ALL_TURKISH_STATIONS : [];
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -274,9 +294,11 @@ export default function App() {
         const catMatches = result.filter((s) => matchesCategory(s, selectedCategory));
         if (catMatches.length > 0) {
           result = catMatches;
-        } else {
+        } else if (selectedCountry === 'TR') {
           const fallbackCat = ALL_TURKISH_STATIONS.filter((s) => matchesCategory(s, selectedCategory));
           if (fallbackCat.length > 0) result = fallbackCat;
+        } else {
+          result = [];
         }
       }
 
@@ -517,22 +539,24 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [volume, currentItem]);
 
+  // Active Request ID to prevent delayed responses from older country requests from overwriting newer ones
+  const activeStationRequestIdRef = useRef(0);
+
   // Load Radio Stations when filters or search change
   const fetchStationsData = useCallback(async (pageNum = 1, append = false) => {
-    const isDefaultTurkeyView = !searchQuery.trim() && selectedCountry === 'TR';
+    const requestId = ++activeStationRequestIdRef.current;
+    const isDefaultTurkeyView = !searchQuery.trim() && (!selectedCountry || selectedCountry === 'TR');
 
     try {
       if (append) {
         setIsLoadingMore(true);
       } else if (!isDefaultTurkeyView) {
-        // Only trigger full loading state if not default Turkey view (which already has instant local stations)
         setIsLoading(true);
       }
 
       let list: RadioStation[] = [];
 
       if (searchQuery.trim()) {
-        // If searching with a specific non-TR country, try that country first
         const countryFilter = selectedCountry && selectedCountry !== 'TR' ? selectedCountry : undefined;
         list = await searchStations({
           name: searchQuery.trim(),
@@ -540,7 +564,6 @@ export default function App() {
           page: pageNum
         });
 
-        // If nothing found with country filter or user is on default TR, search globally across all world stations!
         if (list.length === 0 && countryFilter) {
           list = await searchStations({
             name: searchQuery.trim(),
@@ -548,7 +571,17 @@ export default function App() {
           });
         }
       } else {
-        list = await getTopStationsByCountry(selectedCountry || 'TR', pageNum);
+        const code = selectedCountry || 'TR';
+        if (code === 'TR' && pageNum === 1) {
+          list = ALL_TURKISH_STATIONS;
+        } else {
+          list = await getTopStationsByCountry(code, pageNum);
+        }
+      }
+
+      // Discard delayed response if user changed country or fired another request
+      if (requestId !== activeStationRequestIdRef.current) {
+        return;
       }
 
       if (list.length < 15) {
@@ -564,19 +597,23 @@ export default function App() {
           return [...prev, ...uniqueNew];
         });
       } else {
-        if (list.length > 0) {
-          setStations(list);
-        } else if (searchQuery.trim()) {
-          // If searching and nothing found, show empty list so search empty state is accurately shown
+        setStations(list);
+      }
+    } catch (err) {
+      if (requestId !== activeStationRequestIdRef.current) return;
+      console.warn('Radio stations load error:', err);
+      if (!append) {
+        if (selectedCountry === 'TR') {
+          setStations(ALL_TURKISH_STATIONS);
+        } else {
           setStations([]);
         }
       }
-    } catch (err) {
-      console.warn('Radio stations load error:', err);
-      // Keep existing ALL_TURKISH_STATIONS intact if network fails
     } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
+      if (requestId === activeStationRequestIdRef.current) {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
     }
   }, [searchQuery, selectedCountry]);
 
@@ -891,11 +928,7 @@ export default function App() {
           setSearchQuery(q);
         }}
         selectedCountry={selectedCountry}
-        setSelectedCountry={(c) => {
-          setSelectedCountry(c);
-          setSelectedCategory('');
-          if (activeTab !== 'discover') changeTab('discover');
-        }}
+        setSelectedCountry={handleCountryChange}
         themeMode={settings.themeMode}
         setThemeMode={(m) => updateSettings({ themeMode: m })}
         themePalette={settings.themePalette}
@@ -1007,63 +1040,7 @@ export default function App() {
             </div>
           )}
 
-          {/* PWA Install Banner Prompt (Android / Desktop Chrome) */}
-          {deferredPrompt && (
-            <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-amber-500/30 text-zinc-900 dark:text-zinc-100 text-xs font-bold flex flex-wrap items-center justify-between gap-3 shadow-md">
-              <div className="flex items-center space-x-2.5">
-                <Smartphone className="w-5 h-5 text-amber-500 shrink-0" />
-                <div>
-                  <span className="block font-bold text-xs md:text-sm">Mobil & Masaüstü Uygulaması Olarak Yükleyin</span>
-                  <span className="font-normal text-[11px] text-zinc-600 dark:text-zinc-300">
-                    Tek tıkla ana ekranınıza ekleyip çevrimdışı podcast ve radyo dinleyin.
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={handleInstallPWA}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs shrink-0 cursor-pointer shadow-sm active:scale-95 transition-all flex items-center space-x-1.5"
-              >
-                <DownloadCloud className="w-4 h-4" />
-                <span>Uygulamayı Yükle</span>
-              </button>
-            </div>
-          )}
 
-          {/* iOS Install Banner Guide (iPhone / Safari) */}
-          {isIOS && !isStandalone && !iosGuideDismissed && !deferredPrompt && (
-            <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-rose-500/10 to-purple-500/20 border border-amber-500/40 text-zinc-900 dark:text-zinc-100 text-xs font-bold flex flex-wrap items-center justify-between gap-3 shadow-md relative group">
-              <div className="flex items-center space-x-2.5">
-                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-500 shrink-0">
-                  <Smartphone className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="block font-bold text-xs md:text-sm text-amber-600 dark:text-amber-400">
-                    iPhone Ana Ekranına Yükleyin
-                  </span>
-                  <span className="font-normal text-[11px] text-zinc-600 dark:text-zinc-300">
-                    Safari'nin "Paylaş" butonuna basıp <b>"Ana Ekrana Ekle"</b> seçerek telefonunuza indirebilirsiniz.
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setIsIOSModalOpen(true)}
-                  className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-extrabold text-xs shrink-0 cursor-pointer shadow-sm active:scale-95 transition-all flex items-center space-x-1.5"
-                >
-                  <Share className="w-3.5 h-3.5" />
-                  <span>Nasıl Yüklenir?</span>
-                </button>
-                <button
-                  onClick={handleDismissIOSGuide}
-                  className="p-2 rounded-xl bg-zinc-200/60 dark:bg-zinc-800/80 hover:bg-red-500/20 text-zinc-500 hover:text-red-500 transition-colors cursor-pointer"
-                  title="Kapat"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Dedicated Full Search Results View */}
           <div className={activeTab === 'search' ? 'block' : 'hidden'}>
@@ -1119,7 +1096,7 @@ export default function App() {
                 setSearchQuery('');
               }}
               selectedCountry={selectedCountry}
-              setSelectedCountry={setSelectedCountry}
+              setSelectedCountry={handleCountryChange}
               currentStation={currentStation}
               isPlaying={playbackStatus === 'playing'}
               playbackStatus={playbackStatus}
@@ -1139,12 +1116,20 @@ export default function App() {
           {/* Full Radios & Countries View */}
           <div className={activeTab === 'radios' ? 'block' : 'hidden'}>
             <CountriesView
-              onSelectCountry={(countryCode) => {
-                setSelectedCountry(countryCode);
-                setSelectedCategory('');
-                setSearchQuery('');
-                changeTab('discover');
-              }}
+              selectedCountry={selectedCountry}
+              onSelectCountry={handleCountryChange}
+              stations={filteredStations}
+              isLoading={isLoading}
+              isLoadingMore={isLoadingMore}
+              hasMore={hasMore}
+              onLoadMore={handleLoadMore}
+              onPlayStation={handlePlayStation}
+              onToggleFavorite={handleToggleFavorite}
+              favorites={favorites}
+              currentStation={currentStation}
+              isPlaying={playbackStatus === 'playing'}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
             />
           </div>
 
@@ -1217,12 +1202,20 @@ export default function App() {
 
           <div className={activeTab === 'countries' ? 'block' : 'hidden'}>
             <CountriesView
-              onSelectCountry={(countryCode) => {
-                setSelectedCountry(countryCode);
-                setSelectedCategory('');
-                setSearchQuery('');
-                changeTab('discover');
-              }}
+              selectedCountry={selectedCountry}
+              onSelectCountry={handleCountryChange}
+              stations={filteredStations}
+              isLoading={isLoading}
+              isLoadingMore={isLoadingMore}
+              hasMore={hasMore}
+              onLoadMore={handleLoadMore}
+              onPlayStation={handlePlayStation}
+              onToggleFavorite={handleToggleFavorite}
+              favorites={favorites}
+              currentStation={currentStation}
+              isPlaying={playbackStatus === 'playing'}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
             />
           </div>
 
@@ -1300,8 +1293,7 @@ export default function App() {
         onPlayStation={handlePlayStation}
         onPlayPodcastEpisode={handlePlayPodcastEpisode}
         onSelectCountry={(countryCode) => {
-          setSelectedCountry(countryCode);
-          setSelectedCategory('');
+          handleCountryChange(countryCode);
           setSearchQuery('');
           changeTab('discover');
         }}

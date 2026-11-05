@@ -296,8 +296,16 @@ export function addRecentlyPlayed(item: PlayableItem): RecentlyPlayedItem[] {
 
     if (!newItem) return list;
 
-    // Filter out existing record with same ID to avoid duplicates
-    const filtered = list.filter(r => r.id !== newItem!.id);
+    // Deduplicate: remove any existing item with same ID or same radio station name
+    const normalizedNewTitle = newItem.title.toLowerCase().trim();
+    const filtered = list.filter(r => {
+      if (r.id === newItem!.id) return false;
+      if (newItem!.type === 'radio' && r.type === 'radio') {
+        const normExisting = (r.title || '').toLowerCase().trim();
+        if (normExisting === normalizedNewTitle) return false;
+      }
+      return true;
+    });
     const updated = [newItem, ...filtered].slice(0, 50); // Keep max 50 items
 
     localStorage.setItem(RECENTLY_PLAYED_KEY, JSON.stringify(updated));
