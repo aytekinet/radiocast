@@ -475,6 +475,30 @@ export default function App() {
     }
   }, [currentItem, podcastEpisodesList, activeTab, favorites, stations]);
 
+  const canGoNext = useMemo(() => {
+    if (!currentItem) return false;
+    if (currentItem.type === 'podcast') {
+      return podcastEpisodesList.length > 1;
+    }
+    if (currentItem.type === 'radio') {
+      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
+      return list.length > 1;
+    }
+    return false;
+  }, [currentItem, podcastEpisodesList, activeTab, favorites, stations]);
+
+  const canGoPrevious = useMemo(() => {
+    if (!currentItem) return false;
+    if (currentItem.type === 'podcast') {
+      return podcastEpisodesList.length > 1;
+    }
+    if (currentItem.type === 'radio') {
+      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
+      return list.length > 1;
+    }
+    return false;
+  }, [currentItem, podcastEpisodesList, activeTab, favorites, stations]);
+
   const handleNextRef = useRef(handleNext);
   handleNextRef.current = handleNext;
 
@@ -495,12 +519,8 @@ export default function App() {
           handleNextRef.current();
         }
       },
-      onNext: () => {
-        handleNextRef.current();
-      },
-      onPrevious: () => {
-        handlePreviousRef.current();
-      },
+      onNext: canGoNext ? () => handleNextRef.current() : undefined,
+      onPrevious: canGoPrevious ? () => handlePreviousRef.current() : undefined,
       onReconnectChange: (state) => {
         setReconnectState(state);
       },
@@ -509,6 +529,9 @@ export default function App() {
         setIsFadingOut(Boolean(state.isFadingOut));
       }
     });
+  }, [canGoNext, canGoPrevious]);
+
+  useEffect(() => {
     audioEngine.setVolume(settings.volume);
   }, [settings.volume]);
 

@@ -63,6 +63,9 @@ class AudioEngine {
 
   private currentSessionId: number = 0;
   private timeUpdateListeners = new Set<(curr: number, dur: number) => void>();
+  private statusListeners = new Set<(status: PlaybackStatus) => void>();
+  private itemListeners = new Set<(item: PlayableItem | null) => void>();
+  private lastPositionUpdate: number = 0;
 
   // 3-stage fast exponential reconnect for live radio
   private reconnectAttempt: number = 0;
@@ -89,6 +92,22 @@ class AudioEngine {
 
   public getTimeUpdateListenerCount(): number {
     return this.timeUpdateListeners.size;
+  }
+
+  public subscribeStatus(listener: (status: PlaybackStatus) => void): () => void {
+    this.statusListeners.add(listener);
+    listener(this.status);
+    return () => {
+      this.statusListeners.delete(listener);
+    };
+  }
+
+  public subscribeItem(listener: (item: PlayableItem | null) => void): () => void {
+    this.itemListeners.add(listener);
+    listener(this.currentItem);
+    return () => {
+      this.itemListeners.delete(listener);
+    };
   }
 
   constructor() {
@@ -121,6 +140,7 @@ class AudioEngine {
 
   public setCallbacks(callbacks: AudioEngineCallbacks) {
     this.callbacks = { ...this.callbacks, ...callbacks };
+    this.updateMediaSessionHandlers();
   }
 
   private setupAudioListeners() {
@@ -172,6 +192,7 @@ class AudioEngine {
       }
 
       this.updateMediaSession();
+      this.updatePositionState();
       this.startProgressSaveLoop();
 
       if (this.currentItem) {
@@ -184,7 +205,16 @@ class AudioEngine {
         this.setStatus('paused');
         this.saveCurrentProgress();
         this.stopProgressSaveLoop();
+        this.updatePositionState();
       }
+    });
+
+    this.audio.addEventListener('seeked', () => {
+      this.updatePositionState();
+    });
+
+    this.audio.addEventListener('ratechange', () => {
+      this.updatePositionState();
     });
 
     this.audio.addEventListener('timeupdate', () => {
@@ -196,6 +226,11 @@ class AudioEngine {
       }
       if (this.currentItem?.type !== 'radio') {
         this.timeUpdateListeners.forEach((listener) => listener(curr, dur));
+        const now = Date.now();
+        if (now - this.lastPositionUpdate > 1000) {
+          this.lastPositionUpdate = now;
+          this.updatePositionState();
+        }
       }
     });
 
@@ -255,7 +290,33 @@ class AudioEngine {
     if (this.callbacks.onStatusChange) {
       this.callbacks.onStatusChange(newStatus);
     }
+    this.statusListeners.forEach((listener) => {
+      try {
+        listener(newStatus);
+      } catch {
+        // ignore
+      }
+    });
     this.updateMediaSessionState();
+    if (newStatus === 'playing' || newStatus === 'paused') {
+      this.updatePositionState();
+    } else if (newStatus === 'idle') {
+      this.clearPositionState();
+    }
+  }
+
+  private emitItemChange() {
+    if (this.callbacks.onItemChange) {
+      this.callbacks.onItemChange(this.currentItem);
+    }
+    this.itemListeners.forEach((listener) => {
+      try {
+        listener(this.currentItem);
+      } catch {
+        // ignore
+      }
+    });
+    this.updateMediaSession();
   }
 
   private startProgressSaveLoop() {
@@ -296,10 +357,7 @@ class AudioEngine {
     this.cleanupPlayback();
 
     this.currentItem = { type: 'radio', radio: station };
-    if (this.callbacks.onItemChange) {
-      this.callbacks.onItemChange(this.currentItem);
-    }
-    this.updateMediaSession();
+    this.emitItemChange();
 
     this.setStatus('connecting');
 
@@ -382,10 +440,7 @@ class AudioEngine {
     this.cleanupPlayback();
 
     this.currentItem = { type: 'podcast', podcastEpisode: episode };
-    if (this.callbacks.onItemChange) {
-      this.callbacks.onItemChange(this.currentItem);
-    }
-    this.updateMediaSession();
+    this.emitItemChange();
     addRecentlyPlayed(this.currentItem);
 
     this.setStatus('connecting');
@@ -435,10 +490,7 @@ class AudioEngine {
       audiobookTrack: { book, track }
     };
 
-    if (this.callbacks.onItemChange) {
-      this.callbacks.onItemChange(this.currentItem);
-    }
-    this.updateMediaSession();
+    this.emitItemChange();
 
     this.setStatus('connecting');
 
@@ -751,25 +803,43 @@ class AudioEngine {
     }
   }
 
-  public togglePlayPause() {
+  public pause(): void {
     if (!this.currentItem) return;
+    this.clearReconnectState();
+    this.audio.pause();
+    this.setStatus('paused');
+  }
 
-    if (this.status === 'playing') {
-      this.clearReconnectState();
-      this.audio.pause();
-    } else if (this.status === 'paused' || this.status === 'idle') {
-      if (this.audio.src) {
-        this.setStatus('connecting');
-        this.audio.play().catch((err) => {
-          if (err.name !== 'NotAllowedError' && err.name !== 'AbortError') {
-            this.tryNextCandidate(this.currentSessionId);
-          }
-        });
-      } else if (this.currentItem.type === 'radio' && this.currentItem.radio) {
-        this.playStation(this.currentItem.radio);
-      } else if (this.currentItem.type === 'podcast' && this.currentItem.podcastEpisode) {
-        this.playPodcastEpisode(this.currentItem.podcastEpisode);
+  public async resume(): Promise<void> {
+    if (!this.currentItem) return;
+    if (this.status === 'playing') return;
+
+    if (this.audio.src) {
+      this.setStatus('connecting');
+      try {
+        await this.audio.play();
+        this.setStatus('playing');
+      } catch (err: any) {
+        if (err.name !== 'NotAllowedError' && err.name !== 'AbortError') {
+          this.tryNextCandidate(this.currentSessionId);
+        } else {
+          this.setStatus('paused');
+        }
       }
+    } else if (this.currentItem.type === 'radio' && this.currentItem.radio) {
+      this.playStation(this.currentItem.radio);
+    } else if (this.currentItem.type === 'podcast' && this.currentItem.podcastEpisode) {
+      this.playPodcastEpisode(this.currentItem.podcastEpisode);
+    } else if (this.currentItem.type === 'audiobook' && this.currentItem.audiobookTrack) {
+      this.playAudiobookTrack(this.currentItem.audiobookTrack.track, this.currentItem.audiobookTrack.book);
+    }
+  }
+
+  public togglePlayPause(): void {
+    if (this.status === 'playing') {
+      this.pause();
+    } else {
+      this.resume();
     }
   }
 
@@ -896,7 +966,7 @@ class AudioEngine {
       try {
         navigator.mediaSession.setActionHandler(action, handler);
       } catch {
-        // Unsupported action in this browser
+        // Unsupported action in this browser/OS
       }
     }
   }
@@ -908,93 +978,198 @@ class AudioEngine {
           navigator.mediaSession.playbackState = 'playing';
         } else if (this.status === 'paused') {
           navigator.mediaSession.playbackState = 'paused';
-        } else if (this.status === 'idle' || this.status === 'error') {
+        } else if (this.status === 'idle') {
           navigator.mediaSession.playbackState = 'none';
         }
+        // In case of 'connecting' or 'buffering', keep current state (don't set 'none')
+        // to prevent OS lock screen/notification widget from tearing down abruptly
       } catch {
         // ignore
       }
     }
   }
 
-  private updateMediaSession() {
-    if ('mediaSession' in navigator && this.currentItem) {
-      let title = 'Radyo Dünyası';
-      let artist = 'Canlı Yayın';
-      let album = 'Radyo Dünyası App';
-      let coverUrl = 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=128&q=80';
+  private getArtworkList(rawUrl?: string): MediaImage[] {
+    let resolvedUrl = '';
+    const origin = typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'https://radiocast.app';
+    const fallbackUrl = new URL('/favicon.svg', origin).href;
 
-      if (this.currentItem.type === 'radio' && this.currentItem.radio) {
-        title = this.currentItem.radio.name;
-        artist = this.currentItem.radio.country || 'Canlı Radyo';
-        album = 'Canlı Radyo';
-        coverUrl = this.currentItem.radio.favicon || coverUrl;
-      } else if (this.currentItem.type === 'podcast' && this.currentItem.podcastEpisode) {
-        title = this.currentItem.podcastEpisode.title;
-        artist = this.currentItem.podcastEpisode.showTitle;
-        album = 'Podcast';
-        coverUrl = this.currentItem.podcastEpisode.coverUrl || coverUrl;
-      } else if (this.currentItem.type === 'audiobook' && this.currentItem.audiobookTrack) {
-        title = this.currentItem.audiobookTrack.track.title;
-        artist = this.currentItem.audiobookTrack.book.authors || this.currentItem.audiobookTrack.book.title;
-        album = 'Sesli Kitap';
-        coverUrl = this.currentItem.audiobookTrack.book.cover || coverUrl;
-      }
-
-      try {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title,
-          artist,
-          album,
-          artwork: [
-            {
-              src: coverUrl,
-              sizes: '128x128',
-              type: 'image/png'
-            },
-            {
-              src: coverUrl,
-              sizes: '512x512',
-              type: 'image/png'
-            }
-          ]
-        });
-      } catch {
-        // ignore metadata errors
-      }
-
-      this.updateMediaSessionState();
-
-      this.setMediaSessionHandler('play', () => this.togglePlayPause());
-      this.setMediaSessionHandler('pause', () => this.togglePlayPause());
-      this.setMediaSessionHandler('stop', () => this.stop());
-      this.setMediaSessionHandler('nexttrack', () => {
-        if (this.callbacks.onNext) this.callbacks.onNext();
-      });
-      this.setMediaSessionHandler('previoustrack', () => {
-        if (this.callbacks.onPrevious) this.callbacks.onPrevious();
-      });
-
-      if (this.currentItem.type !== 'radio') {
-        this.setMediaSessionHandler('seekbackward', (details: any) => {
-          const offset = details?.seekOffset || 15;
-          this.seekRelative(-offset);
-        });
-        this.setMediaSessionHandler('seekforward', (details: any) => {
-          const offset = details?.seekOffset || 30;
-          this.seekRelative(offset);
-        });
-        this.setMediaSessionHandler('seekto', (details: any) => {
-          if (details && typeof details.seekTime === 'number') {
-            this.seek(details.seekTime);
-          }
-        });
+    if (rawUrl && typeof rawUrl === 'string' && rawUrl.trim()) {
+      const trimmed = rawUrl.trim();
+      if (trimmed.startsWith('data:')) {
+        resolvedUrl = trimmed;
       } else {
-        this.setMediaSessionHandler('seekbackward', null);
-        this.setMediaSessionHandler('seekforward', null);
-        this.setMediaSessionHandler('seekto', null);
+        try {
+          resolvedUrl = new URL(trimmed, origin).href;
+        } catch {
+          resolvedUrl = fallbackUrl;
+        }
+      }
+    } else {
+      resolvedUrl = fallbackUrl;
+    }
+
+    const lower = resolvedUrl.toLowerCase();
+    const type = lower.endsWith('.svg')
+      ? 'image/svg+xml'
+      : (lower.endsWith('.jpg') || lower.endsWith('.jpeg') ? 'image/jpeg' : 'image/png');
+
+    return [
+      { src: resolvedUrl, sizes: '96x96', type },
+      { src: resolvedUrl, sizes: '128x128', type },
+      { src: resolvedUrl, sizes: '192x192', type },
+      { src: resolvedUrl, sizes: '256x256', type },
+      { src: resolvedUrl, sizes: '384x384', type },
+      { src: resolvedUrl, sizes: '512x512', type }
+    ];
+  }
+
+  public clearPositionState() {
+    if ('mediaSession' in navigator && typeof (navigator.mediaSession as any).setPositionState === 'function') {
+      try {
+        (navigator.mediaSession as any).setPositionState(null);
+      } catch {
+        try {
+          (navigator.mediaSession as any).setPositionState();
+        } catch {
+          // ignore
+        }
       }
     }
+  }
+
+  public updatePositionState() {
+    if (!('mediaSession' in navigator) || typeof (navigator.mediaSession as any).setPositionState !== 'function') {
+      return;
+    }
+    if (!this.currentItem) {
+      this.clearPositionState();
+      return;
+    }
+
+    // Live radio: clear position state completely to prevent fake scrubber
+    if (this.currentItem.type === 'radio') {
+      this.clearPositionState();
+      return;
+    }
+
+    // Podcasts & Audiobooks
+    try {
+      const rawDur = this.audio.duration || this.currentItem.podcastEpisode?.durationSeconds || 0;
+      const rawPos = this.audio.currentTime || 0;
+      const rate = this.audio.playbackRate || this.playbackRate || 1.0;
+
+      if (isFinite(rawDur) && rawDur > 0 && isFinite(rawPos) && rawPos >= 0) {
+        const position = Math.min(rawPos, rawDur);
+        (navigator.mediaSession as any).setPositionState({
+          duration: rawDur,
+          playbackRate: Math.max(0.25, Math.min(rate, 4.0)),
+          position
+        });
+      }
+    } catch {
+      // Browser might reject out-of-range position
+    }
+  }
+
+  public updateMediaSessionHandlers() {
+    if (!('mediaSession' in navigator) || !this.currentItem) {
+      return;
+    }
+
+    // Direct play/pause/stop
+    this.setMediaSessionHandler('play', () => {
+      this.resume();
+    });
+    this.setMediaSessionHandler('pause', () => {
+      this.pause();
+    });
+    this.setMediaSessionHandler('stop', () => {
+      this.stop();
+    });
+
+    // Next track handler: only enabled if onNext callback exists in current context
+    if (typeof this.callbacks.onNext === 'function') {
+      this.setMediaSessionHandler('nexttrack', () => {
+        this.callbacks.onNext?.();
+      });
+    } else {
+      this.setMediaSessionHandler('nexttrack', null);
+    }
+
+    // Previous track handler: only enabled if onPrevious callback exists in current context
+    if (typeof this.callbacks.onPrevious === 'function') {
+      this.setMediaSessionHandler('previoustrack', () => {
+        this.callbacks.onPrevious?.();
+      });
+    } else {
+      this.setMediaSessionHandler('previoustrack', null);
+    }
+
+    // Seeking handlers: only for podcasts / audiobooks
+    if (this.currentItem.type === 'podcast' || this.currentItem.type === 'audiobook') {
+      this.setMediaSessionHandler('seekbackward', (details: any) => {
+        const offset = details?.seekOffset || 15;
+        this.seekRelative(-offset);
+      });
+      this.setMediaSessionHandler('seekforward', (details: any) => {
+        const offset = details?.seekOffset || 30;
+        this.seekRelative(offset);
+      });
+      this.setMediaSessionHandler('seekto', (details: any) => {
+        if (details && typeof details.seekTime === 'number') {
+          this.seek(details.seekTime);
+        }
+      });
+    } else {
+      // Live radio: explicitly remove seek actions so OS does not show seek buttons/scrubbing
+      this.setMediaSessionHandler('seekbackward', null);
+      this.setMediaSessionHandler('seekforward', null);
+      this.setMediaSessionHandler('seekto', null);
+    }
+  }
+
+  private updateMediaSession() {
+    if (!('mediaSession' in navigator) || !this.currentItem) {
+      return;
+    }
+
+    let title = 'RadioCast';
+    let artist = 'Canlı Yayın';
+    const album = 'RadioCast';
+    let rawCoverUrl = '/favicon.svg';
+
+    if (this.currentItem.type === 'radio' && this.currentItem.radio) {
+      title = this.currentItem.radio.name || 'Canlı Radyo';
+      const country = this.currentItem.radio.country;
+      artist = country ? `${country} • Canlı Radyo` : 'Canlı Radyo';
+      rawCoverUrl = this.currentItem.radio.favicon || rawCoverUrl;
+    } else if (this.currentItem.type === 'podcast' && this.currentItem.podcastEpisode) {
+      title = this.currentItem.podcastEpisode.title || 'Podcast Bölümü';
+      artist = this.currentItem.podcastEpisode.showTitle || 'Türkçe Podcast';
+      rawCoverUrl = this.currentItem.podcastEpisode.coverUrl || rawCoverUrl;
+    } else if (this.currentItem.type === 'audiobook' && this.currentItem.audiobookTrack) {
+      title = this.currentItem.audiobookTrack.track.title || 'Sesli Kitap';
+      artist = this.currentItem.audiobookTrack.book.authors || this.currentItem.audiobookTrack.book.title || 'Sesli Kitap';
+      rawCoverUrl = this.currentItem.audiobookTrack.book.cover || rawCoverUrl;
+    }
+
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title,
+        artist,
+        album,
+        artwork: this.getArtworkList(rawCoverUrl)
+      });
+    } catch {
+      // ignore metadata errors
+    }
+
+    this.updateMediaSessionState();
+    this.updateMediaSessionHandlers();
+    this.updatePositionState();
   }
 }
 

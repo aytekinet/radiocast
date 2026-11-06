@@ -82,15 +82,15 @@ export const DownloadsView: React.FC<DownloadsViewProps> = ({
     // Initial check of active downloads
     handleProgressChange();
 
-    // Audio Engine state listeners
-    audioEngine.setCallbacks({
-      onStatusChange: (status) => setPlaybackStatus(status),
-      onItemChange: (item) => setCurrentItem(item)
-    });
+    // Audio Engine state listeners via subscribers (without overriding global callbacks)
+    const unsubStatus = audioEngine.subscribeStatus((status) => setPlaybackStatus(status));
+    const unsubItem = audioEngine.subscribeItem((item) => setCurrentItem(item));
 
     return () => {
       window.removeEventListener('offlineEpisodesChanged', handleStorageChange);
       window.removeEventListener('downloadProgressChanged', handleProgressChange);
+      unsubStatus();
+      unsubItem();
     };
   }, []);
 

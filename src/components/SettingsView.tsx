@@ -14,7 +14,8 @@ import {
   Check,
   Smartphone,
   Share,
-  SquarePlus
+  SquarePlus,
+  Headphones
 } from 'lucide-react';
 import { AppSettings } from '../types';
 import { exportUserData, importUserData } from '../services/storage';
@@ -320,6 +321,59 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               }`}
             />
           </button>
+        </div>
+      </div>
+
+      {/* Lock Screen & Background Media Controls Info */}
+      <div className="bg-white dark:bg-zinc-900/80 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-3.5 shadow-sm dark:shadow-md transition-colors">
+        <div className="flex items-center space-x-2 text-xs font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+          <Headphones className="w-4 h-4 text-teal-400" />
+          <span>Kilit Ekranı & Arka Plan Medya Kontrolleri</span>
+        </div>
+        <p className="text-zinc-600 dark:text-zinc-400 text-xs leading-relaxed">
+          RadioCast, modern <span className="font-semibold text-zinc-800 dark:text-zinc-200">Media Session API</span> standardını destekler. Ekranınız kapalıyken veya telefonunuz kilitliyken medya kontrollerini kullanabilirsiniz.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs">
+          <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800/80 space-y-1">
+            <span className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+              Kilit Ekranı & Bildirim Paneli
+            </span>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              Android Bildirim Merkezi ve iOS Now Playing ekranından doğrudan Oynat / Duraklat ve komşu istasyonlara geçiş yapabilirsiniz.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800/80 space-y-1">
+            <span className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+              Kulaklık & Bluetooth Tuşları
+            </span>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              Bluetooth kulaklık ve araç teybi tuşlarıyla tek basışta durdur/devam et, çift basışta sonraki yayına geç komutları çalışır.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800/80 space-y-1">
+            <span className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+              Canlı Radyo & Podcast Ayrımı
+            </span>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              Canlı radyolarda sahte süre çubuğu gösterilmez; podcastlerde ise 15 sn geri / 30 sn ileri sarma ve gerçek süre çubuğu sunulur.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-950/60 border border-zinc-200 dark:border-zinc-800/80 space-y-1">
+            <span className="font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+              Arka Planda Kesintisiz Dinleme
+            </span>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              Uygulamayı Ana Ekrana (PWA) ekleyerek ve tarayıcınızın pil tasarruf kısıtlamasını kaldırarak arka planda kesintisiz dinleyebilirsiniz.
+            </p>
+          </div>
         </div>
       </div>
 
