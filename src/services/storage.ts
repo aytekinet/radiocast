@@ -374,7 +374,13 @@ export function savePlaylists(playlists: Playlist[]): void {
 export function getStoredSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
+    if (raw) {
+      return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    }
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      return { ...DEFAULT_SETTINGS, themeMode: 'light' };
+    }
+    return DEFAULT_SETTINGS;
   } catch {
     return DEFAULT_SETTINGS;
   }

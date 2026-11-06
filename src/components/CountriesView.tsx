@@ -234,20 +234,20 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12 select-none">
       {/* Top Header & Mode Toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1F2937] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1F2937] pb-4">
         <div>
           <div className="flex items-center space-x-2.5">
-            <Radio className="w-6 h-6 text-teal-400" />
-            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+            <Radio className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {viewMode === 'stations' ? pageTitle : 'Tüm Dünya Ülkeleri'}
             </h1>
             {viewMode === 'stations' && (
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-300 border border-teal-500/25 font-bold">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/25 font-bold">
                 {countryFlag} {activeCountryCode} • {stations.length} İstasyon
               </span>
             )}
           </div>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
             {viewMode === 'stations' 
               ? `${countryName} canlı radyo istasyonlarını dinleyin ve filtreleyin.`
               : 'Dinlemek istediğiniz ülkeyi seçin, anında o ülkenin canlı istasyonlarına bağlanın.'}
@@ -259,7 +259,7 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
           {viewMode === 'stations' ? (
             <button
               onClick={() => setViewMode('countries')}
-              className="px-3.5 py-1.5 rounded-full bg-[#131B24] border border-[#1F2937] hover:bg-[#182330] text-teal-400 hover:text-teal-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full bg-white dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#182330] text-teal-700 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
             >
               <Globe2 className="w-3.5 h-3.5" />
               <span>Ülke Değiştir ({allCountries.length || 190}+)</span>
@@ -267,7 +267,7 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
           ) : (
             <button
               onClick={() => setViewMode('stations')}
-              className="px-3.5 py-1.5 rounded-full bg-teal-500 text-black hover:bg-teal-400 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-full bg-teal-500 text-black hover:bg-teal-400 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>{countryName} Radyolarına Dön</span>
@@ -289,10 +289,10 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
                   <button
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id === 'all' ? '' : cat.id)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0 ${
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0 shadow-sm ${
                       isSelected
-                        ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold'
-                        : 'bg-[#131B24] text-zinc-300 border border-[#1F2937] hover:bg-[#182330] hover:text-white'
+                        ? 'bg-teal-500/15 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 dark:border-teal-500/40 font-bold'
+                        : 'bg-white dark:bg-[#131B24] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#182330] hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     {cat.name}
@@ -303,13 +303,13 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
 
             {/* In-country Search */}
             <div className="relative max-w-xs w-full">
-              <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={stationLocalSearch}
                 onChange={(e) => setStationLocalSearch(e.target.value)}
                 placeholder={`${countryName} radyolarında filtrele...`}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-full bg-[#131B24] text-zinc-100 placeholder-zinc-500 border border-[#1F2937] focus:outline-none focus:border-teal-500"
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-full bg-white dark:bg-[#131B24] text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-[#1F2937] focus:outline-none focus:border-teal-500 shadow-sm"
               />
             </div>
           </div>
@@ -320,24 +320,24 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div 
                   key={i}
-                  className="p-3 rounded-xl bg-[#131B24] border border-[#1F2937]/80 flex items-center justify-between gap-3 animate-pulse"
+                  className="p-3 rounded-xl bg-white dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937]/80 flex items-center justify-between gap-3 animate-pulse"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="w-11 h-11 rounded-xl bg-zinc-800" />
+                    <div className="w-11 h-11 rounded-xl bg-slate-200 dark:bg-zinc-800" />
                     <div className="space-y-2">
-                      <div className="w-32 h-3.5 rounded bg-zinc-800" />
-                      <div className="w-20 h-2.5 rounded bg-zinc-800/60" />
+                      <div className="w-32 h-3.5 rounded bg-slate-200 dark:bg-zinc-800" />
+                      <div className="w-20 h-2.5 rounded bg-slate-200/60 dark:bg-zinc-800/60" />
                     </div>
                   </div>
-                  <div className="w-9 h-9 rounded-full bg-zinc-800" />
+                  <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-zinc-800" />
                 </div>
               ))}
             </div>
           ) : displayedStations.length === 0 ? (
-            <div className="p-12 rounded-xl bg-[#131B24] border border-[#1F2937] text-center space-y-3">
-              <Radio className="w-10 h-10 text-zinc-600 mx-auto" />
-              <h3 className="font-bold text-sm text-white">Bu kategoride radyo bulunamadı</h3>
-              <p className="text-xs text-zinc-400">
+            <div className="p-12 rounded-xl bg-white dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937] text-center space-y-3">
+              <Radio className="w-10 h-10 text-slate-400 dark:text-zinc-600 mx-auto" />
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white">Bu kategoride radyo bulunamadı</h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
                 Seçilen filtre için istasyon bulunamadı. Filtreyi temizleyebilir veya başka bir ülke seçebilirsiniz.
               </p>
               <button
@@ -367,21 +367,21 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
                       onClick={() => onPlayStation(station)}
                       className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group ${
                         isCurrent
-                          ? 'bg-[#152331] border-teal-500/40 shadow-md ring-1 ring-teal-500/30'
-                          : 'bg-[#131B24] border-[#1F2937]/80 hover:bg-[#182330] hover:border-zinc-700/80'
+                          ? 'bg-teal-50/80 dark:bg-[#152331] border-teal-500/50 dark:border-teal-500/40 shadow-sm ring-1 ring-teal-500/30'
+                          : 'bg-white dark:bg-[#131B24] border-slate-200 dark:border-[#1F2937]/80 hover:bg-slate-50 dark:hover:bg-[#182330] hover:border-slate-300 dark:hover:border-zinc-700/80 shadow-sm'
                       }`}
                     >
                       {/* Left: Badge Logo + Info */}
                       <div className="flex items-center space-x-3 min-w-0">
-                        <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-xs shadow-md tracking-wider ${badgeClass}`}>
+                        <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-xs shadow-sm tracking-wider ${badgeClass}`}>
                           {monogram}
                         </div>
 
                         <div className="min-w-0">
-                          <h3 className="font-bold text-sm text-white group-hover:text-teal-300 transition-colors truncate">
+                          <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-300 transition-colors truncate">
                             {station.name}
                           </h3>
-                          <p className="text-xs text-zinc-400 truncate mt-0.5">
+                          <p className="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">
                             {station.tags ? station.tags.replace(/,/g, ' • ').slice(0, 36) : (station.country || countryName)}
                           </p>
                         </div>
@@ -394,10 +394,10 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
                             e.stopPropagation();
                             onToggleFavorite(station);
                           }}
-                          className="p-1.5 rounded-full text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                          className="p-1.5 rounded-full text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
                           title={isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
                         >
-                          <Heart className={`w-4 h-4 ${isFav ? 'text-teal-400 fill-teal-400' : ''}`} />
+                          <Heart className={`w-4 h-4 ${isFav ? 'text-teal-600 dark:text-teal-400 fill-teal-600 dark:fill-teal-400' : ''}`} />
                         </button>
 
                         <button
@@ -405,10 +405,10 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
                             e.stopPropagation();
                             onPlayStation(station);
                           }}
-                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow ${
+                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-sm ${
                             isPlayingThis
                               ? 'bg-teal-500 text-black'
-                              : 'bg-white/10 text-white group-hover:bg-teal-500 group-hover:text-black'
+                              : 'bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white group-hover:bg-teal-500 group-hover:text-black'
                           }`}
                           title={isPlayingThis ? 'Durdur' : 'Oynat'}
                         >
@@ -430,7 +430,7 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
                   <button
                     onClick={onLoadMore}
                     disabled={isLoadingMore}
-                    className="px-6 py-2.5 rounded-full bg-[#131B24] border border-[#1F2937] hover:bg-[#182330] text-teal-400 hover:text-teal-300 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                    className="px-6 py-2.5 rounded-full bg-white dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#182330] text-teal-700 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-300 text-xs font-bold transition-all cursor-pointer disabled:opacity-50 shadow-sm"
                   >
                     {isLoadingMore ? 'Yükleniyor...' : 'Daha Fazla İstasyon Yükle'}
                   </button>
@@ -446,13 +446,13 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
         <div className="space-y-4">
           {/* Country Search */}
           <div className="relative max-w-md w-full">
-            <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={countrySearch}
               onChange={(e) => setCountrySearch(e.target.value)}
               placeholder="Ülke adı veya ISO kodu ara (örn: Almanya, DE, Fransa)..."
-              className="w-full pl-10 pr-4 py-2.5 text-xs rounded-full bg-[#131B24] text-zinc-100 placeholder-zinc-500 border border-[#1F2937] focus:outline-none focus:border-teal-500 shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 text-xs rounded-full bg-white dark:bg-[#131B24] text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-[#1F2937] focus:outline-none focus:border-teal-500 shadow-sm"
             />
           </div>
 
@@ -462,7 +462,7 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
               {Array.from({ length: 18 }).map((_, idx) => (
                 <div
                   key={idx}
-                  className="h-20 bg-[#131B24] rounded-xl border border-[#1F2937] animate-pulse p-3"
+                  className="h-20 bg-white dark:bg-[#131B24] rounded-xl border border-slate-200 dark:border-[#1F2937] animate-pulse p-3"
                 />
               ))}
             </div>
@@ -477,26 +477,26 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
                       onSelectCountry(c.iso_3166_1);
                       setViewMode('stations');
                     }}
-                    className={`p-3 rounded-xl border transition-all text-left flex flex-col justify-between h-22 cursor-pointer group ${
+                    className={`p-3 rounded-xl border transition-all text-left flex flex-col justify-between h-22 cursor-pointer group shadow-sm ${
                       isCurrent
-                        ? 'bg-[#152331] border-teal-500/50 shadow-md ring-1 ring-teal-500/30'
-                        : 'bg-[#131B24] border-[#1F2937] hover:bg-[#182330] hover:border-zinc-700'
+                        ? 'bg-teal-50/80 dark:bg-[#152331] border-teal-500/50 shadow-md ring-1 ring-teal-500/30'
+                        : 'bg-white dark:bg-[#131B24] border-slate-200 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#182330] hover:border-slate-300 dark:hover:border-zinc-700'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xl">{c.flag}</span>
-                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/10">
+                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-white/10">
                         {c.iso_3166_1}
                       </span>
                     </div>
 
                     <div>
-                      <div className="font-bold text-xs text-white group-hover:text-teal-300 transition-colors truncate">
+                      <div className="font-bold text-xs text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-300 transition-colors truncate">
                         {c.displayName}
                       </div>
-                      <div className="text-[10px] text-zinc-500 flex items-center justify-between mt-0.5">
+                      <div className="text-[10px] text-slate-500 dark:text-zinc-500 flex items-center justify-between mt-0.5">
                         <span>{c.stationcount} Yayın</span>
-                        <ChevronRight className="w-3 h-3 text-zinc-500 group-hover:translate-x-0.5 transition-transform" />
+                        <ChevronRight className="w-3 h-3 text-slate-400 dark:text-zinc-500 group-hover:translate-x-0.5 transition-transform" />
                       </div>
                     </div>
                   </button>

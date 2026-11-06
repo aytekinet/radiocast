@@ -4,8 +4,8 @@
   "description": "Kesintisiz canlı radyo yayınları, Türkçe podcastler ve çevrimdışı dinleme",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#f59e0b",
+  "background_color": "#070B0E",
+  "theme_color": "#070B0E",
   "icons": [
     {
       "src": "/favicon.svg",

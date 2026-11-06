@@ -132,22 +132,22 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
   };
 
   return (
-    <header className="h-16 bg-[#0B0E14] border-b border-[#161F2B] px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 select-none shrink-0 z-30 transition-colors">
+    <header className="h-16 pt-[env(safe-area-inset-top,0px)] box-content bg-white dark:bg-[#0B0E14] border-b border-slate-200 dark:border-[#161F2B] px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 select-none shrink-0 z-30 transition-colors">
       {/* Mobile Brand Icon (hidden on desktop where Sidebar has it) */}
       <div 
         onClick={() => onNavigateToDiscover?.()}
         className="flex md:hidden items-center space-x-2 cursor-pointer shrink-0"
       >
-        <div className="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-400">
-          <Radio className="w-4 h-4 text-teal-400" />
+        <div className="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-600 dark:text-teal-400">
+          <Radio className="w-4 h-4 text-teal-600 dark:text-teal-400" />
         </div>
-        <span className="font-bold text-base text-white tracking-tight">RadioCast</span>
+        <span className="font-bold text-base text-slate-900 dark:text-white tracking-tight">RadioCast</span>
       </div>
 
-      {/* Global Center Search Bar — Desktop Only (hidden on mobile, replaced by clean magnifying glass) */}
+      {/* Global Center Search Bar — Desktop Only */}
       <div className="hidden md:block relative flex-1 max-w-2xl mx-auto" ref={searchContainerRef}>
         <div className="relative flex items-center">
-          <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 pointer-events-none" />
+          <Search className="w-4 h-4 text-slate-400 dark:text-zinc-500 absolute left-3.5 pointer-events-none" />
           <input
             ref={inputRef}
             type="text"
@@ -159,7 +159,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
             onFocus={() => setIsSearchOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder="Radyo veya podcast ara..."
-            className="w-full pl-10 pr-10 py-2 text-xs rounded-full bg-[#131B24] text-zinc-100 placeholder-zinc-500 border border-[#1F2937] focus:outline-none focus:border-teal-500/60 focus:ring-1 focus:ring-teal-500/30 transition-all"
+            className="w-full pl-10 pr-10 py-2 text-xs rounded-full bg-slate-100 dark:bg-[#131B24] text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-[#1F2937] focus:outline-none focus:border-teal-500/60 focus:ring-1 focus:ring-teal-500/30 transition-all"
           />
 
           {searchQuery && (
@@ -168,7 +168,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
                 setSearchQuery('');
                 inputRef.current?.focus();
               }}
-              className="absolute right-3 p-1 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+              className="absolute right-3 p-1 text-slate-400 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
               title="Aramayı Temizle"
             >
               <X className="w-3.5 h-3.5" />
@@ -178,11 +178,11 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
 
         {/* Lightweight Search Suggestion Popover (Desktop) */}
         {isSearchOpen && normalizedQuery && (
-          <div className="absolute left-0 right-0 top-full mt-2 w-full max-h-[420px] overflow-y-auto bg-[#111822] border border-[#1F2937] rounded-2xl shadow-2xl z-50 p-3 space-y-3">
+          <div className="absolute left-0 right-0 top-full mt-2 w-full max-h-[420px] overflow-y-auto bg-white dark:bg-[#111822] border border-slate-200 dark:border-[#1F2937] rounded-2xl shadow-2xl z-50 p-3 space-y-3">
             {/* Top Match */}
             {topResult && (
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider px-1">
+                <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider px-1">
                   En İyi Eşleşme
                 </span>
                 <div
@@ -194,17 +194,17 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
                     }
                     setIsSearchOpen(false);
                   }}
-                  className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-teal-500/10 border border-white/[0.06] hover:border-teal-500/30 flex items-center justify-between cursor-pointer transition-all"
+                  className="p-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] hover:bg-teal-50 dark:hover:bg-teal-500/10 border border-slate-200 dark:border-white/[0.06] hover:border-teal-400/40 dark:hover:border-teal-500/30 flex items-center justify-between cursor-pointer transition-all"
                 >
                   <div className="flex items-center space-x-3 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-[#182330] border border-white/[0.08] flex items-center justify-center text-teal-400 shrink-0 font-bold text-xs">
+                    <div className="w-9 h-9 rounded-lg bg-slate-200 dark:bg-[#182330] border border-slate-300 dark:border-white/[0.08] flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0 font-bold text-xs">
                       {topResult.type === 'station' ? (topResult.item as RadioStation).name.slice(0, 2).toUpperCase() : (topResult.item as any).title.slice(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-bold text-xs text-white truncate">
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">
                         {topResult.type === 'station' ? (topResult.item as RadioStation).name : (topResult.item as any).title}
                       </h4>
-                      <p className="text-[11px] text-zinc-400 truncate">
+                      <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">
                         {topResult.type === 'station' ? ((topResult.item as RadioStation).tags || 'Canlı Radyo') : ((topResult.item as any).publisher || 'Podcast')}
                       </p>
                     </div>
@@ -219,7 +219,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
             {/* Matching Stations List */}
             {matchingStations.length > 0 && (
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-1">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider px-1">
                   Radyolar ({matchingStations.length})
                 </span>
                 {matchingStations.slice(0, 3).map((st) => (
@@ -229,13 +229,13 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
                       onPlayStation?.(st);
                       setIsSearchOpen(false);
                     }}
-                    className="p-2 rounded-lg hover:bg-white/[0.04] flex items-center justify-between cursor-pointer transition-colors"
+                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] flex items-center justify-between cursor-pointer transition-colors"
                   >
                     <div className="flex items-center space-x-2.5 min-w-0">
-                      <Radio className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                      <span className="text-xs font-semibold text-zinc-200 truncate">{st.name}</span>
+                      <Radio className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                      <span className="text-xs font-semibold text-slate-800 dark:text-zinc-200 truncate">{st.name}</span>
                     </div>
-                    <span className="text-[10px] text-zinc-500 shrink-0">{st.tags?.split('•')[0] || 'Radyo'}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-zinc-500 shrink-0">{st.tags?.split('•')[0] || 'Radyo'}</span>
                   </div>
                 ))}
               </div>
@@ -244,7 +244,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
             {/* Matching Podcasts List */}
             {matchingPodcasts.length > 0 && (
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-1">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider px-1">
                   Podcastler ({matchingPodcasts.length})
                 </span>
                 {matchingPodcasts.slice(0, 3).map((pod) => (
@@ -254,32 +254,32 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
                       if (onOpenPodcastShow) onOpenPodcastShow(pod as any);
                       setIsSearchOpen(false);
                     }}
-                    className="p-2 rounded-lg hover:bg-white/[0.04] flex items-center justify-between cursor-pointer transition-colors"
+                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.04] flex items-center justify-between cursor-pointer transition-colors"
                   >
                     <div className="flex items-center space-x-2.5 min-w-0">
-                      <Mic className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                      <span className="text-xs font-semibold text-zinc-200 truncate">{pod.title}</span>
+                      <Mic className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                      <span className="text-xs font-semibold text-slate-800 dark:text-zinc-200 truncate">{pod.title}</span>
                     </div>
-                    <span className="text-[10px] text-zinc-500 shrink-0">{pod.publisher}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-zinc-500 shrink-0">{pod.publisher}</span>
                   </div>
                 ))}
               </div>
             )}
 
             {/* Footer Navigation */}
-            <div className="pt-2 border-t border-[#1F2937] flex items-center justify-between text-xs">
+            <div className="pt-2 border-t border-slate-200 dark:border-[#1F2937] flex items-center justify-between text-xs">
               <button
                 onClick={() => {
                   setIsSearchOpen(false);
                   const q = searchQuery.trim();
                   if (onNavigateToSearch) onNavigateToSearch(q, searchFilterTab);
                 }}
-                className="font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="font-bold text-teal-600 dark:text-teal-400 hover:text-teal-500 dark:hover:text-teal-300 flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <span>"{searchQuery}" için tüm sonuçları gör</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
-              <span className="text-[10px] text-zinc-500 font-mono">Enter ↵</span>
+              <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono">Enter ↵</span>
             </div>
           </div>
         )}
@@ -292,24 +292,24 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
           onClick={() => {
             if (onOpenSearch) onOpenSearch();
           }}
-          className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-[#131B24] border border-[#1F2937] text-zinc-300 hover:text-teal-400 hover:bg-[#182330] flex items-center justify-center transition-all cursor-pointer active:scale-95"
+          className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-slate-100 dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937] text-slate-700 dark:text-zinc-300 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-slate-200 dark:hover:bg-[#182330] flex items-center justify-center transition-all cursor-pointer active:scale-95"
           aria-label="Arama Yap"
           title="Radyo veya podcast ara"
         >
-          <Search className="w-4 h-4 text-zinc-300" />
+          <Search className="w-4 h-4 text-slate-700 dark:text-zinc-300" />
         </button>
 
         <button
           type="button"
           onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
           title={themeMode === 'dark' ? 'Açık Temaya Geç' : 'Koyu Temaya Geç'}
-          className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-[#131B24] border border-[#1F2937] text-zinc-300 hover:text-teal-400 hover:bg-[#182330] flex items-center justify-center transition-all cursor-pointer active:scale-95"
+          className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-slate-100 dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937] text-slate-700 dark:text-zinc-300 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-slate-200 dark:hover:bg-[#182330] flex items-center justify-center transition-all cursor-pointer active:scale-95"
           aria-label="Tema Değiştir"
         >
           {themeMode === 'dark' ? (
             <Moon className="w-4 h-4 text-zinc-300 hover:text-teal-400 transition-colors" />
           ) : (
-            <Sun className="w-4 h-4 text-amber-400" />
+            <Sun className="w-4 h-4 text-amber-500 hover:text-amber-600" />
           )}
         </button>
       </div>
@@ -318,13 +318,13 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
       <div className="hidden md:flex items-center space-x-2 text-xs shrink-0">
         {/* Country Selector */}
         <div className="relative flex items-center" title="Radyo ülkesi">
-          <Globe2 className="w-3.5 h-3.5 text-zinc-400 absolute left-3 pointer-events-none" />
+          <Globe2 className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 absolute left-3 pointer-events-none" />
           <select
             aria-label="Radyo ülkesi"
             title="Radyo ülkesi"
             value={selectedCountry}
             onChange={(e) => setSelectedCountry(e.target.value)}
-            className="pl-8 pr-7 py-1.5 text-xs font-medium rounded-full bg-[#131B24] text-zinc-200 border border-[#1F2937] focus:outline-none focus:border-teal-500 appearance-none cursor-pointer hover:bg-[#182330] transition-colors"
+            className="pl-8 pr-7 py-1.5 text-xs font-medium rounded-full bg-slate-100 dark:bg-[#131B24] text-slate-800 dark:text-zinc-200 border border-slate-200 dark:border-[#1F2937] focus:outline-none focus:border-teal-500 appearance-none cursor-pointer hover:bg-slate-200 dark:hover:bg-[#182330] transition-colors"
           >
             <option value="TR">Türkiye</option>
             {ALL_COUNTRIES.filter(c => c.code !== 'TR').map((c) => (
@@ -333,19 +333,19 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
               </option>
             ))}
           </select>
-          <span className="absolute right-2.5 pointer-events-none text-zinc-400 text-[10px]">▼</span>
+          <span className="absolute right-2.5 pointer-events-none text-slate-400 dark:text-zinc-400 text-[10px]">▼</span>
         </div>
 
         {/* Theme Mode Toggle (Moon / Sun) */}
         <button
           onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
           title={themeMode === 'dark' ? 'Açık Temaya Geç' : 'Koyu Temaya Geç'}
-          className="w-8 h-8 rounded-full bg-[#131B24] border border-[#1F2937] text-zinc-300 hover:text-teal-400 hover:bg-[#182330] flex items-center justify-center transition-all cursor-pointer"
+          className="w-8 h-8 rounded-full bg-slate-100 dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937] text-slate-700 dark:text-zinc-300 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-slate-200 dark:hover:bg-[#182330] flex items-center justify-center transition-all cursor-pointer"
         >
           {themeMode === 'dark' ? (
             <Moon className="w-4 h-4 text-zinc-300 hover:text-teal-400 transition-colors" />
           ) : (
-            <Sun className="w-4 h-4 text-amber-400" />
+            <Sun className="w-4 h-4 text-amber-500" />
           )}
         </button>
       </div>

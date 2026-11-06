@@ -128,24 +128,24 @@ export function BigScreenModal({
       role="dialog"
       aria-modal="true"
       aria-label={getTranslation('bigScreen', locale)}
-      className="fixed inset-0 z-50 bg-[#0A0F17] text-white flex flex-col justify-between p-6 md:p-12 select-none overflow-hidden"
+      className="fixed inset-0 z-50 bg-slate-50 dark:bg-[#0A0F17] text-slate-900 dark:text-white flex flex-col justify-between p-6 md:p-12 select-none overflow-hidden"
     >
       {/* Top Bar: Brand, Live indicator, Fullscreen & Close button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+          <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-600 dark:text-teal-400">
             <Radio className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-xl font-bold tracking-tight text-white">RadioCast</span>
-            <span className="text-xs text-slate-400 block">{getTranslation('bigScreen', locale)}</span>
+            <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">RadioCast</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 block">{getTranslation('bigScreen', locale)}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           {isRadio && isPlaying && (
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-semibold tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-semibold tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
               {getTranslation('live', locale)}
             </div>
           )}
@@ -153,7 +153,7 @@ export function BigScreenModal({
           <button
             onClick={toggleFullscreen}
             title="Tam Ekran"
-            className="p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 hover:text-white transition-colors"
+            className="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800/60 hover:bg-slate-300 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white transition-colors cursor-pointer shadow-sm"
             aria-label="Tam Ekran"
           >
             {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
@@ -162,7 +162,7 @@ export function BigScreenModal({
           <button
             onClick={onClose}
             title={getTranslation('escapeToExit', locale)}
-            className="p-2.5 rounded-xl bg-slate-800/60 hover:bg-red-500/20 hover:text-red-400 text-slate-300 transition-colors"
+            className="p-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800/60 hover:bg-rose-500/20 hover:text-rose-600 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer shadow-sm"
             aria-label="Kapat"
           >
             <X className="w-6 h-6" />
@@ -174,16 +174,16 @@ export function BigScreenModal({
       <div className="flex flex-col items-center justify-center my-auto text-center max-w-4xl mx-auto w-full">
         {/* Big Digital Clock */}
         <div className="mb-8 select-none">
-          <div className="font-mono text-6xl sm:text-8xl md:text-9xl font-bold tracking-tight text-slate-100 flex items-baseline justify-center gap-2">
+          <div className="font-mono text-6xl sm:text-8xl md:text-9xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-baseline justify-center gap-2">
             <span>{timeStr}</span>
-            <span className="text-2xl sm:text-4xl text-blue-400/80 font-normal">{secondsStr}</span>
+            <span className="text-2xl sm:text-4xl text-teal-600 dark:text-teal-400/80 font-normal">{secondsStr}</span>
           </div>
         </div>
 
         {/* Media Artwork with Subtle Glow */}
         <div className="relative mb-6 group">
-          <div className="absolute -inset-4 bg-blue-500/10 rounded-3xl blur-xl group-hover:bg-blue-500/20 transition-all pointer-events-none" />
-          <div className="w-48 h-48 sm:w-64 sm:h-64 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl relative bg-slate-900 flex items-center justify-center">
+          <div className="absolute -inset-4 bg-teal-500/10 rounded-3xl blur-xl group-hover:bg-teal-500/20 transition-all pointer-events-none" />
+          <div className="w-48 h-48 sm:w-64 sm:h-64 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl relative bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
             {coverUrl ? (
               <img
                 src={coverUrl}
@@ -195,18 +195,18 @@ export function BigScreenModal({
                 }}
               />
             ) : (
-              <Disc3 className="w-20 h-20 text-slate-700 animate-spin-slow" />
+              <Disc3 className="w-20 h-20 text-slate-400 dark:text-slate-700 animate-spin-slow" />
             )}
           </div>
         </div>
 
         {/* Title & Subtitle */}
         <div className="space-y-2 max-w-2xl px-4">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight line-clamp-2">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-white tracking-tight line-clamp-2">
             {title}
           </h2>
           {subtitle && (
-            <p className="text-sm sm:text-base text-slate-400 font-medium line-clamp-1">
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
               {subtitle}
             </p>
           )}
@@ -214,7 +214,7 @@ export function BigScreenModal({
       </div>
 
       {/* Bottom Controls Bar: Play/Pause, Volume, Shortcuts notice */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-800/80">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-800/80">
         <span className="text-xs text-slate-500 hidden sm:block">
           {getTranslation('escapeToExit', locale)} · Space: {isPlaying ? getTranslation('pause', locale) : getTranslation('play', locale)} · M: Mute
         </span>
@@ -224,15 +224,15 @@ export function BigScreenModal({
           <button
             onClick={() => audioEngine.togglePlayPause()}
             disabled={isConnecting}
-            className="w-16 h-16 rounded-full bg-blue-600 hover:bg-blue-500 active:scale-95 text-white flex items-center justify-center shadow-lg shadow-blue-600/30 transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/40"
+            className="w-16 h-16 rounded-full bg-teal-500 hover:bg-teal-400 active:scale-95 text-black flex items-center justify-center shadow-lg shadow-teal-500/30 transition-all focus:outline-none focus:ring-4 focus:ring-teal-500/40 cursor-pointer"
             aria-label={isPlaying ? getTranslation('pause', locale) : getTranslation('play', locale)}
           >
             {isConnecting ? (
-              <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-3 border-black border-t-transparent rounded-full animate-spin" />
             ) : isPlaying ? (
-              <Pause className="w-7 h-7 fill-white" />
+              <Pause className="w-7 h-7 fill-current" />
             ) : (
-              <Play className="w-7 h-7 fill-white translate-x-0.5" />
+              <Play className="w-7 h-7 fill-current translate-x-0.5" />
             )}
           </button>
         </div>
@@ -241,11 +241,11 @@ export function BigScreenModal({
         <div className="flex items-center gap-3">
           <button
             onClick={handleMuteToggle}
-            className="text-slate-400 hover:text-white transition-colors"
+            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
             aria-label={isMuted ? 'Sesi Aç' : 'Sessiz'}
           >
             {isMuted || volume === 0 ? (
-              <VolumeX className="w-5 h-5 text-red-400" />
+              <VolumeX className="w-5 h-5 text-rose-500" />
             ) : (
               <Volume2 className="w-5 h-5" />
             )}
@@ -257,7 +257,7 @@ export function BigScreenModal({
             step="0.01"
             value={isMuted ? 0 : volume}
             onChange={handleVolumeChange}
-            className="w-24 sm:w-32 accent-blue-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+            className="w-24 sm:w-32 accent-teal-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
             aria-label={getTranslation('volume', locale)}
           />
         </div>

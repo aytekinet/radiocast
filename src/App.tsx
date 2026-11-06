@@ -369,14 +369,26 @@ export default function App() {
   // Theme & Palette Synchronization with DOM root
   useEffect(() => {
     const root = document.documentElement;
-    if (settings.themeMode === 'light') {
+    const isLight = settings.themeMode === 'light';
+    if (isLight) {
       root.classList.remove('dark');
       root.classList.add('light');
     } else {
       root.classList.remove('light');
       root.classList.add('dark');
     }
+    root.setAttribute('data-theme', settings.themeMode);
     root.setAttribute('data-theme-palette', settings.themePalette);
+
+    // Sync theme-color meta tag for browser address bar & PWA status bar
+    const metaColor = document.getElementById('theme-color-meta');
+    if (metaColor) {
+      metaColor.setAttribute('content', isLight ? '#F8FAFC' : '#070B0E');
+    }
+    const metaApple = document.getElementById('apple-status-bar-meta');
+    if (metaApple) {
+      metaApple.setAttribute('content', isLight ? 'default' : 'black-translucent');
+    }
   }, [settings.themeMode, settings.themePalette]);
 
   // Global Keyboard Shortcuts (Cmd+K / Ctrl+K, Space)
@@ -906,14 +918,12 @@ export default function App() {
   // Determine Palette background classes
   const getPaletteBg = (palette: ThemePalette, mode: AppThemeMode) => {
     if (mode === 'light') {
-      return 'bg-slate-50 text-slate-900';
+      return 'bg-[#F8FAFC] text-slate-900';
     }
     switch (palette) {
-      case 'pure-carbon': return 'bg-black text-zinc-100';
-      case 'neon-ocean': return 'bg-slate-950 text-slate-100';
-      case 'cyber-orchid': return 'bg-stone-950 text-stone-100';
-      case 'cosmic-slate': return 'bg-emerald-950/40 text-emerald-100';
-      default: return 'bg-zinc-950 text-zinc-100';
+      case 'pure-carbon': return 'bg-[#05070A] text-slate-100';
+      case 'cyber-orchid': return 'bg-[#0B0E14] text-slate-100';
+      default: return 'bg-[#070B0E] text-slate-100';
     }
   };
 
@@ -925,7 +935,7 @@ export default function App() {
     : currentItem?.radio?.name;
 
   return (
-    <div className={`h-screen max-h-screen flex flex-col font-sans ${getPaletteBg(settings.themePalette, settings.themeMode)} antialiased selection:bg-amber-500 selection:text-zinc-950 overflow-hidden`}>
+    <div className={`min-h-[100dvh] h-[100dvh] max-h-[100dvh] w-full flex flex-col font-sans ${getPaletteBg(settings.themePalette, settings.themeMode)} antialiased selection:bg-teal-500 selection:text-white overflow-hidden`}>
       {/* Desktop Top Titlebar & Header */}
       <DesktopHeader
         searchQuery={searchQuery}

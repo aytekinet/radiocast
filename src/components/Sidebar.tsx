@@ -59,17 +59,17 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
   ];
 
   return (
-    <aside className="hidden md:flex w-56 lg:w-60 bg-[#0B0E14] border-r border-[#161F2B] flex-col justify-between shrink-0 p-4 select-none transition-colors">
+    <aside className="hidden md:flex w-56 lg:w-60 bg-white dark:bg-[#0B0E14] border-r border-slate-200 dark:border-[#161F2B] flex-col justify-between shrink-0 p-4 select-none transition-colors">
       <div>
         {/* Logo / Brand Header */}
         <div 
           onClick={() => setActiveTab('discover')}
           className="flex items-center space-x-2.5 px-3 py-2 cursor-pointer group mb-6"
         >
-          <div className="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-400 group-hover:bg-teal-500/25 transition-colors">
-            <Radio className="w-4 h-4 text-teal-400" />
+          <div className="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:bg-teal-500/25 transition-colors">
+            <Radio className="w-4 h-4 text-teal-600 dark:text-teal-400" />
           </div>
-          <span className="font-bold text-lg text-white tracking-tight group-hover:text-teal-400 transition-colors">
+          <span className="font-bold text-lg text-slate-900 dark:text-white tracking-tight group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
             RadioCast
           </span>
         </div>
@@ -85,19 +85,19 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer group ${
                   isActive
-                    ? 'bg-[#0E2A2E] text-teal-300 font-bold border border-teal-500/20 shadow-sm'
-                    : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                    ? 'bg-teal-50 dark:bg-[#0E2A2E] text-teal-700 dark:text-teal-300 font-bold border border-teal-200 dark:border-teal-500/20 shadow-sm'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.04]'
                 }`}
               >
                 <div className="flex items-center space-x-3 min-w-0">
                   <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-105 ${
-                    isActive ? 'text-teal-400' : 'text-zinc-400 group-hover:text-zinc-200'
+                    isActive ? 'text-teal-600 dark:text-teal-400' : 'text-slate-400 dark:text-zinc-400 group-hover:text-slate-700 dark:group-hover:text-zinc-200'
                   }`} />
                   <span className="truncate">{item.label}</span>
                 </div>
                 {item.count !== undefined && item.count > 0 && (
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                    isActive ? 'bg-teal-500/20 text-teal-300' : 'bg-white/10 text-zinc-400'
+                    isActive ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300' : 'bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-zinc-400'
                   }`}>
                     {item.count}
                   </span>
@@ -109,9 +109,9 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
       </div>
 
       {/* Footer Branding */}
-      <div className="pt-4 border-t border-[#161F2B] px-3">
-        <h4 className="font-bold text-xs text-white">RadioCast</h4>
-        <p className="text-[11px] text-zinc-500 mt-0.5">Radyo & Podcast</p>
+      <div className="pt-4 border-t border-slate-200 dark:border-[#161F2B] px-3">
+        <h4 className="font-bold text-xs text-slate-900 dark:text-white">RadioCast</h4>
+        <p className="text-[11px] text-slate-500 dark:text-zinc-500 mt-0.5">Radyo & Podcast</p>
       </div>
     </aside>
   );

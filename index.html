@@ -1,19 +1,48 @@
 <!doctype html>
-<html lang="tr" class="dark" style="background-color: #0A0F17; color: #F8FAFC; height: 100%;">
+<html lang="tr" class="dark" style="height: 100%;">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#0A0F17" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#070B0E" id="theme-color-meta" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" id="apple-status-bar-meta" />
     <title>RadioCast - Canlı Radyo & Podcast</title>
     <meta name="description" content="RadioCast - Canlı Radyo & Güncel Türkçe Podcast dinleme platformu. 629 doğrulanmış canlı radyo ve 133+ güncel Türkçe podcast." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
 
-    <!-- Safe Service Worker and cache maintenance without unhandled rejections -->
+    <!-- Anti-FOUC Instant Theme Initializer -->
+    <script>
+      (function() {
+        try {
+          var theme = 'dark';
+          var stored = localStorage.getItem('radiocast_settings');
+          if (stored) {
+            var parsed = JSON.parse(stored);
+            if (parsed && (parsed.themeMode === 'light' || parsed.themeMode === 'dark')) {
+              theme = parsed.themeMode;
+            }
+          } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            theme = 'light';
+          }
+          var doc = document.documentElement;
+          doc.classList.remove('light', 'dark');
+          doc.classList.add(theme);
+          var metaColor = document.getElementById('theme-color-meta');
+          if (metaColor) {
+            metaColor.setAttribute('content', theme === 'light' ? '#F8FAFC' : '#070B0E');
+          }
+          var metaApple = document.getElementById('apple-status-bar-meta');
+          if (metaApple) {
+            metaApple.setAttribute('content', theme === 'light' ? 'default' : 'black-translucent');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <!-- Safe Service Worker cleanup without unhandled rejections -->
     <script>
       (function() {
         try {
@@ -47,13 +76,19 @@
     </script>
     <style>
       html, body {
-        background-color: #0A0F17 !important;
-        color: #F8FAFC;
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
         overflow-x: hidden;
+      }
+      html.dark, html.dark body {
+        background-color: #070B0E;
+        color: #F8FAFC;
+      }
+      html.light, html.light body {
+        background-color: #F8FAFC;
+        color: #0F172A;
       }
       @keyframes spin {
         to { transform: rotate(360deg); }
@@ -61,19 +96,35 @@
       .initial-spinner {
         width: 32px;
         height: 32px;
-        border: 2.5px solid rgba(56, 189, 248, 0.2);
-        border-top-color: #38BDF8;
+        border: 2.5px solid rgba(13, 148, 136, 0.2);
+        border-top-color: #14B8A6;
         border-radius: 50%;
         animation: spin 0.75s linear infinite;
       }
+      #app-loading-screen {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      html.dark #app-loading-screen {
+        background-color: #070B0E;
+        color: #F8FAFC;
+      }
+      html.light #app-loading-screen {
+        background-color: #F8FAFC;
+        color: #0F172A;
+      }
     </style>
   </head>
-  <body class="bg-[#0A0F17] text-slate-100 antialiased overflow-x-hidden w-full max-w-full select-none touch-pan-y" style="background-color: #0A0F17;">
+  <body class="antialiased overflow-x-hidden w-full max-w-full select-none touch-pan-y">
     <div id="root">
-      <div id="app-loading-screen" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #0A0F17; color: #F8FAFC; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <div id="app-loading-screen">
         <div class="initial-spinner" style="margin-bottom: 16px;"></div>
-        <div style="font-size: 15px; font-weight: 700; letter-spacing: 0.05em; color: #F8FAFC; margin-bottom: 4px;">RadioCast</div>
-        <div style="font-size: 12px; color: #64748B;">Canlı Radyolar & Türkçe Podcastler Yükleniyor...</div>
+        <div style="font-size: 15px; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px;">RadioCast</div>
+        <div style="font-size: 12px; opacity: 0.7;">Canlı Radyolar & Türkçe Podcastler Yükleniyor...</div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

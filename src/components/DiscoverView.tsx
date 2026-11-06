@@ -262,18 +262,18 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
     <div className="space-y-8 max-w-6xl mx-auto pb-12 select-none">
       {/* Page Title & Mobile Country Selector */}
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
           Keşfet
         </h1>
 
         {/* Mobile Country Selector (Requirement 10) */}
         <div className="flex md:hidden relative items-center shrink-0" title="Radyo ülkesi">
-          <Globe2 className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 pointer-events-none" />
+          <Globe2 className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 absolute left-2.5 pointer-events-none" />
           <select
             aria-label="Radyo ülkesi"
             value={selectedCountry}
             onChange={(e) => setSelectedCountry(e.target.value)}
-            className="pl-7 pr-6 py-1.5 text-xs font-semibold rounded-full bg-[#131B24] text-zinc-200 border border-[#1F2937] focus:outline-none focus:border-teal-500 appearance-none cursor-pointer"
+            className="pl-7 pr-6 py-1.5 text-xs font-semibold rounded-full bg-slate-100 dark:bg-[#131B24] text-slate-800 dark:text-zinc-200 border border-slate-300 dark:border-[#1F2937] focus:outline-none focus:border-teal-500 appearance-none cursor-pointer"
           >
             <option value="TR">🇹🇷 Türkiye</option>
             {ALL_COUNTRIES.filter(c => c.code !== 'TR').map((c) => (
@@ -282,7 +282,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
               </option>
             ))}
           </select>
-          <span className="absolute right-2 pointer-events-none text-zinc-400 text-[9px]">▼</span>
+          <span className="absolute right-2 pointer-events-none text-slate-500 dark:text-zinc-400 text-[9px]">▼</span>
         </div>
       </div>
 
@@ -290,12 +290,12 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
       <section className="space-y-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Radio className="w-5 h-5 text-teal-400" />
-            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+            <Radio className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
               {sectionTitle}
             </h2>
             {!isTurkey && stations.length > 0 && (
-              <span className="text-[11px] font-semibold text-teal-400/80 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20">
+              <span className="text-[11px] font-semibold text-teal-700 dark:text-teal-400/80 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20">
                 {stations.length} istasyon
               </span>
             )}
@@ -308,7 +308,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
                 setShowAllPriority(!showAllPriority);
               }
             }}
-            className="text-xs font-semibold text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer"
+            className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer"
           >
             <span>{showAllPriority ? 'Daha Az Göster' : 'Tümünü Gör'}</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -321,25 +321,25 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div 
                 key={i}
-                className="p-3 rounded-xl bg-[#131B24] border border-[#1F2937]/80 flex items-center justify-between gap-3 animate-pulse"
+                className="p-3 rounded-xl bg-white dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937]/80 flex items-center justify-between gap-3 animate-pulse"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="w-11 h-11 rounded-xl bg-zinc-800" />
+                  <div className="w-11 h-11 rounded-xl bg-slate-200 dark:bg-zinc-800" />
                   <div className="space-y-2">
-                    <div className="w-32 h-3.5 rounded bg-zinc-800" />
-                    <div className="w-20 h-2.5 rounded bg-zinc-800/60" />
+                    <div className="w-32 h-3.5 rounded bg-slate-200 dark:bg-zinc-800" />
+                    <div className="w-20 h-2.5 rounded bg-slate-200/60 dark:bg-zinc-800/60" />
                   </div>
                 </div>
-                <div className="w-9 h-9 rounded-full bg-zinc-800" />
+                <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-zinc-800" />
               </div>
             ))}
           </div>
         ) : !isLoading && !isTurkey && stations.length === 0 ? (
           /* Empty State for foreign country without leaking Turkish stations */
-          <div className="p-8 rounded-xl bg-[#131B24] border border-[#1F2937] text-center space-y-3">
-            <Radio className="w-8 h-8 text-zinc-500 mx-auto" />
-            <h3 className="font-bold text-sm text-white">Bu ülkede radyo istasyonu bulunamadı</h3>
-            <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+          <div className="p-8 rounded-xl bg-white dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937] text-center space-y-3">
+            <Radio className="w-8 h-8 text-slate-400 dark:text-zinc-500 mx-auto" />
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white">Bu ülkede radyo istasyonu bulunamadı</h3>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
               Seçilen ülke için istasyon bilgisi alınamadı. Farklı bir ülke seçebilir veya Türkiye radyolarına dönebilirsiniz.
             </p>
             <button
@@ -364,22 +364,22 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
                   onClick={() => onPlayStation(radio)}
                   className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group ${
                     isCurrent
-                      ? 'bg-[#152331] border-teal-500/40 shadow-md ring-1 ring-teal-500/30'
-                      : 'bg-[#131B24] border-[#1F2937]/80 hover:bg-[#182330] hover:border-zinc-700/80'
+                      ? 'bg-teal-50/80 dark:bg-[#152331] border-teal-500/50 dark:border-teal-500/40 shadow-sm ring-1 ring-teal-500/30'
+                      : 'bg-white dark:bg-[#131B24] border-slate-200 dark:border-[#1F2937]/80 hover:bg-slate-50 dark:hover:bg-[#182330] hover:border-slate-300 dark:hover:border-zinc-700/80 shadow-sm'
                   }`}
                 >
                   {/* Left: Badge Logo + Info */}
                   <div className="flex items-center space-x-3 min-w-0">
                     {/* Styled Monogram / Brand Badge */}
-                    <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-xs shadow-md tracking-wider ${badgeBg}`}>
+                    <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-xs shadow-sm tracking-wider ${badgeBg}`}>
                       {badgeText}
                     </div>
 
                     <div className="min-w-0">
-                      <h3 className="font-bold text-sm text-white group-hover:text-teal-300 transition-colors truncate">
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-300 transition-colors truncate">
                         {radio.name}
                       </h3>
-                      <p className="text-xs text-zinc-400 truncate mt-0.5">
+                      <p className="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">
                         {tags}
                       </p>
                     </div>
@@ -392,10 +392,10 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
                         e.stopPropagation();
                         onToggleFavorite(radio);
                       }}
-                      className="p-1.5 rounded-full text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                      className="p-1.5 rounded-full text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
                       title={isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
                     >
-                      <Heart className={`w-4 h-4 ${isFav ? 'text-teal-400 fill-teal-400' : ''}`} />
+                      <Heart className={`w-4 h-4 ${isFav ? 'text-teal-600 dark:text-teal-400 fill-teal-600 dark:fill-teal-400' : ''}`} />
                     </button>
 
                     <button
@@ -403,10 +403,10 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
                         e.stopPropagation();
                         onPlayStation(radio);
                       }}
-                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow ${
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-sm ${
                         isPlayingThis
                           ? 'bg-teal-500 text-black'
-                          : 'bg-white/10 text-white group-hover:bg-teal-500 group-hover:text-black'
+                          : 'bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white group-hover:bg-teal-500 group-hover:text-black'
                       }`}
                       title={isPlayingThis ? 'Durdur' : 'Oynat'}
                     >
@@ -424,19 +424,19 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
         )}
       </section>
 
-      {/* 2. Güncel Türkçe Podcastler - (Remains 100% Turkish regardless of radio country) */}
+      {/* 2. Güncel Türkçe Podcastler */}
       <section className="space-y-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Mic className="w-5 h-5 text-teal-400" />
-            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+            <Mic className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
               Güncel Türkçe Podcastler
             </h2>
           </div>
           {onNavigateToPodcasts && (
             <button
               onClick={onNavigateToPodcasts}
-              className="text-xs font-semibold text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer"
+              className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer"
             >
               <span>Tümünü Gör</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -459,18 +459,18 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
                     onNavigateToPodcasts();
                   }
                 }}
-                className="min-w-[200px] sm:min-w-[220px] p-3 rounded-xl bg-[#131B24] border border-[#1F2937]/80 hover:bg-[#182330] hover:border-zinc-700/80 transition-all cursor-pointer flex items-center space-x-3 shrink-0 group"
+                className="min-w-[200px] sm:min-w-[220px] p-3 rounded-xl bg-white dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937]/80 hover:bg-slate-50 dark:hover:bg-[#182330] hover:border-slate-300 dark:hover:border-zinc-700/80 transition-all cursor-pointer flex items-center space-x-3 shrink-0 group shadow-sm"
               >
                 {/* Podcast Monogram Avatar */}
-                <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-xs shadow-md ${pod.badgeBg}`}>
+                <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-xs shadow-sm ${pod.badgeBg}`}>
                   {pod.badgeText}
                 </div>
 
                 <div className="min-w-0">
-                  <h4 className="font-bold text-xs sm:text-sm text-white group-hover:text-teal-300 transition-colors truncate">
+                  <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-300 transition-colors truncate">
                     {pod.title}
                   </h4>
-                  <p className="text-[11px] text-zinc-400 mt-0.5 truncate">
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 truncate">
                     Son bölüm: {pod.dateLabel}
                   </p>
                 </div>
@@ -483,8 +483,8 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
       {/* 3. Kategorilere Göz At */}
       <section className="space-y-3.5">
         <div className="flex items-center space-x-2">
-          <Layers className="w-5 h-5 text-teal-400" />
-          <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+          <Layers className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
             Kategorilere Göz At
           </h2>
         </div>
@@ -500,10 +500,10 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
                   setSelectedCategory(cat.id);
                   if (onNavigateToRadios) onNavigateToRadios();
                 }}
-                className={`px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0 ${
+                className={`px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0 shadow-sm ${
                   isSelected
-                    ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold'
-                    : 'bg-[#131B24] text-zinc-300 border border-[#1F2937] hover:bg-[#182330] hover:text-white'
+                    ? 'bg-teal-500/15 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 dark:border-teal-500/40 font-bold'
+                    : 'bg-white dark:bg-[#131B24] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#182330] hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {cat.name}
@@ -517,8 +517,8 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
       {recentItems.length > 0 && (
         <section className="space-y-3.5 pt-2">
           <div className="flex items-center space-x-2">
-            <Clock className="w-5 h-5 text-teal-400" />
-            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+            <Clock className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
               Son Dinlenenler
             </h2>
           </div>
@@ -535,16 +535,16 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
                   onClick={() => {
                     if (isRadio && item.radioStation) onPlayStation(item.radioStation);
                   }}
-                  className="p-3 rounded-xl bg-[#131B24] border border-[#1F2937]/80 hover:bg-[#182330] transition-all cursor-pointer flex flex-col justify-between group"
+                  className="p-3 rounded-xl bg-white dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937]/80 hover:bg-slate-50 dark:hover:bg-[#182330] transition-all cursor-pointer flex flex-col justify-between group shadow-sm"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 mb-2 font-bold text-xs">
+                  <div className="w-10 h-10 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400 mb-2 font-bold text-xs">
                     {name?.slice(0, 2).toUpperCase() || 'RC'}
                   </div>
                   <div>
-                    <h5 className="font-bold text-xs text-white group-hover:text-teal-300 transition-colors truncate">
+                    <h5 className="font-bold text-xs text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-300 transition-colors truncate">
                       {name}
                     </h5>
-                    <p className="text-[10px] text-zinc-500 truncate mt-0.5">
+                    <p className="text-[10px] text-slate-500 dark:text-zinc-500 truncate mt-0.5">
                       {sub}
                     </p>
                   </div>
