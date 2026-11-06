@@ -24,6 +24,7 @@ interface MobileNavProps {
   lowDataMode: boolean;
   setLowDataMode: (val: boolean) => void;
   currentlyPlayingName?: string;
+  onOpenSearch?: () => void;
 }
 
 export const MobileNav: React.FC<MobileNavProps> = React.memo(({
@@ -33,7 +34,8 @@ export const MobileNav: React.FC<MobileNavProps> = React.memo(({
   playlistsCount,
   lowDataMode,
   setLowDataMode,
-  currentlyPlayingName
+  currentlyPlayingName,
+  onOpenSearch
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -62,10 +64,14 @@ export const MobileNav: React.FC<MobileNavProps> = React.memo(({
             <button
               key={tab.id}
               onClick={() => {
-                setActiveTab(tab.id);
+                if (tab.id === 'search' && onOpenSearch) {
+                  onOpenSearch();
+                } else {
+                  setActiveTab(tab.id);
+                }
                 setIsMenuOpen(false);
               }}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl min-w-[56px] min-h-[44px] transition-all relative active:scale-95 ${
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl min-w-[56px] min-h-[44px] transition-all relative active:scale-95 cursor-pointer ${
                 isActive ? 'text-teal-400 font-bold' : 'text-zinc-400 hover:text-white'
               }`}
             >

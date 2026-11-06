@@ -49,6 +49,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
   setThemeMode,
   onNavigateToDiscover,
   onNavigateToSearch,
+  onOpenSearch,
   onPlayStation,
   onOpenPodcastShow
 }) => {
@@ -131,7 +132,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
   };
 
   return (
-    <header className="h-16 bg-[#0B0E14] border-b border-[#161F2B] px-4 sm:px-6 flex items-center justify-between gap-4 select-none shrink-0 z-30 transition-colors">
+    <header className="h-16 bg-[#0B0E14] border-b border-[#161F2B] px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 select-none shrink-0 z-30 transition-colors">
       {/* Mobile Brand Icon (hidden on desktop where Sidebar has it) */}
       <div 
         onClick={() => onNavigateToDiscover?.()}
@@ -143,8 +144,8 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
         <span className="font-bold text-base text-white tracking-tight">RadioCast</span>
       </div>
 
-      {/* Global Center Search Bar */}
-      <div className="relative flex-1 max-w-2xl mx-auto" ref={searchContainerRef}>
+      {/* Global Center Search Bar — Desktop Only (hidden on mobile, replaced by clean magnifying glass) */}
+      <div className="hidden md:block relative flex-1 max-w-2xl mx-auto" ref={searchContainerRef}>
         <div className="relative flex items-center">
           <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 pointer-events-none" />
           <input
@@ -175,7 +176,7 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
           )}
         </div>
 
-        {/* Lightweight Search Suggestion Popover */}
+        {/* Lightweight Search Suggestion Popover (Desktop) */}
         {isSearchOpen && normalizedQuery && (
           <div className="absolute left-0 right-0 top-full mt-2 w-full max-h-[420px] overflow-y-auto bg-[#111822] border border-[#1F2937] rounded-2xl shadow-2xl z-50 p-3 space-y-3">
             {/* Top Match */}
@@ -284,8 +285,37 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = memo(({
         )}
       </div>
 
-      {/* Right Controls: Country Selector & Moon Theme Button */}
-      <div className="flex items-center space-x-2 text-xs shrink-0">
+      {/* Mobile Top Controls: Clean Magnifying Glass + Theme Button */}
+      <div className="flex md:hidden items-center space-x-1 shrink-0">
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenSearch) onOpenSearch();
+          }}
+          className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-[#131B24] border border-[#1F2937] text-zinc-300 hover:text-teal-400 hover:bg-[#182330] flex items-center justify-center transition-all cursor-pointer active:scale-95"
+          aria-label="Arama Yap"
+          title="Radyo veya podcast ara"
+        >
+          <Search className="w-4 h-4 text-zinc-300" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
+          title={themeMode === 'dark' ? 'Açık Temaya Geç' : 'Koyu Temaya Geç'}
+          className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-xl bg-[#131B24] border border-[#1F2937] text-zinc-300 hover:text-teal-400 hover:bg-[#182330] flex items-center justify-center transition-all cursor-pointer active:scale-95"
+          aria-label="Tema Değiştir"
+        >
+          {themeMode === 'dark' ? (
+            <Moon className="w-4 h-4 text-zinc-300 hover:text-teal-400 transition-colors" />
+          ) : (
+            <Sun className="w-4 h-4 text-amber-400" />
+          )}
+        </button>
+      </div>
+
+      {/* Desktop Right Controls: Country Selector & Theme Button (hidden on mobile) */}
+      <div className="hidden md:flex items-center space-x-2 text-xs shrink-0">
         {/* Country Selector */}
         <div className="relative flex items-center" title="Radyo ülkesi">
           <Globe2 className="w-3.5 h-3.5 text-zinc-400 absolute left-3 pointer-events-none" />

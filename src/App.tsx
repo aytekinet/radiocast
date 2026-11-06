@@ -44,6 +44,7 @@ import { SleepTimerModal } from './components/SleepTimerModal';
 import { BigScreenModal } from './components/BigScreenModal';
 import { LegalView, LegalPageType } from './components/LegalView';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
+import { MobileSearchOverlay } from './components/MobileSearchOverlay';
 import { SearchResultsView } from './components/SearchResultsView';
 import { HistoryView } from './components/HistoryView';
 import { IOSInstallGuideModal } from './components/IOSInstallGuideModal';
@@ -55,6 +56,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>('discover');
   const [searchTabType, setSearchTabType] = useState<'all' | 'radio' | 'podcast'>('all');
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
   // Scroll Position Preservation Container Ref
   const mainRef = useRef<HTMLDivElement>(null);
@@ -201,6 +203,9 @@ export default function App() {
       const state = event.state;
       if (state?.overlay !== 'search') {
         setIsSearchModalOpen(false);
+      }
+      if (!state?.mobileSearchOverlay) {
+        setIsMobileSearchOpen(false);
       }
       let targetTab = '';
       if (state && state.tab && validTabs.includes(state.tab)) {
@@ -955,7 +960,7 @@ export default function App() {
             } catch {}
           }
         }}
-        onOpenSearch={() => setIsSearchModalOpen(true)}
+        onOpenSearch={() => setIsMobileSearchOpen(true)}
         onPlayStation={handlePlayStation}
         onPlayPodcastEpisode={handlePlayPodcastEpisode}
         onOpenPodcastShow={handleOpenPodcastShowFromFav}
@@ -1260,6 +1265,23 @@ export default function App() {
         lowDataMode={settings.lowDataMode}
         setLowDataMode={(val) => updateSettings({ lowDataMode: val })}
         currentlyPlayingName={playbackStatus === 'playing' ? currentPlayingName : undefined}
+        onOpenSearch={() => setIsMobileSearchOpen(true)}
+      />
+
+      {/* Full-Screen Mobile Search Overlay (Requirement 1-9) */}
+      <MobileSearchOverlay
+        isOpen={isMobileSearchOpen}
+        onClose={() => setIsMobileSearchOpen(false)}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onNavigateToSearch={(q, type) => {
+          setSearchQuery(q);
+          if (type) setSearchTabType(type);
+          changeTab('search');
+        }}
+        onPlayStation={handlePlayStation}
+        onOpenPodcastShow={handleOpenPodcastShowFromFav}
+        onPlayPodcastEpisode={handlePlayPodcastEpisode}
       />
 
       {/* Sleep Timer Modal */}

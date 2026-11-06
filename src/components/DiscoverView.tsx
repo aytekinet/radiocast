@@ -9,13 +9,15 @@ import {
   Clock, 
   ArrowRight,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Globe2
 } from 'lucide-react';
 import { RadioStation, Playlist } from '../types';
 import { PlaybackStatus } from '../services/audioEngine';
 import { getRecentlyPlayed } from '../services/storage';
 import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
 import { EDITORIAL_PRIORITY_STATIONS, PriorityStationDef } from '../constants/priorityStations';
+import { ALL_COUNTRIES } from '../constants/categories';
 
 interface DiscoverViewProps {
   stations: RadioStation[];
@@ -258,11 +260,30 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12 select-none">
-      {/* Page Title */}
-      <div>
+      {/* Page Title & Mobile Country Selector */}
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
           Keşfet
         </h1>
+
+        {/* Mobile Country Selector (Requirement 10) */}
+        <div className="flex md:hidden relative items-center shrink-0" title="Radyo ülkesi">
+          <Globe2 className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 pointer-events-none" />
+          <select
+            aria-label="Radyo ülkesi"
+            value={selectedCountry}
+            onChange={(e) => setSelectedCountry(e.target.value)}
+            className="pl-7 pr-6 py-1.5 text-xs font-semibold rounded-full bg-[#131B24] text-zinc-200 border border-[#1F2937] focus:outline-none focus:border-teal-500 appearance-none cursor-pointer"
+          >
+            <option value="TR">🇹🇷 Türkiye</option>
+            {ALL_COUNTRIES.filter(c => c.code !== 'TR').map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.flag} {c.name}
+              </option>
+            ))}
+          </select>
+          <span className="absolute right-2 pointer-events-none text-zinc-400 text-[9px]">▼</span>
+        </div>
       </div>
 
       {/* 1. Popüler Radyolar (Country-aware) */}
