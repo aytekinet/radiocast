@@ -140,8 +140,67 @@ class AudioEngine {
       this.audio.muted = false;
 
       this.setupAudioListeners();
+      this.setupPermanentMediaSessionHandlers();
     } else {
       this.audio = {} as HTMLAudioElement;
+    }
+  }
+
+  private setupPermanentMediaSessionHandlers() {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator) || typeof navigator.mediaSession.setActionHandler !== 'function') {
+      return;
+    }
+
+    try {
+      navigator.mediaSession.setActionHandler('play', () => {
+        try {
+          navigator.mediaSession.playbackState = 'playing';
+        } catch {
+          // ignore
+        }
+        try {
+          if (this.audio && this.audio.src) {
+            const p = this.audio.play();
+            if (p !== undefined) {
+              p.catch(() => {
+                this.resume();
+              });
+            }
+          } else {
+            this.resume();
+          }
+        } catch {
+          this.resume();
+        }
+      });
+    } catch {
+      // ignore
+    }
+
+    try {
+      navigator.mediaSession.setActionHandler('pause', () => {
+        try {
+          navigator.mediaSession.playbackState = 'paused';
+        } catch {
+          // ignore
+        }
+        try {
+          this.audio.pause();
+        } catch {
+          // ignore
+        }
+        this.pause();
+      });
+    } catch {
+      // ignore
+    }
+
+    try {
+      navigator.mediaSession.setActionHandler('stop', () => {
+        this.stop();
+      });
+    } catch {
+      // ignore
     }
   }
 
@@ -591,16 +650,13 @@ class AudioEngine {
       } else if (this.audio.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS for Safari (iOS and macOS)
         this.audio.src = playableUrl;
-        this.audio.load();
         safePlay();
       } else {
         this.audio.src = playableUrl;
-        this.audio.load();
         safePlay();
       }
     } else {
       this.audio.src = playableUrl;
-      this.audio.load();
       safePlay();
     }
   }
@@ -812,7 +868,6 @@ class AudioEngine {
   }
 
   public pause(): void {
-    if (!this.currentItem) return;
     this.clearReconnectState();
     try {
       if ('mediaSession' in navigator) {
@@ -821,7 +876,11 @@ class AudioEngine {
     } catch {
       // ignore
     }
-    this.audio.pause();
+    try {
+      this.audio.pause();
+    } catch {
+      // ignore
+    }
     this.setStatus('paused');
     this.updatePositionState();
   }
@@ -1061,10 +1120,10 @@ class AudioEngine {
   public clearPositionState() {
     if ('mediaSession' in navigator && typeof (navigator.mediaSession as any).setPositionState === 'function') {
       try {
-        (navigator.mediaSession as any).setPositionState(null);
+        (navigator.mediaSession as any).setPositionState();
       } catch {
         try {
-          (navigator.mediaSession as any).setPositionState();
+          (navigator.mediaSession as any).setPositionState({});
         } catch {
           // ignore
         }
@@ -1076,13 +1135,7 @@ class AudioEngine {
     if (!('mediaSession' in navigator) || typeof (navigator.mediaSession as any).setPositionState !== 'function') {
       return;
     }
-    if (!this.currentItem) {
-      this.clearPositionState();
-      return;
-    }
-
-    // Live radio: clear position state completely to prevent fake scrubber
-    if (this.currentItem.type === 'radio') {
+    if (!this.currentItem || this.currentItem.type === 'radio') {
       this.clearPositionState();
       return;
     }
@@ -1107,30 +1160,9 @@ class AudioEngine {
   }
 
   public updateMediaSessionHandlers() {
-    if (!('mediaSession' in navigator) || !this.currentItem) {
+    if (!('mediaSession' in navigator)) {
       return;
     }
-
-    // Direct play/pause/stop
-    this.setMediaSessionHandler('play', () => {
-      try {
-        navigator.mediaSession.playbackState = 'playing';
-      } catch {
-        // ignore
-      }
-      this.resume();
-    });
-    this.setMediaSessionHandler('pause', () => {
-      try {
-        navigator.mediaSession.playbackState = 'paused';
-      } catch {
-        // ignore
-      }
-      this.pause();
-    });
-    this.setMediaSessionHandler('stop', () => {
-      this.stop();
-    });
 
     // Next track handler: only enabled if onNext callback exists in current context
     if (typeof this.callbacks.onNext === 'function') {
@@ -1151,7 +1183,7 @@ class AudioEngine {
     }
 
     // Seeking handlers: only for podcasts / audiobooks
-    if (this.currentItem.type === 'podcast' || this.currentItem.type === 'audiobook') {
+    if (this.currentItem && (this.currentItem.type === 'podcast' || this.currentItem.type === 'audiobook')) {
       this.setMediaSessionHandler('seekbackward', (details: any) => {
         const offset = details?.seekOffset || 15;
         this.seekRelative(-offset);
