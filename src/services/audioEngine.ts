@@ -2,7 +2,13 @@ import { RadioStation, PodcastEpisode, PlayableItem, Audiobook, AudiobookTrack, 
 import { registerStationClick } from './radioApi';
 import { getPodcastProgress, savePodcastProgress, getPodcastProgressEntry, addRecentlyPlayed } from './storage';
 import { getOfflineAudioUrl } from './offlineStorage';
-import { getCandidateUrlsForStation } from '../data/fallbackStations';
+import { 
+  getSmartCandidatesForStation, 
+  saveWorkingStream, 
+  invalidateWorkingStream, 
+  isRealAudioProgressing,
+  fetchOnDemandRadioBrowserAlternatives
+} from './smartStreamSelector';
 import Hls from 'hls.js';
 
 export type PlaybackStatus = 'idle' | 'connecting' | 'playing' | 'paused' | 'buffering' | 'error';
@@ -60,6 +66,7 @@ class AudioEngine {
   private hlsInstance: any = null;
   private clickTimestamp: number = 0;
   private startupDurationMs: number | null = null;
+  private hasTriedOnDemandAlternatives: boolean = false;
 
   private currentSessionId: number = 0;
   private timeUpdateListeners = new Set<(curr: number, dur: number) => void>();
@@ -143,6 +150,18 @@ class AudioEngine {
     this.updateMediaSessionHandlers();
   }
 
+  private confirmWorkingStreamSuccess() {
+    this.clearWatchdogTimer();
+    if (this.currentItem?.type === 'radio' && this.currentItem.radio) {
+      const stationId = this.currentItem.radio.id || this.currentItem.radio.stationuuid;
+      const currentUrl = this.candidates[this.candidateIndex];
+      if (stationId && currentUrl) {
+        const isHls = currentUrl.includes('.m3u8') || Boolean(this.hlsInstance);
+        saveWorkingStream(stationId, currentUrl, isHls, this.currentItem.radio.codec);
+      }
+    }
+  }
+
   private setupAudioListeners() {
     this.audio.addEventListener('loadstart', () => {
       if (this.status !== 'playing' && this.status !== 'paused') {
@@ -152,7 +171,7 @@ class AudioEngine {
 
     const handleActivePlaybackState = () => {
       if (!this.audio.paused && (this.status === 'connecting' || this.status === 'buffering')) {
-        this.clearWatchdogTimer();
+        this.confirmWorkingStreamSuccess();
         this.setStatus('playing');
       }
     };
@@ -185,6 +204,7 @@ class AudioEngine {
 
     this.audio.addEventListener('playing', () => {
       this.clearWatchdogTimer();
+      this.confirmWorkingStreamSuccess();
       this.setStatus('playing');
 
       if (this.clickTimestamp > 0) {
@@ -218,7 +238,9 @@ class AudioEngine {
     });
 
     this.audio.addEventListener('timeupdate', () => {
-      handleActivePlaybackState();
+      if (isRealAudioProgressing(this.audio)) {
+        handleActivePlaybackState();
+      }
       const curr = this.audio.currentTime || 0;
       const dur = this.audio.duration || 0;
       if (this.callbacks.onTimeUpdate && this.currentItem?.type !== 'radio') {
@@ -280,8 +302,6 @@ class AudioEngine {
 
     if (this.audio) {
       this.audio.pause();
-      this.audio.removeAttribute('src');
-      this.audio.load();
     }
   }
 
@@ -346,11 +366,12 @@ class AudioEngine {
   }
 
   /**
-   * Play Radio Station
+   * Play Radio Station with Intelligent Stream Selection
    */
-  public async playStation(station: RadioStation) {
+  public playStation(station: RadioStation) {
     this.currentSessionId++;
     const sessionId = this.currentSessionId;
+    this.hasTriedOnDemandAlternatives = false;
 
     this.clickTimestamp = Date.now();
     this.saveCurrentProgress();
@@ -361,58 +382,9 @@ class AudioEngine {
 
     this.setStatus('connecting');
 
-    const stationId = station.id || station.stationuuid;
-    const baseCandidates = getCandidateUrlsForStation(station);
-    const stationRelayUrl = stationId ? `/api/radio/stream/${encodeURIComponent(stationId)}` : null;
-
-    let rawCandidates: (string | null | undefined)[] = [];
-    const isHttpsOrigin = typeof window !== 'undefined' && window.location.protocol === 'https:';
-
-    for (const url of baseCandidates) {
-      if (!url) continue;
-      const cleanUrl = url.trim();
-      const proxyUrl = `/api/radio/proxy?url=${encodeURIComponent(cleanUrl)}`;
-      const corsProxy = `https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`;
-
-      if (cleanUrl.toLowerCase().startsWith('https://')) {
-        // Direct HTTPS stream FIRST: Browser plays directly from CDN without timeouts
-        rawCandidates.push(cleanUrl);
-        rawCandidates.push(proxyUrl);
-      } else if (cleanUrl.toLowerCase().startsWith('http://')) {
-        const isIpHost = /^https?:\/\/\d+\.\d+\.\d+\.\d+/i.test(cleanUrl);
-        if (isHttpsOrigin) {
-          // On HTTPS pages:
-          // 1. If domain name, try upgraded HTTPS first (direct browser audio has lowest latency & zero proxy load)
-          if (!isIpHost) {
-            rawCandidates.push(cleanUrl.replace(/^http:\/\//i, 'https://'));
-          }
-          // 2. Local backend proxy (bypasses browser mixed-content block & Shoutcast ICY headers)
-          rawCandidates.push(proxyUrl);
-          // 3. Public CORS proxy as backup
-          rawCandidates.push(corsProxy);
-          // 4. Raw HTTP
-          rawCandidates.push(cleanUrl);
-        } else {
-          // On HTTP pages (localhost)
-          rawCandidates.push(cleanUrl);
-          rawCandidates.push(proxyUrl);
-        }
-      } else {
-        rawCandidates.push(cleanUrl);
-        rawCandidates.push(proxyUrl);
-      }
-    }
-
-    if (stationRelayUrl) {
-      rawCandidates.push(stationRelayUrl);
-    }
-
-    if (sessionId !== this.currentSessionId) return;
-
-    this.candidates = rawCandidates
-      .filter((u): u is string => typeof u === 'string' && u.trim().length > 0)
-      .map(u => u.trim())
-      .filter((url, index, self) => self.indexOf(url) === index);
+    // Automatically resolve format-aware, ranked stream candidates
+    const smartCandidates = getSmartCandidatesForStation(station);
+    this.candidates = smartCandidates.map(c => c.url);
 
     if (this.candidates.length === 0) {
       this.handlePlaybackFailure(sessionId);
@@ -421,6 +393,7 @@ class AudioEngine {
 
     this.candidateIndex = 0;
 
+    const stationId = station.id || station.stationuuid;
     if (stationId) {
       registerStationClick(stationId);
     }
@@ -637,10 +610,45 @@ class AudioEngine {
 
     this.clearWatchdogTimer();
     this.destroyHls();
+
+    // Invalidate cached stream if current candidate failed
+    if (this.currentItem?.type === 'radio' && this.currentItem.radio) {
+      const stationId = this.currentItem.radio.id || this.currentItem.radio.stationuuid;
+      const failedUrl = this.candidates[this.candidateIndex];
+      invalidateWorkingStream(stationId, failedUrl);
+    }
+
     this.candidateIndex++;
 
     if (this.candidateIndex < this.candidates.length) {
       this.startPlaybackCurrentCandidate(sessionId);
+    } else if (
+      this.currentItem?.type === 'radio' &&
+      this.currentItem.radio?.stationuuid &&
+      !this.hasTriedOnDemandAlternatives
+    ) {
+      // On-demand alternative resolution from Radio Browser API for this specific station
+      this.hasTriedOnDemandAlternatives = true;
+      const uuid = this.currentItem.radio.stationuuid;
+      fetchOnDemandRadioBrowserAlternatives(uuid)
+        .then((freshUrls) => {
+          if (sessionId !== this.currentSessionId) return;
+          const newUrls = freshUrls.filter((u) => !this.candidates.includes(u));
+          if (newUrls.length > 0) {
+            for (const u of newUrls) {
+              this.candidates.push(u);
+              this.candidates.push(`/api/radio/proxy?url=${encodeURIComponent(u)}`);
+            }
+            this.startPlaybackCurrentCandidate(sessionId);
+          } else {
+            this.handlePlaybackFailure(sessionId);
+          }
+        })
+        .catch(() => {
+          if (sessionId === this.currentSessionId) {
+            this.handlePlaybackFailure(sessionId);
+          }
+        });
     } else {
       this.handlePlaybackFailure(sessionId);
     }
@@ -660,7 +668,7 @@ class AudioEngine {
     this.clearReconnectState();
     this.setStatus('error');
     const errMsg = this.currentItem?.type === 'radio'
-      ? 'Yayın şu anda açılamıyor. Lütfen daha sonra tekrar deneyin veya alternatif bir istasyon seçin.'
+      ? 'Bu radyo istasyonunun yayın akışına şu anda ulaşılamıyor. Yayıncı sunucusu geçici olarak kapalı olabilir veya format tarayıcınızda desteklenmiyor.'
       : 'Medya dosyası oynatılamadı. Lütfen internet bağlantınızı kontrol edin.';
     if (this.callbacks.onError) {
       this.callbacks.onError(errMsg);
@@ -806,25 +814,45 @@ class AudioEngine {
   public pause(): void {
     if (!this.currentItem) return;
     this.clearReconnectState();
+    try {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
+    } catch {
+      // ignore
+    }
     this.audio.pause();
     this.setStatus('paused');
+    this.updatePositionState();
   }
 
-  public async resume(): Promise<void> {
+  public resume(): void {
     if (!this.currentItem) return;
     if (this.status === 'playing') return;
 
+    this.clearReconnectState();
+    try {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
+    } catch {
+      // ignore
+    }
+
     if (this.audio.src) {
       this.setStatus('connecting');
-      try {
-        await this.audio.play();
-        this.setStatus('playing');
-      } catch (err: any) {
-        if (err.name !== 'NotAllowedError' && err.name !== 'AbortError') {
-          this.tryNextCandidate(this.currentSessionId);
-        } else {
-          this.setStatus('paused');
-        }
+      const p = this.audio.play();
+      if (p !== undefined) {
+        p.then(() => {
+          this.setStatus('playing');
+        }).catch((err: any) => {
+          console.warn('[AudioEngine] Playback error on resume:', err?.message || err);
+          if (err.name !== 'NotAllowedError' && err.name !== 'AbortError') {
+            this.tryNextCandidate(this.currentSessionId);
+          } else {
+            this.setStatus('paused');
+          }
+        });
       }
     } else if (this.currentItem.type === 'radio' && this.currentItem.radio) {
       this.playStation(this.currentItem.radio);
@@ -878,6 +906,10 @@ class AudioEngine {
     this.clearReconnectState();
     this.saveCurrentProgress();
     this.cleanupPlayback();
+    if (this.audio) {
+      this.audio.removeAttribute('src');
+      this.audio.load();
+    }
     this.setStatus('idle');
   }
 
@@ -1081,9 +1113,19 @@ class AudioEngine {
 
     // Direct play/pause/stop
     this.setMediaSessionHandler('play', () => {
+      try {
+        navigator.mediaSession.playbackState = 'playing';
+      } catch {
+        // ignore
+      }
       this.resume();
     });
     this.setMediaSessionHandler('pause', () => {
+      try {
+        navigator.mediaSession.playbackState = 'paused';
+      } catch {
+        // ignore
+      }
       this.pause();
     });
     this.setMediaSessionHandler('stop', () => {

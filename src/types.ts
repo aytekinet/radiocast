@@ -14,7 +14,7 @@ export interface RadioStation {
   countrycode: string;
   countryCode?: string;
   state?: string;
-  language: string;
+  language?: string;
   votes: number;
   codec: string;
   bitrate: number;

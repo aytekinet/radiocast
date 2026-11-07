@@ -847,6 +847,32 @@ app.get('/api/radio/countries', (req, res) => unifiedRadioCountries(req, res));
 app.get('/api/radio/tags', (req, res) => unifiedRadioTags(req, res));
 app.post('/api/radio/click', (req, res) => unifiedRadioClick(req, res));
 
+// On-demand station resolution for fresh working alternatives
+app.get('/api/radio/resolve-station/:stationuuid', async (req, res) => {
+  const { stationuuid } = req.params;
+  if (!stationuuid) {
+    return res.status(400).json({ success: false, error: 'stationuuid is required' });
+  }
+
+  const cacheKey = `resolve_station_${stationuuid}`;
+  const cached = getFromCache<any>(cacheKey);
+  if (cached) {
+    return res.json({ success: true, station: cached });
+  }
+
+  try {
+    const raw = await fetchRadioBrowser<any[]>(`/json/stations/byuuid/${encodeURIComponent(stationuuid)}`);
+    if (Array.isArray(raw) && raw.length > 0 && raw[0]) {
+      setToCache(cacheKey, raw[0], 30 * 60 * 1000); // 30 min cache
+      return res.json({ success: true, station: raw[0] });
+    }
+  } catch {
+    // fallback
+  }
+
+  return res.json({ success: false });
+});
+
 app.get(['/api/radio/stream/:stationId', '/api/radio/stream', '/api/radio/proxy'], (req, res) => {
   const { stationId } = req.params;
   const urlParam = (req.query.url || req.query.streamUrl) as string;

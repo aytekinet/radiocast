@@ -18,7 +18,25 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Direct pass-through to network, never fail or return undefined
+  const url = event.request.url;
+
+  // Never intercept live media streaming or audio proxies in service worker
+  // This prevents audio pipeline resets and ensures background/lock screen audio never stalls
+  if (
+    url.includes('/api/radio/') ||
+    url.includes('/api/podcasts/') ||
+    url.includes('.m3u8') ||
+    url.includes('.mp3') ||
+    url.includes('.aac') ||
+    url.includes('.m4a') ||
+    url.includes('.ts') ||
+    url.includes('corsproxy.io') ||
+    url.includes('allorigins.win')
+  ) {
+    return;
+  }
+
+  // Direct pass-through to network for other assets
   event.respondWith(
     fetch(event.request).catch(() => {
       return new Response('', { status: 408, statusText: 'Request timed out' });
