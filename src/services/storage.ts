@@ -133,10 +133,59 @@ export const DEFAULT_SETTINGS: AppSettings = {
   clock24h: true
 };
 
+export function isSyntheticPodcastStation(station: Partial<RadioStation> | null | undefined): boolean {
+  if (!station) return false;
+  const uuid = (station.stationuuid || station.id || '').toLowerCase();
+  const tags = (station.tags || '').toLowerCase();
+  return uuid.startsWith('podcast-') || tags === 'podcast' || tags.startsWith('podcast,');
+}
+
 export function getStoredFavorites(): RadioStation[] {
   try {
     const raw = localStorage.getItem(FAVORITES_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed: RadioStation[] = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    const legacyPodcasts = parsed.filter((s) => isSyntheticPodcastStation(s));
+    if (legacyPodcasts.length > 0) {
+      const cleanStations = parsed.filter((s) => !isSyntheticPodcastStation(s));
+      saveFavorites(cleanStations);
+
+      try {
+        const existingEps = getStoredFavoriteEpisodes();
+        const nextEps = [...existingEps];
+        let epsChanged = false;
+        for (const s of legacyPodcasts) {
+          const epId = (s.stationuuid || s.id || '').replace(/^podcast-/, '') || `ep-${Date.now()}`;
+          if (!nextEps.some((e) => e && e.id === epId)) {
+            const rawTagShow = (s.tags || '').replace(/^podcast,?\s*/i, '').trim();
+            nextEps.unshift({
+              id: epId,
+              showId: '',
+              showTitle: s.homepage || rawTagShow || 'Podcast',
+              title: s.name || 'Podcast Bölümü',
+              description: '',
+              audioUrl: s.playUrl || s.url_resolved || s.url || '',
+              coverUrl: s.favicon || '',
+              durationSeconds: 0,
+              publishedDate: '',
+              category: 'Podcast'
+            });
+            epsChanged = true;
+          }
+        }
+        if (epsChanged) {
+          saveFavoriteEpisodes(nextEps);
+        }
+      } catch {
+        // ignore migration error for episodes
+      }
+
+      return cleanStations;
+    }
+
+    return parsed;
   } catch {
     return [];
   }
@@ -151,6 +200,9 @@ export function saveFavorites(favorites: RadioStation[]): void {
 }
 
 export function toggleFavoriteStation(station: RadioStation): RadioStation[] {
+  if (isSyntheticPodcastStation(station)) {
+    return getStoredFavorites();
+  }
   const favorites = getStoredFavorites();
   const stationId = station.id || station.stationuuid;
   const exists = favorites.some(s => (s.id || s.stationuuid) === stationId);

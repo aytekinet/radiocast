@@ -16,28 +16,84 @@ for (const e of VERIFIED_TURKISH_STATIONS) {
   }
 }
 
+// Custom Popular Top 20 order override (Kafa Radyo #1, Alem FM #2, Best FM #3, ...)
+const POPULAR_RANK_OVERRIDE: Record<string, number> = {
+  kafaradyo: 1,
+  alemfm: 2,
+  bestfm: 3,
+  superfm: 4,
+  kralpop: 5,
+  kralfm: 6,
+  powerturk: 7,
+  powerfm: 8,
+  trtfm: 9,
+  joyturk: 10,
+  slowturk: 11,
+  showradyo: 12,
+  metrofm: 13,
+  virginradioturkiye: 14,
+  radyod: 15,
+  radyo7: 16,
+  radyoturkuvaz: 17,
+  radyo45lik: 18,
+  radyoseymen: 19,
+  kalpfm: 20
+};
+
+function normStationKey(name: string): string {
+  return (name || '')
+    .toLowerCase()
+    .replace(/ç/g, 'c')
+    .replace(/ğ/g, 'g')
+    .replace(/ı/g, 'i')
+    .replace(/i̇/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ş/g, 's')
+    .replace(/ü/g, 'u')
+    .replace(/[^a-z0-9]/g, '');
+}
+
 // Enriched Turkish stations catalog with verified stream URLs & TXT categorization
-export const ALL_TURKISH_STATIONS: RadioStation[] = (allTurkishStationsJson as RadioStation[]).map(s => {
-  const k = (s.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const verified = excelMap.get(k);
-  if (verified) {
-    return {
-      ...s,
-      playUrl: s.playUrl || verified.playUrl || verified.streamUrl,
-      streamUrl: s.streamUrl || s.playUrl || verified.streamUrl || verified.playUrl,
-      url_resolved: s.url_resolved || verified.url_resolved || verified.playUrl,
-      fallbackUrl: s.fallbackUrl || verified.fallbackUrl,
-      favicon: verified.favicon || s.favicon,
-      mainCategory: s.mainCategory || verified.mainCategory,
-      categoryGroup: s.categoryGroup || verified.categoryGroup,
-      categoryGroupId: s.categoryGroupId || verified.categoryGroupId,
-      isPopular: Boolean(s.isPopular ?? verified.isPopular),
-      popularRank: s.popularRank ?? verified.popularRank,
-      votes: s.popularRank ? s.votes : ((s.votes || 0) + 100)
-    };
-  }
-  return s;
-});
+export const ALL_TURKISH_STATIONS: RadioStation[] = (allTurkishStationsJson as RadioStation[])
+  .map(s => {
+    const k = normStationKey(s.name || '');
+    const kAscii = (s.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const verified = excelMap.get(k) || excelMap.get(kAscii);
+    const overrideRank = POPULAR_RANK_OVERRIDE[k];
+    const resolvedRank = overrideRank ?? s.popularRank ?? verified?.popularRank;
+
+    if (verified) {
+      return {
+        ...s,
+        playUrl: s.playUrl || verified.playUrl || verified.streamUrl,
+        streamUrl: s.streamUrl || s.playUrl || verified.streamUrl || verified.playUrl,
+        url_resolved: s.url_resolved || verified.url_resolved || verified.playUrl,
+        fallbackUrl: s.fallbackUrl || verified.fallbackUrl,
+        favicon: verified.favicon || s.favicon,
+        mainCategory: s.mainCategory || verified.mainCategory,
+        categoryGroup: s.categoryGroup || verified.categoryGroup,
+        categoryGroupId: s.categoryGroupId || verified.categoryGroupId,
+        isPopular: Boolean(overrideRank ? true : (s.isPopular ?? verified.isPopular)),
+        popularRank: resolvedRank,
+        votes: resolvedRank ? (100000 - (resolvedRank - 1) * 500) : ((s.votes || 0) + 100)
+      };
+    }
+    if (overrideRank) {
+      return {
+        ...s,
+        isPopular: true,
+        popularRank: overrideRank,
+        votes: 100000 - (overrideRank - 1) * 500
+      };
+    }
+    return s;
+  })
+  .sort((a, b) => {
+    const ra = a.popularRank ?? 9999;
+    const rb = b.popularRank ?? 9999;
+    if (ra !== rb) return ra - rb;
+    return (b.votes || 0) - (a.votes || 0);
+  });
 
 export interface VerifiedStationInfo {
   name: string;

@@ -56,6 +56,7 @@ interface PlayerBarProps {
   onToggleMute: () => void;
   isFavorite: boolean;
   onToggleFavorite: (station: RadioStation) => void;
+  onToggleFavoriteEpisode?: (episode: PodcastEpisode) => void;
   playlists?: Playlist[];
   onAddToPlaylist?: (playlistId: string, stationUuid: string) => void;
   onCreatePlaylist?: (name: string, description?: string, initialStationUuid?: string) => void;
@@ -84,6 +85,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
   onToggleMute,
   isFavorite,
   onToggleFavorite,
+  onToggleFavoriteEpisode,
   playlists = [],
   onAddToPlaylist,
   onCreatePlaylist,
@@ -342,22 +344,7 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
     ? (podcastEpisode?.coverUrl || '') 
     : (radio?.favicon || '');
 
-  const favoriteStationTarget: RadioStation | null = isPodcast && podcastEpisode ? {
-    stationuuid: `podcast-${podcastEpisode.id}`,
-    name: podcastEpisode.title,
-    playUrl: podcastEpisode.audioUrl,
-    url: podcastEpisode.audioUrl,
-    url_resolved: podcastEpisode.audioUrl,
-    homepage: podcastEpisode.showTitle,
-    favicon: podcastEpisode.coverUrl || '',
-    tags: `podcast,${podcastEpisode.showTitle}`,
-    country: 'Global',
-    countrycode: 'GLOBAL',
-    language: 'tr',
-    votes: 100,
-    codec: 'MP3',
-    bitrate: 128
-  } : radio || null;
+  const favoriteStationTarget: RadioStation | null = !isPodcast ? (radio || null) : null;
 
   const formatTime = (sec: number) => {
     if (isNaN(sec) || sec < 0) return '0:00';
@@ -728,7 +715,15 @@ export const PlayerBar: React.FC<PlayerBarProps> = React.memo(({
                   <h2 className="text-xs xs:text-sm sm:text-base md:text-lg font-black text-slate-900 dark:text-white text-center leading-tight sm:leading-snug line-clamp-2">
                     {title}
                   </h2>
-                  {favoriteStationTarget && (
+                  {isPodcast && podcastEpisode && onToggleFavoriteEpisode ? (
+                    <button
+                      onClick={() => onToggleFavoriteEpisode(podcastEpisode)}
+                      className="text-slate-400 hover:text-rose-500 transition-colors p-1 shrink-0 active:scale-90 cursor-pointer"
+                      title={isFavorite ? 'Favorilerden Çıkar' : 'Favori Bölümlere Ekle'}
+                    >
+                      <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+                    </button>
+                  ) : favoriteStationTarget && (
                     <button
                       onClick={() => onToggleFavorite(favoriteStationTarget)}
                       className="text-slate-400 hover:text-rose-500 transition-colors p-1 shrink-0 active:scale-90 cursor-pointer"

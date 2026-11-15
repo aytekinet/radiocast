@@ -10,14 +10,24 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
-  Globe2
+  Globe2,
+  Sparkles,
+  Music,
+  Globe,
+  HeartHandshake,
+  Flame,
+  Disc,
+  Newspaper,
+  Sun,
+  Guitar,
+  Wifi
 } from 'lucide-react';
 import { RadioStation, Playlist } from '../types';
 import { PlaybackStatus } from '../services/audioEngine';
 import { getRecentlyPlayed } from '../services/storage';
 import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
 import { EDITORIAL_PRIORITY_STATIONS, getEditorialPriorityStations } from '../constants/priorityStations';
-import { ALL_COUNTRIES, GENRE_CATEGORIES, matchesCategory } from '../constants/categories';
+import { ALL_COUNTRIES, GENRE_CATEGORIES, getParentGroupId, getSubcategoriesForGroup, matchesCategory } from '../constants/categories';
 import { ALL_TURKISH_STATIONS } from '../data/fallbackStations';
 
 interface DiscoverViewProps {
@@ -37,7 +47,7 @@ interface DiscoverViewProps {
   isPlaying: boolean;
   playbackStatus?: PlaybackStatus;
   favorites: RadioStation[];
-  onPlayStation: (station: RadioStation) => void;
+  onPlayStation: (station: RadioStation, queue?: RadioStation[]) => void;
   onToggleFavorite: (station: RadioStation) => void;
   playlists: Playlist[];
   onAddToPlaylist: (playlistId: string, stationUuid: string) => void;
@@ -119,6 +129,22 @@ const COUNTRY_POPULAR_TITLES: Record<string, string> = {
   RO: "Romanya'da Popüler Radyolar",
   BG: "Bulgaristan'da Popüler Radyolar"
 };
+
+function getCategoryIcon(iconName: string) {
+  switch (iconName) {
+    case 'Sparkles': return Sparkles;
+    case 'Music': return Music;
+    case 'Globe': return Globe;
+    case 'HeartHandshake': return HeartHandshake;
+    case 'Flame': return Flame;
+    case 'Disc': return Disc;
+    case 'Newspaper': return Newspaper;
+    case 'Sun': return Sun;
+    case 'Guitar': return Guitar;
+    case 'Wifi': return Wifi;
+    default: return Radio;
+  }
+}
 
 function getStationMonogram(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -211,7 +237,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
     return foreignRadios;
   }, [isTurkey, turkeyRadios, foreignRadios, showAllPriority]);
 
-  // Category chips with live station counts for the active country
+  // Category cards with live station counts and visible sub-categories
   const categoryStats = useMemo(() => {
     const sourceList = isTurkey
       ? (allStations && allStations.length > 0 ? allStations : ALL_TURKISH_STATIONS)
@@ -221,9 +247,19 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
       const count = cat.id === 'all'
         ? sourceList.length
         : sourceList.filter((s) => matchesCategory(s, cat.id)).length;
+      const subs =
+        cat.id !== 'all' && cat.id !== 'populer'
+          ? getSubcategoriesForGroup(cat.id)
+              .map((sub) => ({
+                ...sub,
+                count: sourceList.filter((s) => matchesCategory(s, sub.id)).length
+              }))
+              .filter((sub) => isTurkey || sub.count > 0)
+          : [];
       return {
         ...cat,
-        count
+        count,
+        subs
       };
     }).filter((c) => isTurkey || c.id === 'all' || c.count > 0);
   }, [isTurkey, allStations, stations]);
@@ -347,11 +383,12 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
                 const isFav = favoriteSet.has(stId);
                 const isCurrent = currentStation?.stationuuid === radio.stationuuid || currentStation?.name === radio.name;
                 const isPlayingThis = isCurrent && isPlaying;
+                const queue = isTurkey ? turkeyRadios.map((t) => t.radio) : foreignRadios.map((f) => f.radio);
 
                 return (
                   <div
                     key={`${rank}-${stId}`}
-                    onClick={() => onPlayStation(radio)}
+                    onClick={() => onPlayStation(radio, queue)}
                     className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group ${
                       isCurrent
                         ? 'bg-teal-50/80 dark:bg-[#152331] border-teal-500/50 dark:border-teal-500/40 shadow-sm ring-1 ring-teal-500/30'
@@ -390,7 +427,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onPlayStation(radio);
+                          onPlayStation(radio, queue);
                         }}
                         className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-sm ${
                           isPlayingThis
@@ -515,30 +552,90 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
           )}
         </div>
 
-        {/* Real Radio Category Pill Buttons with Station Counts */}
-        <div className="flex items-center flex-wrap gap-2">
+        {/* Clean Category Grid Cards with visible sub-categories */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {categoryStats.map((cat) => {
-            const isSelected = (!selectedCategory && cat.id === 'all') || selectedCategory === cat.id;
+            const activeParent = selectedCategory ? getParentGroupId(selectedCategory) : 'all';
+            const isSelected = (!selectedCategory && cat.id === 'all') || activeParent === cat.id;
+            const IconComp = getCategoryIcon(cat.iconName);
             return (
-              <button
+              <div
                 key={cat.id}
                 onClick={() => {
                   setSelectedCategory(cat.id === 'all' ? '' : cat.id);
                   if (onNavigateToRadios) onNavigateToRadios();
                 }}
-                className={`px-3.5 py-2 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0 shadow-sm flex items-center gap-1.5 ${
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedCategory(cat.id === 'all' ? '' : cat.id);
+                    if (onNavigateToRadios) onNavigateToRadios();
+                  }
+                }}
+                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2.5 group shadow-sm ${
                   isSelected
-                    ? 'bg-teal-500/15 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 dark:border-teal-500/40 font-bold'
-                    : 'bg-white dark:bg-[#131B24] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#182330] hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-teal-50/80 dark:bg-[#152331] border-teal-500/50 dark:border-teal-500/40 ring-1 ring-teal-500/30'
+                    : 'bg-white dark:bg-[#131B24] border-slate-200 dark:border-[#1F2937]/80 hover:bg-slate-50 dark:hover:bg-[#182330] hover:border-slate-300 dark:hover:border-zinc-700/80'
                 }`}
               >
-                <span>{cat.name}</span>
-                {cat.count > 0 && (
-                  <span className="text-[10px] font-bold opacity-70 tabular-nums">
-                    {cat.count}
-                  </span>
+                <div className="flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className={`w-9 h-9 rounded-lg shrink-0 flex items-center justify-center transition-colors ${
+                        isSelected
+                          ? 'bg-teal-500 text-slate-950'
+                          : 'bg-teal-500/10 text-teal-600 dark:text-teal-400 group-hover:bg-teal-500/20'
+                      }`}
+                    >
+                      <IconComp className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div
+                        className={`text-xs sm:text-sm font-bold truncate ${
+                          isSelected
+                            ? 'text-teal-700 dark:text-teal-300'
+                            : 'text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-300'
+                        }`}
+                      >
+                        {cat.name}
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-zinc-400 tabular-nums">
+                        {cat.count} radyo
+                      </div>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 group-hover:text-teal-600 dark:group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                </div>
+
+                {cat.subs.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-100 dark:border-[#1F2937]/80">
+                    {cat.subs.map((sub) => {
+                      const isSubSelected = selectedCategory === sub.id;
+                      return (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCategory(sub.id);
+                            if (onNavigateToRadios) onNavigateToRadios();
+                          }}
+                          className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+                            isSubSelected
+                              ? 'bg-teal-500 text-slate-950 font-bold'
+                              : 'bg-slate-100 dark:bg-white/[0.04] hover:bg-teal-500/15 text-slate-600 dark:text-zinc-300 hover:text-teal-700 dark:hover:text-teal-300'
+                          }`}
+                        >
+                          <span>{sub.name}</span>
+                          <span className="opacity-65 tabular-nums text-[10px]">{sub.count}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>

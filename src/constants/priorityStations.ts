@@ -17,150 +17,10 @@ export interface PriorityStationDef {
   favicon?: string;
 }
 
-// Exact Popüler İlk 20 from turkiye_radyo_envanteri_625_kategorili_2026-11-15.txt
+// Popüler İlk 20 — Kafa Radyo (#1), Alem FM (#2), Best FM (#3) ve devamı
 export const EDITORIAL_PRIORITY_STATIONS: PriorityStationDef[] = [
   {
     popularRank: 1,
-    name: 'Kral FM',
-    mainCategory: 'Arabesk / Fantezi',
-    categoryGroup: 'Arabesk',
-    categoryGroupId: 'arabesk',
-    city: 'İstanbul',
-    tags: 'Arabesk / Fantezi • İstanbul',
-    badgeBg: 'bg-[#B91C1C]',
-    badgeTextColor: 'text-white',
-    badgeText: 'KRAL FM',
-    streamUrl: 'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8',
-    fallbackUrl: 'https://ssldyg.radyotvonline.com/smil/smil:kralfm.smil/playlist.m3u8'
-  },
-  {
-    popularRank: 2,
-    name: 'Kral Pop',
-    mainCategory: 'Türkçe Pop',
-    categoryGroup: 'Türkçe Pop',
-    categoryGroupId: 'turkce_pop',
-    city: 'İstanbul',
-    tags: 'Türkçe Pop • İstanbul',
-    badgeBg: 'bg-[#DC2626]',
-    badgeTextColor: 'text-white',
-    badgeText: 'KRAL POP',
-    streamUrl: 'https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8',
-    fallbackUrl: 'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8'
-  },
-  {
-    popularRank: 3,
-    name: 'TRT FM',
-    mainCategory: 'Türkçe Pop',
-    categoryGroup: 'Türkçe Pop',
-    categoryGroupId: 'turkce_pop',
-    city: 'Ankara',
-    tags: 'Türkçe Pop • Ankara',
-    badgeBg: 'bg-white border border-slate-200 dark:border-transparent',
-    badgeTextColor: 'text-[#E11D48]',
-    badgeText: 'TRT FM',
-    streamUrl: 'https://rd-trtfm.medya.trt.com.tr/master_128.m3u8',
-    fallbackUrl: 'https://rd-trtfm.medya.trt.com.tr/master.m3u8'
-  },
-  {
-    popularRank: 4,
-    name: 'Radyo 7',
-    mainCategory: 'Slow / Romantik',
-    categoryGroup: 'Slow',
-    categoryGroupId: 'slow',
-    city: 'İstanbul',
-    tags: 'Slow / Romantik • İstanbul',
-    badgeBg: 'bg-[#7C3AED]',
-    badgeTextColor: 'text-white',
-    badgeText: 'Radyo 7',
-    streamUrl: 'https://moondigitaledge.radyotvonline.net/radyo7/playlist.m3u8',
-    fallbackUrl: 'http://46.20.3.251/stream/169/'
-  },
-  {
-    popularRank: 5,
-    name: 'Virgin Radio Türkiye',
-    mainCategory: 'Yabancı Pop / Hit',
-    categoryGroup: 'Yabancı Pop',
-    categoryGroupId: 'yabanci_pop',
-    city: 'Türkiye',
-    tags: 'Yabancı Pop / Hit • Türkiye',
-    badgeBg: 'bg-[#E11D48]',
-    badgeTextColor: 'text-white',
-    badgeText: 'VIRGIN',
-    streamUrl: 'https://playerservices.streamtheworld.com/api/livestream-redirect/VIRGIN_RADIO_SC',
-    fallbackUrl: 'http://28503.live.streamtheworld.com/VIRGIN_RADIO_SC'
-  },
-  {
-    popularRank: 6,
-    name: 'Süper FM',
-    mainCategory: 'Türkçe Pop',
-    categoryGroup: 'Türkçe Pop',
-    categoryGroupId: 'turkce_pop',
-    city: 'İstanbul',
-    tags: 'Türkçe Pop • İstanbul',
-    badgeBg: 'bg-[#1D4ED8]',
-    badgeTextColor: 'text-white',
-    badgeText: 'SÜPER',
-    streamUrl: 'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC',
-    fallbackUrl: 'https://yayin.superfmradyo.com.tr/superfm/stream'
-  },
-  {
-    popularRank: 7,
-    name: 'Slow Türk',
-    mainCategory: 'Slow / Romantik',
-    categoryGroup: 'Slow',
-    categoryGroupId: 'slow',
-    city: 'İstanbul',
-    tags: 'Slow / Romantik • İstanbul',
-    badgeBg: 'bg-[#BE185D]',
-    badgeTextColor: 'text-white',
-    badgeText: 'SLOW',
-    streamUrl: 'https://radyo.duhnet.tv/ak_dtvh_slowturk',
-    fallbackUrl: 'https://radyo.duhnet.tv/slowturk'
-  },
-  {
-    popularRank: 8,
-    name: 'Radyo Seymen',
-    mainCategory: 'Karadeniz / Yöresel',
-    categoryGroup: 'Halk & Yöresel',
-    categoryGroupId: 'halk_yoresel',
-    city: 'Ankara',
-    tags: 'Karadeniz / Yöresel • Ankara',
-    badgeBg: 'bg-[#047857]',
-    badgeTextColor: 'text-white',
-    badgeText: 'SEYMEN',
-    streamUrl: 'https://yayin.radyoseymen.com.tr:1070/stream',
-    fallbackUrl: null
-  },
-  {
-    popularRank: 9,
-    name: 'PowerTürk',
-    mainCategory: 'Türkçe Pop',
-    categoryGroup: 'Türkçe Pop',
-    categoryGroupId: 'turkce_pop',
-    city: 'İstanbul',
-    tags: 'Türkçe Pop • İstanbul',
-    badgeBg: 'bg-black',
-    badgeTextColor: 'text-white',
-    badgeText: 'POWER',
-    streamUrl: 'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8',
-    fallbackUrl: 'https://listen.powerapp.com.tr/powerturk/mpeg/icecast.audio'
-  },
-  {
-    popularRank: 10,
-    name: "Radyo 45'lik",
-    mainCategory: 'Nostalji / Retro',
-    categoryGroup: 'Nostalji & TSM',
-    categoryGroupId: 'nostalji_tsm',
-    city: 'İstanbul',
-    tags: 'Nostalji / Retro • İstanbul',
-    badgeBg: 'bg-[#D97706]',
-    badgeTextColor: 'text-white',
-    badgeText: "45'lik",
-    streamUrl: 'https://stream.radyo45lik.com:4545/',
-    fallbackUrl: null
-  },
-  {
-    popularRank: 11,
     name: 'Kafa Radyo',
     mainCategory: 'Sohbet / Kültür',
     categoryGroup: 'Yerel & Genel',
@@ -174,21 +34,7 @@ export const EDITORIAL_PRIORITY_STATIONS: PriorityStationDef[] = [
     fallbackUrl: 'https://moondigitaledge2.radyotvonline.net/kafaradyo/playlist.m3u8'
   },
   {
-    popularRank: 12,
-    name: 'Kalp FM',
-    mainCategory: 'Slow / Romantik',
-    categoryGroup: 'Slow',
-    categoryGroupId: 'slow',
-    city: 'Türkiye',
-    tags: 'Slow / Romantik • Türkiye',
-    badgeBg: 'bg-[#E11D48]',
-    badgeTextColor: 'text-white',
-    badgeText: 'KALP',
-    streamUrl: 'https://yayin.kalpfm.com:8080/',
-    fallbackUrl: null
-  },
-  {
-    popularRank: 13,
+    popularRank: 2,
     name: 'Alem FM',
     mainCategory: 'Türkçe Pop',
     categoryGroup: 'Türkçe Pop',
@@ -202,49 +48,7 @@ export const EDITORIAL_PRIORITY_STATIONS: PriorityStationDef[] = [
     fallbackUrl: 'https://turkmedya.radyotvonline.net/alemfm/playlist.m3u8'
   },
   {
-    popularRank: 14,
-    name: 'Power FM',
-    mainCategory: 'Yabancı Pop / Hit',
-    categoryGroup: 'Yabancı Pop',
-    categoryGroupId: 'yabanci_pop',
-    city: 'İstanbul',
-    tags: 'Yabancı Pop / Hit • İstanbul',
-    badgeBg: 'bg-black',
-    badgeTextColor: 'text-[#F59E0B]',
-    badgeText: 'POWER FM',
-    streamUrl: 'https://live.powerapp.com.tr/powerfm/abr/powerfm/128/playlist.m3u8',
-    fallbackUrl: 'https://live.powerapp.com.tr/powerfm/abr/playlist.m3u8'
-  },
-  {
-    popularRank: 15,
-    name: 'Show Radyo',
-    mainCategory: 'Türkçe Pop',
-    categoryGroup: 'Türkçe Pop',
-    categoryGroupId: 'turkce_pop',
-    city: 'İstanbul',
-    tags: 'Türkçe Pop • İstanbul',
-    badgeBg: 'bg-[#EA580C]',
-    badgeTextColor: 'text-white',
-    badgeText: 'SHOW',
-    streamUrl: 'https://showradyo.radyotvonline.net/showradyo',
-    fallbackUrl: 'https://showradyo.radyotvonline.net/showradyo/playlist.m3u8'
-  },
-  {
-    popularRank: 16,
-    name: 'Radyo Turkuvaz',
-    mainCategory: 'Türkçe Pop',
-    categoryGroup: 'Türkçe Pop',
-    categoryGroupId: 'turkce_pop',
-    city: 'Türkiye',
-    tags: 'Türkçe Pop • Türkiye',
-    badgeBg: 'bg-[#0D9488]',
-    badgeTextColor: 'text-white',
-    badgeText: 'TURKUVAZ',
-    streamUrl: 'https://trkvz-radyolar.ercdn.net/radyoturkuvaz/playlist.m3u8',
-    fallbackUrl: null
-  },
-  {
-    popularRank: 17,
+    popularRank: 3,
     name: 'Best FM',
     mainCategory: 'Türkçe Pop',
     categoryGroup: 'Türkçe Pop',
@@ -258,7 +62,91 @@ export const EDITORIAL_PRIORITY_STATIONS: PriorityStationDef[] = [
     fallbackUrl: null
   },
   {
-    popularRank: 18,
+    popularRank: 4,
+    name: 'Süper FM',
+    mainCategory: 'Türkçe Pop',
+    categoryGroup: 'Türkçe Pop',
+    categoryGroupId: 'turkce_pop',
+    city: 'İstanbul',
+    tags: 'Türkçe Pop • İstanbul',
+    badgeBg: 'bg-[#1D4ED8]',
+    badgeTextColor: 'text-white',
+    badgeText: 'SÜPER',
+    streamUrl: 'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC',
+    fallbackUrl: 'https://yayin.superfmradyo.com.tr/superfm/stream'
+  },
+  {
+    popularRank: 5,
+    name: 'Kral Pop',
+    mainCategory: 'Türkçe Pop',
+    categoryGroup: 'Türkçe Pop',
+    categoryGroupId: 'turkce_pop',
+    city: 'İstanbul',
+    tags: 'Türkçe Pop • İstanbul',
+    badgeBg: 'bg-[#DC2626]',
+    badgeTextColor: 'text-white',
+    badgeText: 'KRAL POP',
+    streamUrl: 'https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8',
+    fallbackUrl: 'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8'
+  },
+  {
+    popularRank: 6,
+    name: 'Kral FM',
+    mainCategory: 'Arabesk / Fantezi',
+    categoryGroup: 'Arabesk',
+    categoryGroupId: 'arabesk',
+    city: 'İstanbul',
+    tags: 'Arabesk / Fantezi • İstanbul',
+    badgeBg: 'bg-[#B91C1C]',
+    badgeTextColor: 'text-white',
+    badgeText: 'KRAL FM',
+    streamUrl: 'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8',
+    fallbackUrl: 'https://ssldyg.radyotvonline.com/smil/smil:kralfm.smil/playlist.m3u8'
+  },
+  {
+    popularRank: 7,
+    name: 'PowerTürk',
+    mainCategory: 'Türkçe Pop',
+    categoryGroup: 'Türkçe Pop',
+    categoryGroupId: 'turkce_pop',
+    city: 'İstanbul',
+    tags: 'Türkçe Pop • İstanbul',
+    badgeBg: 'bg-black',
+    badgeTextColor: 'text-white',
+    badgeText: 'POWER',
+    streamUrl: 'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8',
+    fallbackUrl: 'https://listen.powerapp.com.tr/powerturk/mpeg/icecast.audio'
+  },
+  {
+    popularRank: 8,
+    name: 'Power FM',
+    mainCategory: 'Yabancı Pop / Hit',
+    categoryGroup: 'Yabancı Pop',
+    categoryGroupId: 'yabanci_pop',
+    city: 'İstanbul',
+    tags: 'Yabancı Pop / Hit • İstanbul',
+    badgeBg: 'bg-black',
+    badgeTextColor: 'text-[#F59E0B]',
+    badgeText: 'POWER FM',
+    streamUrl: 'https://live.powerapp.com.tr/powerfm/abr/powerfm/128/playlist.m3u8',
+    fallbackUrl: 'https://live.powerapp.com.tr/powerfm/abr/playlist.m3u8'
+  },
+  {
+    popularRank: 9,
+    name: 'TRT FM',
+    mainCategory: 'Türkçe Pop',
+    categoryGroup: 'Türkçe Pop',
+    categoryGroupId: 'turkce_pop',
+    city: 'Ankara',
+    tags: 'Türkçe Pop • Ankara',
+    badgeBg: 'bg-white border border-slate-200 dark:border-transparent',
+    badgeTextColor: 'text-[#E11D48]',
+    badgeText: 'TRT FM',
+    streamUrl: 'https://rd-trtfm.medya.trt.com.tr/master_128.m3u8',
+    fallbackUrl: 'https://rd-trtfm.medya.trt.com.tr/master.m3u8'
+  },
+  {
+    popularRank: 10,
     name: 'Joy Türk',
     mainCategory: 'Türkçe Pop',
     categoryGroup: 'Türkçe Pop',
@@ -272,7 +160,35 @@ export const EDITORIAL_PRIORITY_STATIONS: PriorityStationDef[] = [
     fallbackUrl: 'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_ITUNES.mp3'
   },
   {
-    popularRank: 19,
+    popularRank: 11,
+    name: 'Slow Türk',
+    mainCategory: 'Slow / Romantik',
+    categoryGroup: 'Slow',
+    categoryGroupId: 'slow',
+    city: 'İstanbul',
+    tags: 'Slow / Romantik • İstanbul',
+    badgeBg: 'bg-[#BE185D]',
+    badgeTextColor: 'text-white',
+    badgeText: 'SLOW',
+    streamUrl: 'https://radyo.duhnet.tv/ak_dtvh_slowturk',
+    fallbackUrl: 'https://radyo.duhnet.tv/slowturk'
+  },
+  {
+    popularRank: 12,
+    name: 'Show Radyo',
+    mainCategory: 'Türkçe Pop',
+    categoryGroup: 'Türkçe Pop',
+    categoryGroupId: 'turkce_pop',
+    city: 'İstanbul',
+    tags: 'Türkçe Pop • İstanbul',
+    badgeBg: 'bg-[#EA580C]',
+    badgeTextColor: 'text-white',
+    badgeText: 'SHOW',
+    streamUrl: 'https://showradyo.radyotvonline.net/showradyo',
+    fallbackUrl: 'https://showradyo.radyotvonline.net/showradyo/playlist.m3u8'
+  },
+  {
+    popularRank: 13,
     name: 'Metro FM',
     mainCategory: 'Yabancı Pop / Hit',
     categoryGroup: 'Yabancı Pop',
@@ -286,7 +202,21 @@ export const EDITORIAL_PRIORITY_STATIONS: PriorityStationDef[] = [
     fallbackUrl: 'http://27753.live.streamtheworld.com:3690/METRO_FMAAC_SC'
   },
   {
-    popularRank: 20,
+    popularRank: 14,
+    name: 'Virgin Radio Türkiye',
+    mainCategory: 'Yabancı Pop / Hit',
+    categoryGroup: 'Yabancı Pop',
+    categoryGroupId: 'yabanci_pop',
+    city: 'Türkiye',
+    tags: 'Yabancı Pop / Hit • Türkiye',
+    badgeBg: 'bg-[#E11D48]',
+    badgeTextColor: 'text-white',
+    badgeText: 'VIRGIN',
+    streamUrl: 'https://playerservices.streamtheworld.com/api/livestream-redirect/VIRGIN_RADIO_SC',
+    fallbackUrl: 'http://28503.live.streamtheworld.com/VIRGIN_RADIO_SC'
+  },
+  {
+    popularRank: 15,
     name: 'Radyo D',
     mainCategory: 'Türkçe Pop',
     categoryGroup: 'Türkçe Pop',
@@ -298,6 +228,76 @@ export const EDITORIAL_PRIORITY_STATIONS: PriorityStationDef[] = [
     badgeText: 'Radyo D',
     streamUrl: 'https://ssldyg.radyotvonline.com/radyod/radyod.stream/playlist.m3u8',
     fallbackUrl: 'https://moondigitaledge.radyotvonline.net/radyod/playlist.m3u8'
+  },
+  {
+    popularRank: 16,
+    name: 'Radyo 7',
+    mainCategory: 'Slow / Romantik',
+    categoryGroup: 'Slow',
+    categoryGroupId: 'slow',
+    city: 'İstanbul',
+    tags: 'Slow / Romantik • İstanbul',
+    badgeBg: 'bg-[#7C3AED]',
+    badgeTextColor: 'text-white',
+    badgeText: 'Radyo 7',
+    streamUrl: 'https://moondigitaledge.radyotvonline.net/radyo7/playlist.m3u8',
+    fallbackUrl: 'http://46.20.3.251/stream/169/'
+  },
+  {
+    popularRank: 17,
+    name: 'Radyo Turkuvaz',
+    mainCategory: 'Türkçe Pop',
+    categoryGroup: 'Türkçe Pop',
+    categoryGroupId: 'turkce_pop',
+    city: 'Türkiye',
+    tags: 'Türkçe Pop • Türkiye',
+    badgeBg: 'bg-[#0D9488]',
+    badgeTextColor: 'text-white',
+    badgeText: 'TURKUVAZ',
+    streamUrl: 'https://trkvz-radyolar.ercdn.net/radyoturkuvaz/playlist.m3u8',
+    fallbackUrl: null
+  },
+  {
+    popularRank: 18,
+    name: "Radyo 45'lik",
+    mainCategory: 'Nostalji / Retro',
+    categoryGroup: 'Nostalji & TSM',
+    categoryGroupId: 'nostalji_tsm',
+    city: 'İstanbul',
+    tags: 'Nostalji / Retro • İstanbul',
+    badgeBg: 'bg-[#D97706]',
+    badgeTextColor: 'text-white',
+    badgeText: "45'lik",
+    streamUrl: 'https://stream.radyo45lik.com:4545/',
+    fallbackUrl: null
+  },
+  {
+    popularRank: 19,
+    name: 'Radyo Seymen',
+    mainCategory: 'Karadeniz / Yöresel',
+    categoryGroup: 'Halk & Yöresel',
+    categoryGroupId: 'halk_yoresel',
+    city: 'Ankara',
+    tags: 'Karadeniz / Yöresel • Ankara',
+    badgeBg: 'bg-[#047857]',
+    badgeTextColor: 'text-white',
+    badgeText: 'SEYMEN',
+    streamUrl: 'https://yayin.radyoseymen.com.tr:1070/stream',
+    fallbackUrl: null
+  },
+  {
+    popularRank: 20,
+    name: 'Kalp FM',
+    mainCategory: 'Slow / Romantik',
+    categoryGroup: 'Slow',
+    categoryGroupId: 'slow',
+    city: 'Türkiye',
+    tags: 'Slow / Romantik • Türkiye',
+    badgeBg: 'bg-[#E11D48]',
+    badgeTextColor: 'text-white',
+    badgeText: 'KALP',
+    streamUrl: 'https://yayin.kalpfm.com:8080/',
+    fallbackUrl: null
   }
 ];
 
@@ -314,13 +314,14 @@ function cleanNorm(name: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
+export const POPULAR_RANK_BY_NAME: Record<string, number> = Object.fromEntries(
+  EDITORIAL_PRIORITY_STATIONS.map((p) => [cleanNorm(p.name), p.popularRank])
+);
+
 export function getEditorialPriorityStations(): RadioStation[] {
   return EDITORIAL_PRIORITY_STATIONS.map((p) => {
-    const foundByRank = ALL_TURKISH_STATIONS.find((s) => s.popularRank === p.popularRank);
     const cleanP = cleanNorm(p.name);
-    const foundByName =
-      foundByRank ||
-      ALL_TURKISH_STATIONS.find((s) => cleanNorm(s.name) === cleanP);
+    const foundByName = ALL_TURKISH_STATIONS.find((s) => cleanNorm(s.name) === cleanP);
 
     const stationUuid = foundByName?.stationuuid || `editorial-${p.popularRank}-${cleanP}`;
     return {

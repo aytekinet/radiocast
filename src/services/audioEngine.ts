@@ -434,12 +434,12 @@ class AudioEngine {
 
     this.clickTimestamp = Date.now();
     this.saveCurrentProgress();
+    this.clearReconnectState();
+    this.setStatus('connecting');
     this.cleanupPlayback();
 
     this.currentItem = { type: 'radio', radio: station };
     this.emitItemChange();
-
-    this.setStatus('connecting');
 
     // Automatically resolve format-aware, ranked stream candidates
     const smartCandidates = getSmartCandidatesForStation(station);
@@ -469,13 +469,13 @@ class AudioEngine {
 
     this.clickTimestamp = Date.now();
     this.saveCurrentProgress();
+    this.clearReconnectState();
+    this.setStatus('connecting');
     this.cleanupPlayback();
 
     this.currentItem = { type: 'podcast', podcastEpisode: episode };
     this.emitItemChange();
     addRecentlyPlayed(this.currentItem);
-
-    this.setStatus('connecting');
 
     const offlineBlobUrl = await getOfflineAudioUrl(episode.id);
     const cleanUrl = (episode.audioUrl || '').trim();
@@ -515,6 +515,8 @@ class AudioEngine {
 
     this.clickTimestamp = Date.now();
     this.saveCurrentProgress();
+    this.clearReconnectState();
+    this.setStatus('connecting');
     this.cleanupPlayback();
 
     this.currentItem = {
@@ -523,8 +525,6 @@ class AudioEngine {
     };
 
     this.emitItemChange();
-
-    this.setStatus('connecting');
 
     const cleanUrl = (track.listenUrl || '').trim();
     const rawCandidates: string[] = [];
@@ -616,6 +616,7 @@ class AudioEngine {
 
     if (isHls) {
       if (Hls.isSupported()) {
+        let manifestParsed = false;
         this.hlsInstance = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
@@ -633,6 +634,7 @@ class AudioEngine {
         this.hlsInstance.loadSource(playableUrl);
         this.hlsInstance.attachMedia(this.audio);
         this.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          manifestParsed = true;
           if (sessionId === this.currentSessionId) {
             safePlay();
           }
@@ -645,8 +647,16 @@ class AudioEngine {
             this.tryNextCandidate(sessionId);
           }
         });
-        // Invoke safePlay to preserve browser user gesture
-        safePlay();
+        // Preserve user/MediaSession gesture without prematurely failing before MANIFEST_PARSED
+        const unlockPromise = this.audio.play();
+        if (unlockPromise !== undefined) {
+          unlockPromise.catch((err) => {
+            if (sessionId !== this.currentSessionId) return;
+            if (manifestParsed && err?.name !== 'AbortError') {
+              this.tryNextCandidate(sessionId);
+            }
+          });
+        }
       } else if (this.audio.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS for Safari (iOS and macOS)
         this.audio.src = playableUrl;
@@ -723,6 +733,7 @@ class AudioEngine {
 
     this.clearReconnectState();
     this.setStatus('error');
+    this.updateMediaSessionHandlers();
     const errMsg = this.currentItem?.type === 'radio'
       ? 'Bu radyo istasyonunun yayın akışına şu anda ulaşılamıyor. Yayıncı sunucusu geçici olarak kapalı olabilir veya format tarayıcınızda desteklenmiyor.'
       : 'Medya dosyası oynatılamadı. Lütfen internet bağlantınızı kontrol edin.';
@@ -1065,15 +1076,13 @@ class AudioEngine {
   private updateMediaSessionState() {
     if ('mediaSession' in navigator) {
       try {
-        if (this.status === 'playing') {
+        if (this.status === 'playing' || this.status === 'connecting' || this.status === 'buffering') {
           navigator.mediaSession.playbackState = 'playing';
-        } else if (this.status === 'paused') {
+        } else if (this.status === 'paused' || this.status === 'error') {
           navigator.mediaSession.playbackState = 'paused';
         } else if (this.status === 'idle') {
           navigator.mediaSession.playbackState = 'none';
         }
-        // In case of 'connecting' or 'buffering', keep current state (don't set 'none')
-        // to prevent OS lock screen/notification widget from tearing down abruptly
       } catch {
         // ignore
       }

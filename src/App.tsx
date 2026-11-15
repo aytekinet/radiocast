@@ -90,11 +90,11 @@ export default function App() {
         // Ignore iframe sandbox restriction
       }
     }
-    setTimeout(() => {
-      if (mainRef.current && tabScrollPositions.current[newTab] !== undefined) {
-        mainRef.current.scrollTop = tabScrollPositions.current[newTab];
+    requestAnimationFrame(() => {
+      if (mainRef.current) {
+        mainRef.current.scrollTop = tabScrollPositions.current[newTab] ?? 0;
       }
-    }, 10);
+    });
   }, [activeTab, searchQuery, searchTabType]);
 
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -222,11 +222,11 @@ export default function App() {
       }
 
       if (targetTab) {
-        setTimeout(() => {
-          if (mainRef.current && tabScrollPositions.current[targetTab] !== undefined) {
-            mainRef.current.scrollTop = tabScrollPositions.current[targetTab];
+        requestAnimationFrame(() => {
+          if (mainRef.current) {
+            mainRef.current.scrollTop = tabScrollPositions.current[targetTab] ?? 0;
           }
-        }, 20);
+        });
       }
     };
 
@@ -332,6 +332,7 @@ export default function App() {
   const [volume, setVolume] = useState(settings.volume);
   const [isMuted, setIsMuted] = useState(false);
   const [podcastEpisodesList, setPodcastEpisodesList] = useState<PodcastEpisode[]>([]);
+  const activeRadioQueueRef = useRef<RadioStation[]>([]);
 
   // Sleep Timer & Big Screen
   const [sleepTimerSeconds, setSleepTimerSeconds] = useState<number | null>(null);
@@ -420,64 +421,88 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentItem]);
 
-  // Next / Previous Handlers
+  const getActiveRadioList = useCallback((station?: RadioStation | null): RadioStation[] => {
+    const cleanName = (n?: string) => (n || '').toLowerCase().replace(/[^a-z0-9çğıöşü]/g, '');
+    const matchesStation = (a: RadioStation, b: RadioStation) =>
+      (Boolean(a.stationuuid) && a.stationuuid === b.stationuuid) ||
+      (Boolean(a.id) && a.id === b.id) ||
+      (Boolean(a.name) && Boolean(b.name) && cleanName(a.name) === cleanName(b.name));
+
+    if (activeRadioQueueRef.current.length > 1) {
+      if (!station || activeRadioQueueRef.current.some((s) => matchesStation(s, station))) {
+        return activeRadioQueueRef.current;
+      }
+    }
+    if (activeTab === 'favorites' && favorites.length > 1) {
+      return favorites;
+    }
+    if (filteredStations.length > 1) {
+      return filteredStations;
+    }
+    if (stations.length > 1) {
+      return stations;
+    }
+    return ALL_TURKISH_STATIONS;
+  }, [activeTab, favorites, filteredStations, stations]);
+
+  // Next / Previous Handlers (reads live audioEngine.getCurrentItem() so rapid car-console clicks never stall)
   const handleNext = useCallback(() => {
-    if (currentItem?.type === 'podcast' && currentItem.podcastEpisode) {
+    const activeItem = audioEngine.getCurrentItem() || currentItem;
+    if (activeItem?.type === 'podcast' && activeItem.podcastEpisode) {
       if (podcastEpisodesList.length > 0) {
-        const idx = podcastEpisodesList.findIndex((ep) => ep.id === currentItem.podcastEpisode?.id);
+        const idx = podcastEpisodesList.findIndex((ep) => ep.id === activeItem.podcastEpisode?.id);
         if (idx !== -1 && idx < podcastEpisodesList.length - 1) {
           audioEngine.playPodcastEpisode(podcastEpisodesList[idx + 1]);
-        } else if (idx !== -1 && idx === podcastEpisodesList.length - 1) {
+        } else {
           audioEngine.playPodcastEpisode(podcastEpisodesList[0]);
         }
       }
-    } else if (currentItem?.type === 'radio') {
-      const currentStation = currentItem.radio;
-      if (!currentStation) return;
-      const activePool = filteredStations.length > 0 ? filteredStations : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
-      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : activePool;
+    } else if (activeItem?.type === 'radio' && activeItem.radio) {
+      const activeStation = activeItem.radio;
+      const list = getActiveRadioList(activeStation);
       if (list.length > 0) {
-        const idx = list.findIndex((s) => (s.id || s.stationuuid) === (currentStation.id || currentStation.stationuuid));
-        if (idx !== -1 && idx < list.length - 1) {
-          audioEngine.playStation(list[idx + 1]);
-        } else if (idx !== -1 && idx === list.length - 1) {
-          audioEngine.playStation(list[0]);
-        } else {
-          audioEngine.playStation(list[0]);
-        }
+        activeRadioQueueRef.current = list;
+        const cleanName = (n?: string) => (n || '').toLowerCase().replace(/[^a-z0-9çğıöşü]/g, '');
+        const idx = list.findIndex(
+          (s) =>
+            (Boolean(s.stationuuid) && s.stationuuid === activeStation.stationuuid) ||
+            (Boolean(s.id) && s.id === activeStation.id) ||
+            (Boolean(s.name) && cleanName(s.name) === cleanName(activeStation.name))
+        );
+        const nextIdx = idx !== -1 ? (idx + 1) % list.length : 0;
+        audioEngine.playStation(list[nextIdx]);
       }
     }
-  }, [currentItem, podcastEpisodesList, activeTab, favorites, filteredStations, stations]);
+  }, [currentItem, podcastEpisodesList, getActiveRadioList]);
 
   const handlePrevious = useCallback(() => {
-    if (currentItem?.type === 'podcast' && currentItem.podcastEpisode) {
+    const activeItem = audioEngine.getCurrentItem() || currentItem;
+    if (activeItem?.type === 'podcast' && activeItem.podcastEpisode) {
       if (podcastEpisodesList.length > 0) {
-        const idx = podcastEpisodesList.findIndex((ep) => ep.id === currentItem.podcastEpisode?.id);
+        const idx = podcastEpisodesList.findIndex((ep) => ep.id === activeItem.podcastEpisode?.id);
         if (idx > 0) {
           audioEngine.playPodcastEpisode(podcastEpisodesList[idx - 1]);
-        } else if (idx === 0) {
-          audioEngine.playPodcastEpisode(podcastEpisodesList[podcastEpisodesList.length - 1]);
         } else {
-          audioEngine.playPodcastEpisode(podcastEpisodesList[0]);
+          audioEngine.playPodcastEpisode(podcastEpisodesList[podcastEpisodesList.length - 1]);
         }
       }
-    } else if (currentItem?.type === 'radio') {
-      const currentStation = currentItem.radio;
-      if (!currentStation) return;
-      const activePool = filteredStations.length > 0 ? filteredStations : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
-      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : activePool;
+    } else if (activeItem?.type === 'radio' && activeItem.radio) {
+      const activeStation = activeItem.radio;
+      const list = getActiveRadioList(activeStation);
       if (list.length > 0) {
-        const idx = list.findIndex((s) => (s.id || s.stationuuid) === (currentStation.id || currentStation.stationuuid));
-        if (idx > 0) {
-          audioEngine.playStation(list[idx - 1]);
-        } else if (idx === 0) {
-          audioEngine.playStation(list[list.length - 1]);
-        } else {
-          audioEngine.playStation(list[0]);
-        }
+        activeRadioQueueRef.current = list;
+        const cleanName = (n?: string) => (n || '').toLowerCase().replace(/[^a-z0-9çğıöşü]/g, '');
+        const idx = list.findIndex(
+          (s) =>
+            (Boolean(s.stationuuid) && s.stationuuid === activeStation.stationuuid) ||
+            (Boolean(s.id) && s.id === activeStation.id) ||
+            (Boolean(s.name) && cleanName(s.name) === cleanName(activeStation.name))
+        );
+        const prevIdx = idx > 0 ? idx - 1 : list.length - 1;
+        audioEngine.playStation(list[prevIdx]);
       }
     }
-  }, [currentItem, podcastEpisodesList, activeTab, favorites, filteredStations, stations]);
+  }, [currentItem, podcastEpisodesList, getActiveRadioList]);
 
   const canGoNext = useMemo(() => {
     if (!currentItem) return false;
@@ -485,12 +510,10 @@ export default function App() {
       return podcastEpisodesList.length > 1;
     }
     if (currentItem.type === 'radio') {
-      const activePool = filteredStations.length > 0 ? filteredStations : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
-      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : activePool;
-      return list.length > 1;
+      return getActiveRadioList(currentItem.radio).length > 1;
     }
     return false;
-  }, [currentItem, podcastEpisodesList, activeTab, favorites, filteredStations, stations]);
+  }, [currentItem, podcastEpisodesList, getActiveRadioList]);
 
   const canGoPrevious = useMemo(() => {
     if (!currentItem) return false;
@@ -498,12 +521,10 @@ export default function App() {
       return podcastEpisodesList.length > 1;
     }
     if (currentItem.type === 'radio') {
-      const activePool = filteredStations.length > 0 ? filteredStations : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
-      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : activePool;
-      return list.length > 1;
+      return getActiveRadioList(currentItem.radio).length > 1;
     }
     return false;
-  }, [currentItem, podcastEpisodesList, activeTab, favorites, filteredStations, stations]);
+  }, [currentItem, podcastEpisodesList, getActiveRadioList]);
 
   const handleNextRef = useRef(handleNext);
   handleNextRef.current = handleNext;
@@ -702,11 +723,28 @@ export default function App() {
   }, [fetchStationsData]);
 
   // Handle Play Station
-  const handlePlayStation = useCallback((station: RadioStation) => {
-    const stationId = station.id || station.stationuuid;
-    const currentStationId = currentItem?.radio?.id || currentItem?.radio?.stationuuid;
+  const handlePlayStation = useCallback((station: RadioStation, queue?: RadioStation[]) => {
+    if (queue && queue.length > 1) {
+      activeRadioQueueRef.current = queue;
+    } else {
+      const fallbackList =
+        activeTab === 'favorites' && favorites.length > 1
+          ? favorites
+          : filteredStations.length > 1
+          ? filteredStations
+          : stations.length > 1
+          ? stations
+          : ALL_TURKISH_STATIONS;
+      if (activeRadioQueueRef.current.length <= 1) {
+        activeRadioQueueRef.current = fallbackList;
+      }
+    }
 
-    if (currentItem?.type === 'radio' && currentStationId === stationId) {
+    const activeItem = audioEngine.getCurrentItem() || currentItem;
+    const stationId = station.id || station.stationuuid;
+    const currentStationId = activeItem?.radio?.id || activeItem?.radio?.stationuuid;
+
+    if (activeItem?.type === 'radio' && currentStationId === stationId) {
       if (playbackStatus === 'playing' || playbackStatus === 'connecting' || playbackStatus === 'buffering') {
         audioEngine.togglePlayPause();
       } else {
@@ -715,7 +753,7 @@ export default function App() {
     } else {
       audioEngine.playStation(station);
     }
-  }, [currentItem, playbackStatus]);
+  }, [currentItem, playbackStatus, activeTab, favorites, filteredStations, stations]);
 
   // Handle Play Podcast Episode
   const handlePlayPodcastEpisode = useCallback((episode: PodcastEpisode, episodes?: PodcastEpisode[]) => {
@@ -1022,12 +1060,13 @@ export default function App() {
         onToggleMute={handleToggleMute}
         isFavorite={
           currentItem?.type === 'podcast' && currentItem.podcastEpisode
-            ? favorites.some((f) => f.stationuuid === `podcast-${currentItem.podcastEpisode?.id}`)
+            ? favoriteEpisodes.some((e) => e.id === currentItem.podcastEpisode?.id)
             : currentStation
             ? favorites.some((f) => (f.id || f.stationuuid) === (currentStation.id || currentStation.stationuuid))
             : false
         }
         onToggleFavorite={handleToggleFavorite}
+        onToggleFavoriteEpisode={handleToggleFavoriteEpisode}
         playlists={playlists}
         onAddToPlaylist={handleAddToPlaylist}
         onCreatePlaylist={handleCreatePlaylist}
@@ -1050,7 +1089,7 @@ export default function App() {
             changeTab(tab);
             if (tab === 'discover' && searchQuery) setSearchQuery('');
           }}
-          favoritesCount={favorites.length}
+          favoritesCount={favorites.length + favoritePodcasts.length + favoriteEpisodes.length}
           playlistsCount={playlists.length}
           currentlyPlayingName={playbackStatus === 'playing' ? currentPlayingName : undefined}
           onSelectQuickFilter={(filter) => {
@@ -1152,8 +1191,20 @@ export default function App() {
               onAddToPlaylist={handleAddToPlaylist}
               onRefresh={() => fetchStationsData(1, false)}
               searchQuery={searchQuery}
-              onNavigateToRadios={() => changeTab('radios')}
-              onNavigateToPodcasts={() => changeTab('podcasts')}
+              onNavigateToRadios={() => {
+                tabScrollPositions.current['radios'] = 0;
+                changeTab('radios');
+                requestAnimationFrame(() => {
+                  if (mainRef.current) mainRef.current.scrollTop = 0;
+                });
+              }}
+              onNavigateToPodcasts={() => {
+                tabScrollPositions.current['podcasts'] = 0;
+                changeTab('podcasts');
+                requestAnimationFrame(() => {
+                  if (mainRef.current) mainRef.current.scrollTop = 0;
+                });
+              }}
               onOpenPodcastShow={handleOpenPodcastShowFromFav}
             />
           </div>
@@ -1302,7 +1353,7 @@ export default function App() {
       <MobileNav
         activeTab={activeTab}
         setActiveTab={(tab) => changeTab(tab)}
-        favoritesCount={favorites.length}
+        favoritesCount={favorites.length + favoritePodcasts.length + favoriteEpisodes.length}
         playlistsCount={playlists.length}
         lowDataMode={settings.lowDataMode}
         setLowDataMode={(val) => updateSettings({ lowDataMode: val })}
