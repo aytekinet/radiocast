@@ -6,31 +6,118 @@ export interface RadioGroup {
   stationNames: string[];
 }
 
+export interface SubCategoryDef {
+  id: string;
+  name: string;
+  mainCategory: string;
+  parentGroupId: string;
+}
+
 export const GENRE_CATEGORIES: GenreCategory[] = [
   { id: 'all', name: 'Tüm', tag: '', iconName: 'Radio', color: 'from-amber-500 to-orange-600' },
-  { id: 'populer', name: 'Popüler', tag: 'populer', iconName: 'Sparkles', color: 'from-yellow-400 to-amber-600' },
-  { id: 'turkce_pop', name: 'Türkçe Pop', tag: 'turkce_pop', iconName: 'Music', color: 'from-pink-500 to-rose-600' },
-  { id: 'arabesk_fantezi', name: 'Arabesk / Fantezi', tag: 'arabesk', iconName: 'Flame', color: 'from-fuchsia-600 to-purple-800' },
-  { id: 'slow_romantik', name: 'Slow / Romantik', tag: 'slow', iconName: 'HeartHandshake', color: 'from-purple-500 to-indigo-600' },
-  { id: 'haber', name: 'Haber', tag: 'haber', iconName: 'Newspaper', color: 'from-blue-600 to-cyan-700' },
-  { id: 'spor', name: 'Spor', tag: 'spor', iconName: 'Zap', color: 'from-emerald-600 to-green-700' },
-  { id: 'rock_alternatif', name: 'Rock / Alternatif', tag: 'rock', iconName: 'Guitar', color: 'from-red-600 to-orange-700' },
-  { id: 'rap_hiphop', name: 'Rap / Hip-Hop', tag: 'rap', iconName: 'Mic2', color: 'from-amber-600 to-red-600' },
-  { id: 'elektronik_dans', name: 'Elektronik / Dans', tag: 'elektronik', iconName: 'Disc', color: 'from-cyan-500 to-blue-600' },
-  { id: 'turku_thm', name: 'Türkü / THM', tag: 'turku', iconName: 'BoomBox', color: 'from-emerald-600 to-green-700' },
-  { id: 'klasik_muzik', name: 'Klasik Müzik', tag: 'klasik', iconName: 'Guitar', color: 'from-amber-700 to-stone-800' },
-  { id: 'nostalji_retro', name: 'Nostalji / Retro', tag: 'nostalji', iconName: 'Disc', color: 'from-orange-500 to-amber-700' },
-  { id: 'lounge_kesif', name: 'Lounge / Keşif', tag: 'lounge', iconName: 'Sparkles', color: 'from-teal-500 to-cyan-600' },
-  { id: 'jazz', name: 'Jazz', tag: 'jazz', iconName: 'Disc', color: 'from-indigo-600 to-purple-700' },
-  { id: 'oyun_havasi', name: 'Oyun Havası', tag: 'oyun_havasi', iconName: 'Zap', color: 'from-yellow-500 to-amber-600' },
-  { id: 'karadeniz', name: 'Karadeniz', tag: 'karadeniz', iconName: 'BoomBox', color: 'from-teal-600 to-emerald-700' },
-  { id: 'kurtce', name: 'Kürtçe', tag: 'kurtce', iconName: 'Radio', color: 'from-lime-600 to-green-700' },
-  { id: 'dini', name: 'Dini', tag: 'dini', iconName: 'Sun', color: 'from-sky-500 to-indigo-600' },
-  { id: 'universite', name: 'Üniversite Radyoları', tag: 'universite', iconName: 'Wifi', color: 'from-cyan-500 to-blue-600' },
-  { id: 'yabanci_pop', name: 'Yabancı Pop', tag: 'yabanci_pop', iconName: 'Globe', color: 'from-violet-500 to-cyan-500' },
-  { id: 'yerel_bolgesel', name: 'Yerel / Bölgesel', tag: 'yerel_bolgesel', iconName: 'Radio', color: 'from-stone-600 to-zinc-800' },
-  { id: 'karma_genel', name: 'Karma / Genel', tag: 'karma_genel', iconName: 'Radio', color: 'from-zinc-500 to-zinc-700' }
+  { id: 'populer', name: 'Popüler İlk 20', tag: 'populer', iconName: 'Sparkles', color: 'from-yellow-400 to-amber-600' },
+  { id: 'turkce_pop', name: 'Türkçe Pop', tag: 'turkce_pop', tags: ['pop', 'turkish pop'], iconName: 'Music', color: 'from-pink-500 to-rose-600' },
+  { id: 'yabanci_pop', name: 'Yabancı Pop', tag: 'yabanci_pop', tags: ['pop', 'top 40', 'hits'], iconName: 'Globe', color: 'from-violet-500 to-cyan-500' },
+  { id: 'slow', name: 'Slow', tag: 'slow', tags: ['slow', 'love', 'romantic', 'ballads'], iconName: 'HeartHandshake', color: 'from-purple-500 to-indigo-600' },
+  { id: 'arabesk', name: 'Arabesk', tag: 'arabesk', tags: ['arabesk', 'folk'], iconName: 'Flame', color: 'from-fuchsia-600 to-purple-800' },
+  { id: 'halk_yoresel', name: 'Halk & Yöresel', tag: 'halk_yoresel', tags: ['folk', 'traditional', 'ethnic'], iconName: 'BoomBox', color: 'from-emerald-600 to-green-700' },
+  { id: 'nostalji_tsm', name: 'Nostalji & TSM', tag: 'nostalji_tsm', tags: ['oldies', 'retro', '80s', '90s'], iconName: 'Disc', color: 'from-orange-500 to-amber-700' },
+  { id: 'haber_spor', name: 'Haber & Spor', tag: 'haber_spor', tags: ['news', 'talk', 'sport', 'sports'], iconName: 'Newspaper', color: 'from-blue-600 to-cyan-700' },
+  { id: 'dini', name: 'Dini', tag: 'dini', tags: ['religious', 'islamic', 'christian', 'gospel'], iconName: 'Sun', color: 'from-sky-500 to-indigo-600' },
+  { id: 'rock_rap', name: 'Rock & Rap', tag: 'rock_rap', tags: ['rock', 'alternative', 'rap', 'hiphop'], iconName: 'Guitar', color: 'from-red-600 to-orange-700' },
+  { id: 'dans_caz_klasik', name: 'Dans, Caz & Klasik', tag: 'dans_caz_klasik', tags: ['dance', 'electronic', 'jazz', 'classical'], iconName: 'Disc', color: 'from-cyan-500 to-blue-600' },
+  { id: 'kurtce', name: 'Kürtçe', tag: 'kurtce', tags: ['kurdish'], iconName: 'Radio', color: 'from-lime-600 to-green-700' },
+  { id: 'kampus_cocuk', name: 'Kampüs & Çocuk', tag: 'kampus_cocuk', tags: ['university', 'college', 'kids', 'children'], iconName: 'Wifi', color: 'from-teal-500 to-cyan-600' },
+  { id: 'yerel_genel', name: 'Yerel & Genel', tag: 'yerel_genel', tags: ['local', 'variety', 'culture'], iconName: 'Radio', color: 'from-stone-600 to-zinc-800' }
 ];
+
+export const SUBCATEGORIES: SubCategoryDef[] = [
+  // 05 HALK YÖRESEL
+  { id: 'karadeniz_yoresel', name: 'Karadeniz / Yöresel', mainCategory: 'Karadeniz / Yöresel', parentGroupId: 'halk_yoresel' },
+  { id: 'turku_thm', name: 'Türk Halk Müziği / Türkü', mainCategory: 'Türk Halk Müziği / Türkü', parentGroupId: 'halk_yoresel' },
+  { id: 'yerel_yoresel', name: 'Yerel / Yöresel', mainCategory: 'Yerel / Yöresel', parentGroupId: 'halk_yoresel' },
+  // 06 NOSTALJİ TSM
+  { id: 'nostalji_retro', name: 'Nostalji / Retro', mainCategory: 'Nostalji / Retro', parentGroupId: 'nostalji_tsm' },
+  { id: 'tsm', name: 'Türk Sanat Müziği', mainCategory: 'Türk Sanat Müziği', parentGroupId: 'nostalji_tsm' },
+  // 07 HABER SPOR
+  { id: 'haber_ekonomi', name: 'Haber / Ekonomi', mainCategory: 'Haber / Ekonomi', parentGroupId: 'haber_spor' },
+  { id: 'spor', name: 'Spor', mainCategory: 'Spor', parentGroupId: 'haber_spor' },
+  // 09 ROCK RAP
+  { id: 'rock_alternatif', name: 'Rock / Alternatif', mainCategory: 'Rock / Alternatif', parentGroupId: 'rock_rap' },
+  { id: 'rap_hiphop', name: 'Rap / Hip-Hop', mainCategory: 'Rap / Hip-Hop', parentGroupId: 'rock_rap' },
+  // 10 DANS CAZ KLASİK
+  { id: 'elektronik_dans', name: 'Elektronik / Dans', mainCategory: 'Elektronik / Dans', parentGroupId: 'dans_caz_klasik' },
+  { id: 'klasik_muzik', name: 'Klasik / Enstrümantal', mainCategory: 'Klasik / Enstrümantal', parentGroupId: 'dans_caz_klasik' },
+  { id: 'caz_blues', name: 'Caz / Blues', mainCategory: 'Caz / Blues', parentGroupId: 'dans_caz_klasik' },
+  // 12 KAMPÜS ÇOCUK
+  { id: 'kampus_universite', name: 'Kampüs / Üniversite', mainCategory: 'Kampüs / Üniversite', parentGroupId: 'kampus_cocuk' },
+  { id: 'cocuk_aile', name: 'Çocuk / Aile', mainCategory: 'Çocuk / Aile', parentGroupId: 'kampus_cocuk' },
+  // 13 YEREL GENEL
+  { id: 'genel_karisik', name: 'Genel / Karışık', mainCategory: 'Genel / Karışık', parentGroupId: 'yerel_genel' },
+  { id: 'sohbet_kultur', name: 'Sohbet / Kültür', mainCategory: 'Sohbet / Kültür', parentGroupId: 'yerel_genel' },
+  { id: 'yerel_belirsiz', name: 'Yerel / Türü belirsiz', mainCategory: 'Yerel / Türü belirsiz', parentGroupId: 'yerel_genel' }
+];
+
+export const CATEGORY_ID_FROM_MAIN: Record<string, string> = {
+  'Türkçe Pop': 'turkce_pop',
+  'Yabancı Pop / Hit': 'yabanci_pop',
+  'Slow / Romantik': 'slow',
+  'Arabesk / Fantezi': 'arabesk',
+  'Karadeniz / Yöresel': 'karadeniz_yoresel',
+  'Türk Halk Müziği / Türkü': 'turku_thm',
+  'Yerel / Yöresel': 'yerel_yoresel',
+  'Nostalji / Retro': 'nostalji_retro',
+  'Türk Sanat Müziği': 'tsm',
+  'Haber / Ekonomi': 'haber_ekonomi',
+  'Spor': 'spor',
+  'Dini / Tasavvuf': 'dini',
+  'Rap / Hip-Hop': 'rap_hiphop',
+  'Rock / Alternatif': 'rock_alternatif',
+  'Caz / Blues': 'caz_blues',
+  'Elektronik / Dans': 'elektronik_dans',
+  'Klasik / Enstrümantal': 'klasik_muzik',
+  'Kürtçe / Bölgesel': 'kurtce',
+  'Kampüs / Üniversite': 'kampus_universite',
+  'Çocuk / Aile': 'cocuk_aile',
+  'Genel / Karışık': 'genel_karisik',
+  'Sohbet / Kültür': 'sohbet_kultur',
+  'Yerel / Türü belirsiz': 'yerel_belirsiz'
+};
+
+export const GROUP_ID_FROM_MAIN: Record<string, string> = {
+  'Türkçe Pop': 'turkce_pop',
+  'Yabancı Pop / Hit': 'yabanci_pop',
+  'Slow / Romantik': 'slow',
+  'Arabesk / Fantezi': 'arabesk',
+  'Karadeniz / Yöresel': 'halk_yoresel',
+  'Türk Halk Müziği / Türkü': 'halk_yoresel',
+  'Yerel / Yöresel': 'halk_yoresel',
+  'Nostalji / Retro': 'nostalji_tsm',
+  'Türk Sanat Müziği': 'nostalji_tsm',
+  'Haber / Ekonomi': 'haber_spor',
+  'Spor': 'haber_spor',
+  'Dini / Tasavvuf': 'dini',
+  'Rap / Hip-Hop': 'rock_rap',
+  'Rock / Alternatif': 'rock_rap',
+  'Caz / Blues': 'dans_caz_klasik',
+  'Elektronik / Dans': 'dans_caz_klasik',
+  'Klasik / Enstrümantal': 'dans_caz_klasik',
+  'Kürtçe / Bölgesel': 'kurtce',
+  'Kampüs / Üniversite': 'kampus_cocuk',
+  'Çocuk / Aile': 'kampus_cocuk',
+  'Genel / Karışık': 'yerel_genel',
+  'Sohbet / Kültür': 'yerel_genel',
+  'Yerel / Türü belirsiz': 'yerel_genel'
+};
+
+export function getSubcategoriesForGroup(groupId: string): SubCategoryDef[] {
+  return SUBCATEGORIES.filter((s) => s.parentGroupId === groupId);
+}
+
+export function getParentGroupId(categoryId: string): string {
+  const sub = SUBCATEGORIES.find((s) => s.id === categoryId);
+  return sub ? sub.parentGroupId : categoryId;
+}
 
 export const RADIO_GROUPS: RadioGroup[] = [
   {
@@ -41,22 +128,22 @@ export const RADIO_GROUPS: RadioGroup[] = [
   {
     id: 'karnaval',
     name: 'Karnaval Medya',
-    stationNames: ['super fm', 'metro fm', 'joyturk', 'joyturk rock', 'virgin radio turkiye', 'retro turk', 'borusan klasik', 'radio mydonose']
+    stationNames: ['super fm', 'metro fm', 'joyturk', 'joyturk rock', 'virgin radio', 'retro turk', 'borusan klasik', 'radyo mydonose']
   },
   {
     id: 'fenomen',
     name: 'Fenomen Medya',
-    stationNames: ['radyo fenomen', 'radyo fenomen clubbin', 'fenomen']
+    stationNames: ['radyo fenomen', 'fenomen']
   },
   {
     id: 'power_app',
     name: 'Power Medya',
-    stationNames: ['powerturk', 'powerturk slow', 'power dance', 'radyo koc', 'power app', 'power fm']
+    stationNames: ['powerturk', 'power dance', 'radyo koc', 'power app', 'power fm']
   },
   {
     id: 'dinamo',
     name: 'Dinamo.fm Ağı',
-    stationNames: ['dinamo fm caffe', 'dinamo fm deep', 'dinamo fm fluent', 'dinamo fm locodyno', 'dinamo fm smog', 'dinamo fm']
+    stationNames: ['dinamo fm', 'dinamo']
   },
   {
     id: 'radyo_7_grup',
@@ -76,6 +163,7 @@ export function normalizeName(name: string): string {
     .replace(/ç/g, 'c')
     .replace(/ğ/g, 'g')
     .replace(/ı/g, 'i')
+    .replace(/i̇/g, 'i')
     .replace(/ö/g, 'o')
     .replace(/ş/g, 's')
     .replace(/ü/g, 'u')
@@ -84,401 +172,102 @@ export function normalizeName(name: string): string {
     .trim();
 }
 
-export const CATEGORY_NAMES_MAP: Record<string, string[]> = {
-  "populer": [
-    "arabesk fm",
-    "damar turk fm",
-    "dinamo fm caffe",
-    "dinamo fm deep",
-    "radyo fenomen clubbin",
-    "haberturk radyo",
-    "ntv radyo",
-    "tgrt fm",
-    "trt radyo haber",
-    "radyo 7",
-    "trt radyo 1",
-    "borusan klasik",
-    "havin fm",
-    "radio voyage",
-    "radyo 45lik",
-    "radyo seymen",
-    "joyturk rock",
-    "virgin radio turkiye",
-    "ask fm",
-    "slow turk",
-    "radyo fenomen",
-    "super fm",
-    "trt turku",
-    "turku radyo",
-    "turkulerle turkiye",
-    "radyo odtu",
-    "metro fm",
-    "alem fm",
-    "avrasya turk radyo",
-    "baba radyo",
-    "dost",
-    "genc kral fm",
-    "halk radyo",
-    "joyturk",
-    "kalp fm",
-    "radyo alaturka",
-    "populer",
-    "hit",
-    "trend",
-    "top 40",
-    "top40"
-  ],
-  "turkce_pop": [
-    "radyo fenomen",
-    "super fm",
-    "arkadas radyo",
-    "bodrum fm",
-    "keyf station",
-    "kiss turk",
-    "koroglu fm",
-    "radio ava turkiye",
-    "radyo 35",
-    "radyo taksi",
-    "super fm 99 9",
-    "turkce pop",
-    "pop",
-    "fenomen",
-    "kral pop",
-    "best fm",
-    "alem fm"
-  ],
-  "arabesk_fantezi": [
-    "arabesk fm",
-    "damar turk fm",
-    "arabesk",
-    "fantezi",
-    "damar",
-    "muslum",
-    "orhan",
-    "ferdi"
-  ],
-  "slow_romantik": [
-    "ask fm",
-    "slow turk",
-    "karma turk slow",
-    "ki ss love radyo turkey",
-    "ki ss turk slow",
-    "powerturk slow",
-    "radyo duygusal",
-    "slow",
-    "ask",
-    "romantik",
-    "duygusal",
-    "love"
-  ],
-  "haber": [
-    "haberturk radyo",
-    "ntv radyo",
-    "tgrt fm",
-    "trt radyo haber",
-    "replay news turkce her 5 dakikada haber radyosu",
-    "haber",
-    "news",
-    "sondakika",
-    "haberturk",
-    "ntv",
-    "tgrt",
-    "trt haber"
-  ],
-  "spor": [
-    "lig radyo",
-    "radyo gol",
-    "spor",
-    "sport",
-    "futbol"
-  ],
-  "rock_alternatif": [
-    "joyturk rock",
-    "virgin radio turkiye",
-    "ktu",
-    "max fm 95 8 maximum music",
-    "radyo a radyo anadolu universitesi",
-    "radyo eksen 96 2",
-    "radyo odtu rock",
-    "rock",
-    "alternatif",
-    "metal",
-    "anadolu rock"
-  ],
-  "rap_hiphop": [
-    "number 1 turk rap",
-    "x radio",
-    "rap",
-    "hip hop",
-    "hiphop",
-    "r&b",
-    "trap"
-  ],
-  "elektronik_dans": [
-    "dinamo fm caffe",
-    "dinamo fm deep",
-    "radyo fenomen clubbin",
-    "dinamo fm fluent",
-    "dinamo fm locodyno",
-    "dinamo fm smog",
-    "fg 93 8 future generation mp3 128k",
-    "loops radio techno",
-    "mayday records",
-    "power dance",
-    "radio antalya",
-    "radio mydonose",
-    "dans",
-    "dance",
-    "electronic",
-    "house",
-    "techno",
-    "edm",
-    "club",
-    "trance"
-  ],
-  "turku_thm": [
-    "trt turku",
-    "turku radyo",
-    "turkulerle turkiye",
-    "radyo banko",
-    "turkuvaz anadolu",
-    "turkuradyo",
-    "turku",
-    "thm",
-    "halk muzigi",
-    "turkuler",
-    "bozlak"
-  ],
-  "klasik_muzik": [
-    "borusan klasik",
-    "klasik",
-    "classical",
-    "senfoni",
-    "filarmoni",
-    "opera"
-  ],
-  "nostalji_retro": [
-    "radyo 45lik",
-    "dedemi n radyosu",
-    "retro turk",
-    "vi zyon nostalji",
-    "yeni radyo nostaljinin sesi",
-    "nostalji",
-    "retro",
-    "45lik",
-    "eskiler",
-    "90lar",
-    "80ler",
-    "70ler"
-  ],
-  "lounge_kesif": [
-    "radio voyage",
-    "apacik radyo",
-    "kiyi gece",
-    "kiyi muzik",
-    "kiyi turkce",
-    "standart fm",
-    "lounge",
-    "chill",
-    "ambient",
-    "downtempo",
-    "kesif",
-    "relax"
-  ],
-  "jazz": [
-    "radyo gokceada",
-    "sezen radyo",
-    "jazz",
-    "caz",
-    "blues"
-  ],
-  "oyun_havasi": [
-    "radyo seymen",
-    "masti ka fm",
-    "oyun havasi",
-    "ankara havasi",
-    "seymen",
-    "mastika",
-    "ciftetelli",
-    "roman"
-  ],
-  "karadeniz": [
-    "radyo karadeniz",
-    "karadeniz",
-    "kemence",
-    "horon",
-    "tulum"
-  ],
-  "kurtce": [
-    "havin fm",
-    "radyo mezopotamya",
-    "radyo mori",
-    "kurtce",
-    "kurdi",
-    "dengbej",
-    "stran"
-  ],
-  "dini": [
-    "diyanet kur an radyo",
-    "erkam radyo",
-    "lalegul fm",
-    "nur radyo",
-    "radyo fitrat",
-    "dini",
-    "kuran",
-    "tasavvuf",
-    "ilahi",
-    "diyanet",
-    "islam"
-  ],
-  "universite": [
-    "radyo odtu",
-    "radyo bilkent",
-    "radyo koc",
-    "universite",
-    "odtu",
-    "bilkent",
-    "itu",
-    "koc",
-    "kampus"
-  ],
-  "yabanci_pop": [
-    "metro fm",
-    "acs radyo",
-    "radio light",
-    "yabanci pop",
-    "world hits",
-    "foreign pop",
-    "hit music"
-  ],
-  "yerel_bolgesel": [
-    "alem fm",
-    "avrasya turk radyo",
-    "baba radyo",
-    "dost",
-    "genc kral fm",
-    "halk radyo",
-    "joyturk",
-    "kalp fm",
-    "radyo alaturka",
-    "95 1 tempo radyo hatay",
-    "baris fm 103 2",
-    "bayram fm turkey",
-    "bi leci k fm turkey",
-    "bitlis fm 98 8",
-    "bloomberg ht radyo",
-    "cesme vi ki ng radyo",
-    "cinar fm",
-    "denge gundeme",
-    "elazig mavi radyo",
-    "emek radyo",
-    "ert elazig",
-    "erzi ncan fm",
-    "espiye fm",
-    "fakir fm",
-    "gevas sesi radyosu",
-    "kent radyo",
-    "kuzey fm turkey",
-    "lokum fm",
-    "maxfm",
-    "melodi radyo",
-    "merkez fm samsun turkey",
-    "radyo 16",
-    "radyo 2000",
-    "radyo 90",
-    "radyo ahenk",
-    "radyo akdeniz",
-    "radyo alevi canlar",
-    "radyo durak",
-    "radyo ekin",
-    "radyo megasite",
-    "radyo munzur 97 7",
-    "radyo sari tramvay",
-    "radyo sevtek",
-    "radyo sinerji",
-    "radyo talya",
-    "radyo zile fm 93 5",
-    "super show radyo",
-    "trt nagme",
-    "turkiyem fm",
-    "yenikoy fm",
-    "yon radyo",
-    "yerel",
-    "bolgesel",
-    "fm",
-    "radyo"
-  ],
-  "karma_genel": [
-    "radyo 7",
-    "trt radyo 1",
-    "bestefm mix",
-    "hayatmi x",
-    "mix a mix fm",
-    "radio hayal",
-    "radyo 75",
-    "radyo dingil",
-    "radyo maksat",
-    "karma",
-    "genel",
-    "mix",
-    "karisik",
-    "cesitli"
-  ]
+// International / foreign station tag fallback (ONLY used when station lacks catalog categoryGroupId)
+const GLOBAL_TAG_KEYWORDS: Record<string, string[]> = {
+  turkce_pop: ['turkish pop', 'turkce pop', 'pop'],
+  yabanci_pop: ['top 40', 'top40', 'pop', 'hits', 'chart', 'mainstream', 'hot ac', 'contemporary'],
+  slow: ['slow', 'love', 'romantic', 'ballad', 'soft', 'easy listening', 'chill'],
+  arabesk: ['arabesk', 'oriental', 'arab', 'fantasy'],
+  halk_yoresel: ['folk', 'traditional', 'ethnic', 'world', 'country', 'regional'],
+  karadeniz_yoresel: ['karadeniz', 'folk', 'regional'],
+  turku_thm: ['folk', 'turku', 'traditional'],
+  yerel_yoresel: ['regional', 'local', 'folk'],
+  nostalji_tsm: ['oldies', 'retro', '60s', '70s', '80s', '90s', 'classic hits', 'gold'],
+  nostalji_retro: ['oldies', 'retro', '60s', '70s', '80s', '90s', 'classic hits'],
+  tsm: ['classical turkish', 'sanat', 'alaturka'],
+  haber_spor: ['news', 'talk', 'information', 'business', 'economy', 'sport', 'sports', 'football', 'haber', 'spor'],
+  haber_ekonomi: ['news', 'talk', 'information', 'business', 'economy'],
+  spor: ['sport', 'sports', 'football', 'soccer'],
+  dini: ['religious', 'christian', 'gospel', 'islamic', 'islam', 'quran', 'catholic', 'spiritual'],
+  rock_rap: ['rock', 'alternative', 'indie', 'metal', 'punk', 'rap', 'hip hop', 'hiphop', 'hip-hop', 'r&b', 'urban', 'trap'],
+  rock_alternatif: ['rock', 'alternative', 'indie', 'metal', 'punk'],
+  rap_hiphop: ['rap', 'hip hop', 'hiphop', 'hip-hop', 'r&b', 'trap'],
+  dans_caz_klasik: ['dance', 'electronic', 'edm', 'house', 'techno', 'trance', 'club', 'jazz', 'blues', 'smooth jazz', 'classical', 'symphony', 'opera', 'instrumental'],
+  elektronik_dans: ['dance', 'electronic', 'edm', 'house', 'techno', 'trance', 'club', 'dj'],
+  klasik_muzik: ['classical', 'symphony', 'opera', 'chamber', 'piano', 'instrumental'],
+  caz_blues: ['jazz', 'blues', 'smooth jazz', 'swing', 'soul'],
+  kurtce: ['kurdish', 'kurtce', 'kurdi'],
+  kampus_cocuk: ['university', 'college', 'campus', 'student', 'kids', 'children', 'family'],
+  kampus_universite: ['university', 'college', 'campus', 'student'],
+  cocuk_aile: ['kids', 'children', 'family'],
+  yerel_genel: ['variety', 'eclectic', 'general', 'public radio', 'culture', 'talk', 'community'],
+  genel_karisik: ['variety', 'eclectic', 'general', 'mix'],
+  sohbet_kultur: ['talk', 'culture', 'arts', 'spoken word'],
+  yerel_belirsiz: ['local', 'community', 'public radio']
 };
 
-export const CATEGORY_ID_FROM_MAIN: Record<string, string> = {
-  "Arabesk / Fantezi": "arabesk_fantezi",
-  "Elektronik / Dans": "elektronik_dans",
-  "Haber": "haber",
-  "Karma / Genel": "karma_genel",
-  "Klasik Müzik": "klasik_muzik",
-  "Kürtçe": "kurtce",
-  "Lounge / Keşif": "lounge_kesif",
-  "Nostalji / Retro": "nostalji_retro",
-  "Oyun Havası": "oyun_havasi",
-  "Rock / Alternatif": "rock_alternatif",
-  "Slow / Romantik": "slow_romantik",
-  "Türkçe Pop": "turkce_pop",
-  "Türkü / THM": "turku_thm",
-  "Üniversite Radyoları": "universite",
-  "Yabancı Pop": "yabanci_pop",
-  "Yerel / Bölgesel": "yerel_bolgesel",
-  "Dini": "dini",
-  "Jazz": "jazz",
-  "Karadeniz": "karadeniz",
-  "Rap / Hip-Hop": "rap_hiphop",
-  "Spor": "spor"
+const LEGACY_CATEGORY_ALIASES: Record<string, string[]> = {
+  pop: ['turkce_pop', 'yabanci_pop'],
+  news: ['haber_spor', 'haber_ekonomi'],
+  haber: ['haber_spor', 'haber_ekonomi'],
+  sports: ['haber_spor', 'spor'],
+  rock: ['rock_rap', 'rock_alternatif'],
+  jazz: ['dans_caz_klasik', 'caz_blues'],
+  klasik_muzik: ['dans_caz_klasik', 'klasik_muzik'],
+  culture: ['yerel_genel', 'sohbet_kultur'],
+  nostalji_retro: ['nostalji_tsm', 'nostalji_retro'],
+  arabesk_fantezi: ['arabesk'],
+  slow_romantik: ['slow'],
+  universite: ['kampus_cocuk', 'kampus_universite'],
+  karma_genel: ['yerel_genel', 'genel_karisik'],
+  yerel_bolgesel: ['yerel_genel', 'yerel_belirsiz']
 };
 
 export function matchesCategory(station: RadioStation, categoryId: string): boolean {
   if (!categoryId || categoryId === 'all') return true;
 
-  // 1. Check direct isPopular flag
+  // 1. Popüler İlk 20 check
   if (categoryId === 'populer') {
+    if (station.popularRank && station.popularRank >= 1 && station.popularRank <= 20) return true;
     if (station.isPopular) return true;
-    const tagsLower = (station.tags || '').toLowerCase();
-    if (tagsLower.includes('popüler') || tagsLower.includes('populer')) return true;
+    if (!station.categoryGroupId) {
+      return (station.votes || 0) >= 300 || normalizeName(station.tags || '').includes('populer');
+    }
+    return false;
   }
 
-  // 2. Check mainCategory match
-  if (station.mainCategory && CATEGORY_ID_FROM_MAIN[station.mainCategory] === categoryId) {
-    return true;
-  }
+  // 2. Canonical Turkish catalog check (strict & deterministic — zero cross-category leakage!)
+  const stationGroupId =
+    station.categoryGroupId ||
+    (station.mainCategory ? GROUP_ID_FROM_MAIN[station.mainCategory] : undefined);
+  const stationSubId = station.mainCategory ? CATEGORY_ID_FROM_MAIN[station.mainCategory] : undefined;
 
-  // 3. Check normalized tags
-  const tagsNorm = normalizeName(station.tags || '');
-  const cat = GENRE_CATEGORIES.find(c => c.id === categoryId);
-  if (cat && cat.tag && tagsNorm.includes(cat.tag)) {
-    return true;
-  }
-
-  // 4. Station name match in category map
-  const nameNorm = normalizeName(station.name || '');
-  const keywords = CATEGORY_NAMES_MAP[categoryId];
-  if (keywords && keywords.length > 0) {
-    if (keywords.some(k => nameNorm.includes(k) || tagsNorm.includes(k))) {
+  if (stationGroupId || stationSubId) {
+    if (stationGroupId === categoryId || stationSubId === categoryId) {
       return true;
     }
+    const legacyTargets = LEGACY_CATEGORY_ALIASES[categoryId];
+    if (legacyTargets) {
+      return legacyTargets.includes(stationGroupId || '') || legacyTargets.includes(stationSubId || '');
+    }
+    return false;
+  }
+
+  // 3. Global / Radio-Browser foreign stations fallback
+  const tagsNorm = normalizeName(station.tags || '');
+  const nameNorm = normalizeName(station.name || '');
+
+  const keywords = GLOBAL_TAG_KEYWORDS[categoryId];
+  if (keywords && keywords.some((k) => tagsNorm.includes(k) || nameNorm.includes(k))) {
+    return true;
+  }
+
+  const legacyTargets = LEGACY_CATEGORY_ALIASES[categoryId];
+  if (legacyTargets) {
+    return legacyTargets.some((targetId) => {
+      const targetKw = GLOBAL_TAG_KEYWORDS[targetId];
+      return targetKw ? targetKw.some((k) => tagsNorm.includes(k) || nameNorm.includes(k)) : false;
+    });
   }
 
   return false;
@@ -491,17 +280,17 @@ export function matchesGroup(station: RadioStation, groupId: string): boolean {
 
   if (groupId === 'diger_grup') {
     for (const group of RADIO_GROUPS) {
-      if (group.stationNames.some(s => nameNorm.includes(s))) {
+      if (group.stationNames.some((s) => nameNorm.includes(s))) {
         return false;
       }
     }
     return true;
   }
 
-  const group = RADIO_GROUPS.find(g => g.id === groupId);
+  const group = RADIO_GROUPS.find((g) => g.id === groupId);
   if (!group) return true;
 
-  return group.stationNames.some(s => nameNorm.includes(s));
+  return group.stationNames.some((s) => nameNorm.includes(s));
 }
 
 export const COUNTRY_NAMES_TR: Record<string, string> = {

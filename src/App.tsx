@@ -313,7 +313,9 @@ export default function App() {
       }
     }
 
-    if (quickFilter === 'popular') {
+    if (selectedCategory === 'populer' && selectedCountry === 'TR') {
+      result = [...result].sort((a, b) => (a.popularRank ?? 999) - (b.popularRank ?? 999));
+    } else if (quickFilter === 'popular') {
       result = [...result].sort((a, b) => (b.votes || 0) - (a.votes || 0));
     } else if (quickFilter === 'aac') {
       const aacList = result.filter((s) => (s.codec || '').toLowerCase().includes('aac') || (s.bitrate || 0) >= 128);
@@ -321,7 +323,7 @@ export default function App() {
     }
 
     return result;
-  }, [stations, selectedCategory, selectedGroup, quickFilter, searchQuery]);
+  }, [stations, selectedCategory, selectedGroup, selectedCountry, quickFilter, searchQuery]);
 
   // Audio Playback Engine State
   const [currentItem, setCurrentItem] = useState<PlayableItem | null>(null);
@@ -432,7 +434,8 @@ export default function App() {
     } else if (currentItem?.type === 'radio') {
       const currentStation = currentItem.radio;
       if (!currentStation) return;
-      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
+      const activePool = filteredStations.length > 0 ? filteredStations : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
+      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : activePool;
       if (list.length > 0) {
         const idx = list.findIndex((s) => (s.id || s.stationuuid) === (currentStation.id || currentStation.stationuuid));
         if (idx !== -1 && idx < list.length - 1) {
@@ -444,7 +447,7 @@ export default function App() {
         }
       }
     }
-  }, [currentItem, podcastEpisodesList, activeTab, favorites, stations]);
+  }, [currentItem, podcastEpisodesList, activeTab, favorites, filteredStations, stations]);
 
   const handlePrevious = useCallback(() => {
     if (currentItem?.type === 'podcast' && currentItem.podcastEpisode) {
@@ -461,7 +464,8 @@ export default function App() {
     } else if (currentItem?.type === 'radio') {
       const currentStation = currentItem.radio;
       if (!currentStation) return;
-      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
+      const activePool = filteredStations.length > 0 ? filteredStations : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
+      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : activePool;
       if (list.length > 0) {
         const idx = list.findIndex((s) => (s.id || s.stationuuid) === (currentStation.id || currentStation.stationuuid));
         if (idx > 0) {
@@ -473,7 +477,7 @@ export default function App() {
         }
       }
     }
-  }, [currentItem, podcastEpisodesList, activeTab, favorites, stations]);
+  }, [currentItem, podcastEpisodesList, activeTab, favorites, filteredStations, stations]);
 
   const canGoNext = useMemo(() => {
     if (!currentItem) return false;
@@ -481,11 +485,12 @@ export default function App() {
       return podcastEpisodesList.length > 1;
     }
     if (currentItem.type === 'radio') {
-      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
+      const activePool = filteredStations.length > 0 ? filteredStations : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
+      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : activePool;
       return list.length > 1;
     }
     return false;
-  }, [currentItem, podcastEpisodesList, activeTab, favorites, stations]);
+  }, [currentItem, podcastEpisodesList, activeTab, favorites, filteredStations, stations]);
 
   const canGoPrevious = useMemo(() => {
     if (!currentItem) return false;
@@ -493,11 +498,12 @@ export default function App() {
       return podcastEpisodesList.length > 1;
     }
     if (currentItem.type === 'radio') {
-      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
+      const activePool = filteredStations.length > 0 ? filteredStations : (stations.length > 0 ? stations : ALL_TURKISH_STATIONS);
+      const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : activePool;
       return list.length > 1;
     }
     return false;
-  }, [currentItem, podcastEpisodesList, activeTab, favorites, stations]);
+  }, [currentItem, podcastEpisodesList, activeTab, favorites, filteredStations, stations]);
 
   const handleNextRef = useRef(handleNext);
   handleNextRef.current = handleNext;
@@ -1117,6 +1123,7 @@ export default function App() {
           <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
             <DiscoverView
               stations={filteredStations}
+              allStations={stations}
               isLoading={isLoading}
               isLoadingMore={isLoadingMore}
               hasMore={hasMore}
@@ -1157,6 +1164,7 @@ export default function App() {
               selectedCountry={selectedCountry}
               onSelectCountry={handleCountryChange}
               stations={filteredStations}
+              allStations={stations}
               isLoading={isLoading}
               isLoadingMore={isLoadingMore}
               hasMore={hasMore}
@@ -1243,6 +1251,7 @@ export default function App() {
               selectedCountry={selectedCountry}
               onSelectCountry={handleCountryChange}
               stations={filteredStations}
+              allStations={stations}
               isLoading={isLoading}
               isLoadingMore={isLoadingMore}
               hasMore={hasMore}

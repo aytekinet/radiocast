@@ -8,17 +8,26 @@ import {
   Play, 
   Pause, 
   ArrowLeft,
-  Filter,
-  Loader2
+  ArrowUpDown
 } from 'lucide-react';
 import { RadioStation } from '../types';
 import { getCountries } from '../services/radioApi';
-import { ALL_COUNTRIES, COUNTRY_NAMES_TR, getCountryFlagEmoji } from '../constants/categories';
+import { 
+  ALL_COUNTRIES, 
+  COUNTRY_NAMES_TR, 
+  GENRE_CATEGORIES, 
+  getCountryFlagEmoji, 
+  getParentGroupId, 
+  getSubcategoriesForGroup, 
+  matchesCategory 
+} from '../constants/categories';
+import { ALL_TURKISH_STATIONS } from '../data/fallbackStations';
 
 interface CountriesViewProps {
   selectedCountry: string;
   onSelectCountry: (code: string) => void;
   stations: RadioStation[];
+  allStations?: RadioStation[];
   isLoading: boolean;
   isLoadingMore?: boolean;
   hasMore?: boolean;
@@ -39,16 +48,6 @@ interface CountryInfo {
   displayName: string;
   flag: string;
 }
-
-const CATEGORY_FILTERS = [
-  { id: 'all', name: 'Tüm' },
-  { id: 'news', name: 'Haber' },
-  { id: 'pop', name: 'Pop & Müzik' },
-  { id: 'rock', name: 'Rock' },
-  { id: 'jazz', name: 'Jazz & Klasik' },
-  { id: 'sports', name: 'Spor' },
-  { id: 'culture', name: 'Kültür' }
-];
 
 function getStationMonogram(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -107,6 +106,7 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
   selectedCountry,
   onSelectCountry,
   stations,
+  allStations,
   isLoading,
   isLoadingMore,
   hasMore,
@@ -122,15 +122,53 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
   const [viewMode, setViewMode] = useState<'stations' | 'countries'>('stations');
   const [countrySearch, setCountrySearch] = useState('');
   const [stationLocalSearch, setStationLocalSearch] = useState('');
+  const [sortMode, setSortMode] = useState<'popular' | 'az'>('popular');
   const [allCountries, setAllCountries] = useState<CountryInfo[]>([]);
   const [isLoadingCountries, setIsLoadingCountries] = useState(false);
 
   const favoriteSet = useMemo(() => new Set(favorites.map((f) => f.stationuuid || f.id)), [favorites]);
 
   const activeCountryCode = selectedCountry?.toUpperCase() || 'TR';
+  const isTurkey = activeCountryCode === 'TR';
   const countryName = COUNTRY_NAMES_TR[activeCountryCode] || activeCountryCode;
   const pageTitle = COUNTRY_TITLES[activeCountryCode] || `${countryName} Radyoları`;
   const countryFlag = getCountryFlagEmoji(activeCountryCode);
+
+  // Unfiltered country stations pool for accurate category pill counts
+  const countryPool = useMemo(() => {
+    if (allStations && allStations.length > 0) return allStations;
+    if (isTurkey) return ALL_TURKISH_STATIONS;
+    return stations;
+  }, [allStations, isTurkey, stations]);
+
+  // Active top-level group ID (resolves sub-categories back to their parent group)
+  const activeGroupId = useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'all') return 'all';
+    return getParentGroupId(selectedCategory);
+  }, [selectedCategory]);
+
+  // Top-level category tabs with live counts
+  const categoryTabs = useMemo(() => {
+    return GENRE_CATEGORIES.map((cat) => {
+      const count = cat.id === 'all'
+        ? countryPool.length
+        : countryPool.filter((s) => matchesCategory(s, cat.id)).length;
+      return { ...cat, count };
+    }).filter((cat) => isTurkey || cat.id === 'all' || cat.id === activeGroupId || cat.count > 0);
+  }, [countryPool, isTurkey, activeGroupId]);
+
+  // Sub-category chips (Ana kategori) when a multi-subcategory group is active
+  const activeSubcategories = useMemo(() => {
+    if (!activeGroupId || activeGroupId === 'all' || activeGroupId === 'populer') return [];
+    const subs = getSubcategoriesForGroup(activeGroupId);
+    if (subs.length <= 1) return [];
+    return subs
+      .map((sub) => ({
+        ...sub,
+        count: countryPool.filter((s) => matchesCategory(s, sub.id)).length
+      }))
+      .filter((sub) => isTurkey || sub.count > 0);
+  }, [activeGroupId, countryPool, isTurkey]);
 
   // Load 190+ countries catalog for the picker modal/tab
   useEffect(() => {
@@ -218,38 +256,49 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
     );
   }, [allCountries, countrySearch]);
 
-  // Filtered stations for active country
+  // Filtered & sorted stations for active country
   const displayedStations = useMemo(() => {
     let result = stations;
     if (stationLocalSearch.trim()) {
-      const q = stationLocalSearch.toLowerCase().trim();
+      const q = stationLocalSearch.toLocaleLowerCase('tr').trim();
       result = result.filter(s => 
-        s.name.toLowerCase().includes(q) ||
-        (s.tags && s.tags.toLowerCase().includes(q))
+        s.name.toLocaleLowerCase('tr').includes(q) ||
+        (s.tags && s.tags.toLocaleLowerCase('tr').includes(q)) ||
+        (s.mainCategory && s.mainCategory.toLocaleLowerCase('tr').includes(q)) ||
+        (s.state && s.state.toLocaleLowerCase('tr').includes(q))
       );
     }
+
+    if (sortMode === 'az') {
+      return [...result].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    }
+
+    if (selectedCategory === 'populer' && isTurkey) {
+      return [...result].sort((a, b) => (a.popularRank ?? 999) - (b.popularRank ?? 999));
+    }
+
     return result;
-  }, [stations, stationLocalSearch]);
+  }, [stations, stationLocalSearch, sortMode, selectedCategory, isTurkey]);
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12 select-none">
       {/* Top Header & Mode Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-[#1F2937] pb-4">
         <div>
-          <div className="flex items-center space-x-2.5">
+          <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
             <Radio className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {viewMode === 'stations' ? pageTitle : 'Tüm Dünya Ülkeleri'}
             </h1>
             {viewMode === 'stations' && (
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/25 font-bold">
-                {countryFlag} {activeCountryCode} • {stations.length} İstasyon
+                {countryFlag} {activeCountryCode} • {displayedStations.length} İstasyon
               </span>
             )}
           </div>
           <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
             {viewMode === 'stations' 
-              ? `${countryName} canlı radyo istasyonlarını dinleyin ve filtreleyin.`
+              ? `${countryName} canlı radyo istasyonlarını kategorilere göre filtreleyin ve dinleyin.`
               : 'Dinlemek istediğiniz ülkeyi seçin, anında o ülkenin canlı istasyonlarına bağlanın.'}
           </p>
         </div>
@@ -278,41 +327,91 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
 
       {/* VIEW 1: STATIONS FOR SELECTED COUNTRY */}
       {viewMode === 'stations' && (
-        <div className="space-y-5">
-          {/* Controls: Search in country + Category Chips */}
+        <div className="space-y-4">
+          {/* Search + Sort Row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            {/* Category Pills */}
-            <div className="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar">
-              {CATEGORY_FILTERS.map((cat) => {
-                const isSelected = (!selectedCategory && cat.id === 'all') || selectedCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id === 'all' ? '' : cat.id)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0 shadow-sm ${
-                      isSelected
-                        ? 'bg-teal-500/15 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 dark:border-teal-500/40 font-bold'
-                        : 'bg-white dark:bg-[#131B24] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#182330] hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-                );
-              })}
-            </div>
-
             {/* In-country Search */}
-            <div className="relative max-w-xs w-full">
+            <div className="relative sm:max-w-xs w-full">
               <Search className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={stationLocalSearch}
                 onChange={(e) => setStationLocalSearch(e.target.value)}
-                placeholder={`${countryName} radyolarında filtrele...`}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-full bg-white dark:bg-[#131B24] text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-[#1F2937] focus:outline-none focus:border-teal-500 shadow-sm"
+                placeholder={`${countryName} radyolarında ara (ad, tür, il)...`}
+                className="w-full pl-8 pr-3 py-2 text-xs rounded-full bg-white dark:bg-[#131B24] text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500 border border-slate-200 dark:border-[#1F2937] focus:outline-none focus:border-teal-500 shadow-sm"
               />
             </div>
+
+            {/* Sort Toggle */}
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                onClick={() => setSortMode((m) => (m === 'popular' ? 'az' : 'popular'))}
+                className="px-3.5 py-1.5 rounded-full bg-white dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#182330] text-slate-700 dark:text-zinc-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                <span>Sıralama: {sortMode === 'popular' ? 'Popüler' : 'A–Z'}</span>
+              </button>
+            </div>
           </div>
+
+          {/* Primary Category Pills (13 Official TXT Groups + Tüm + Popüler İlk 20) */}
+          <div className="flex items-center flex-wrap gap-2">
+            {categoryTabs.map((cat) => {
+              const isSelected = (!selectedCategory && cat.id === 'all') || activeGroupId === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id === 'all' ? '' : cat.id)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0 shadow-sm flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-teal-500/15 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 dark:border-teal-500/40 font-bold'
+                      : 'bg-white dark:bg-[#131B24] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#182330] hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span>{cat.name}</span>
+                  <span className="text-[10px] font-bold opacity-70 tabular-nums">
+                    {cat.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sub-category Pills (Ana kategori drill-down for multi-sub groups) */}
+          {activeSubcategories.length > 0 && (
+            <div className="flex items-center flex-wrap gap-1.5 pl-1 pt-0.5">
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500 mr-1">
+                Alt tür:
+              </span>
+              <button
+                onClick={() => setSelectedCategory(activeGroupId)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                  selectedCategory === activeGroupId
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-900 shadow-sm'
+                    : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Tümü
+              </button>
+              {activeSubcategories.map((sub) => {
+                const isSubSelected = selectedCategory === sub.id;
+                return (
+                  <button
+                    key={sub.id}
+                    onClick={() => setSelectedCategory(sub.id)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                      isSubSelected
+                        ? 'bg-slate-900 dark:bg-white text-white dark:text-zinc-900 shadow-sm'
+                        : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span>{sub.name}</span>
+                    <span className="opacity-70 tabular-nums">{sub.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Stations List */}
           {isLoading ? (
@@ -361,6 +460,12 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
                   const monogram = getStationMonogram(station.name);
                   const badgeClass = getBadgeStyle(station.name);
 
+                  const subtitle = station.mainCategory
+                    ? (station.state && station.state !== 'Turkey' && station.state !== 'Türkiye'
+                        ? `${station.mainCategory} • ${station.state}`
+                        : station.mainCategory)
+                    : (station.tags ? station.tags.replace(/,/g, ' • ').slice(0, 38) : (station.country || countryName));
+
                   return (
                     <div
                       key={stId}
@@ -373,8 +478,15 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
                     >
                       {/* Left: Badge Logo + Info */}
                       <div className="flex items-center space-x-3 min-w-0">
-                        <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-xs shadow-sm tracking-wider ${badgeClass}`}>
-                          {monogram}
+                        <div className="relative shrink-0">
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-xs shadow-sm tracking-wider ${badgeClass}`}>
+                            {monogram}
+                          </div>
+                          {station.popularRank && station.popularRank <= 20 && (
+                            <span className="absolute -top-1.5 -left-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-900 dark:bg-teal-500 text-white dark:text-zinc-950 text-[10px] font-extrabold flex items-center justify-center shadow">
+                              {station.popularRank}
+                            </span>
+                          )}
                         </div>
 
                         <div className="min-w-0">
@@ -382,7 +494,7 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
                             {station.name}
                           </h3>
                           <p className="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">
-                            {station.tags ? station.tags.replace(/,/g, ' • ').slice(0, 36) : (station.country || countryName)}
+                            {subtitle}
                           </p>
                         </div>
                       </div>
@@ -425,7 +537,7 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
               </div>
 
               {/* Load More Button */}
-              {hasMore && onLoadMore && (
+              {hasMore && onLoadMore && !isTurkey && (
                 <div className="text-center pt-4">
                   <button
                     onClick={onLoadMore}

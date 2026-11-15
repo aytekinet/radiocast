@@ -8,19 +8,21 @@ import {
   Layers, 
   Clock, 
   ArrowRight,
-  Loader2,
-  RefreshCw,
+  ChevronDown,
+  ChevronUp,
   Globe2
 } from 'lucide-react';
 import { RadioStation, Playlist } from '../types';
 import { PlaybackStatus } from '../services/audioEngine';
 import { getRecentlyPlayed } from '../services/storage';
 import { CURATED_TURKISH_PODCASTS } from '../data/curatedTurkishPodcasts';
-import { EDITORIAL_PRIORITY_STATIONS, PriorityStationDef } from '../constants/priorityStations';
-import { ALL_COUNTRIES } from '../constants/categories';
+import { EDITORIAL_PRIORITY_STATIONS, getEditorialPriorityStations } from '../constants/priorityStations';
+import { ALL_COUNTRIES, GENRE_CATEGORIES, matchesCategory } from '../constants/categories';
+import { ALL_TURKISH_STATIONS } from '../data/fallbackStations';
 
 interface DiscoverViewProps {
   stations: RadioStation[];
+  allStations?: RadioStation[];
   isLoading: boolean;
   isLoadingMore?: boolean;
   hasMore?: boolean;
@@ -45,20 +47,6 @@ interface DiscoverViewProps {
   onNavigateToRadios?: () => void;
   onOpenPodcastShow?: (show: any) => void;
 }
-
-const CATEGORY_CHIPS = [
-  { id: 'all', name: 'Tüm Kategoriler' },
-  { id: 'news', name: 'Haber' },
-  { id: 'pop', name: 'Müzik' },
-  { id: 'sports', name: 'Spor' },
-  { id: 'culture', name: 'Kültür & Sanat' },
-  { id: 'science', name: 'Bilim & Teknoloji' },
-  { id: 'education', name: 'Eğitim' },
-  { id: 'life', name: 'Yaşam' },
-  { id: 'business', name: 'Ekonomi' },
-  { id: 'health', name: 'Sağlık' },
-  { id: 'travel', name: 'Seyahat' }
-];
 
 const CURATED_PODCAST_CARDS = [
   {
@@ -106,7 +94,7 @@ const CURATED_PODCAST_CARDS = [
 ];
 
 const COUNTRY_POPULAR_TITLES: Record<string, string> = {
-  TR: "Türkiye'de Popüler Radyolar",
+  TR: "Türkiye'de Popüler İlk 20 Radyo",
   DE: "Almanya'da Popüler Radyolar",
   RU: "Rusya'da Popüler Radyolar",
   US: "ABD'de Popüler Radyolar",
@@ -160,6 +148,7 @@ function getBadgeStyle(name: string): string {
 
 export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
   stations,
+  allStations,
   isLoading,
   selectedCategory,
   setSelectedCategory,
@@ -181,64 +170,63 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
 
   // Section title dynamically computed from selectedCountry
   const sectionTitle = useMemo(() => {
-    if (isTurkey) return "Türkiye'de Popüler Radyolar";
+    if (isTurkey) return "Türkiye'de Popüler İlk 20 Radyo";
     return COUNTRY_POPULAR_TITLES[selectedCountry.toUpperCase()] || 'Popüler Dünya Radyoları';
   }, [isTurkey, selectedCountry]);
 
-  // When country is Turkey, render the 12 editorial priority stations (or 8 by default)
+  // Exact Popüler İlk 20 list for Turkey
   const turkeyRadios = useMemo(() => {
-    return EDITORIAL_PRIORITY_STATIONS.map((def: PriorityStationDef, idx: number) => {
-      const cleanDef = def.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const matched = stations.find((s) => {
-        const cleanS = s.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        return cleanS === cleanDef || cleanS.includes(cleanDef) || cleanDef.includes(cleanS);
-      });
-
-      const stationuuid = matched?.stationuuid || `editorial-${idx + 1}-${cleanDef}`;
-      const radioObj: RadioStation = {
-        stationuuid,
-        id: stationuuid,
-        name: def.name,
-        url: def.streamUrl,
-        url_resolved: def.streamUrl,
-        homepage: matched?.homepage || '',
-        favicon: matched?.favicon || def.favicon || '',
-        tags: def.tags,
-        country: 'Turkey',
-        countrycode: 'TR',
-        language: 'Turkish',
-        votes: Math.max(matched?.votes || 0, 1000 - idx * 30),
-        codec: 'MP3',
-        bitrate: matched?.bitrate || 128
-      };
-
+    const resolved = getEditorialPriorityStations();
+    return resolved.map((radio, idx) => {
+      const def = EDITORIAL_PRIORITY_STATIONS[idx];
+      const cityLabel = radio.state && radio.state !== 'Turkey' ? radio.state : def.city;
+      const categoryLabel = radio.mainCategory || def.mainCategory;
       return {
-        radio: radioObj,
+        radio,
+        rank: def.popularRank,
         badgeText: def.badgeText,
         badgeBg: `${def.badgeBg} ${def.badgeTextColor}`,
-        tags: def.tags
+        tags: cityLabel && cityLabel !== 'Türkiye' ? `${categoryLabel} • ${cityLabel}` : `${categoryLabel} • Türkiye`
       };
     });
-  }, [stations]);
+  }, []);
 
   // When country is NOT Turkey, render actual loaded stations from `stations` prop
   const foreignRadios = useMemo(() => {
     if (isTurkey) return [];
     const limit = showAllPriority ? 24 : 10;
-    return stations.slice(0, limit).map((s) => ({
+    return stations.slice(0, limit).map((s, idx) => ({
       radio: s,
+      rank: idx + 1,
       badgeText: getStationMonogram(s.name),
       badgeBg: getBadgeStyle(s.name),
-      tags: s.tags ? s.tags.replace(/,/g, ' • ').slice(0, 32) : (s.country || 'Dünya Radyosu')
+      tags: s.tags ? s.tags.replace(/,/g, ' • ').slice(0, 36) : (s.country || 'Dünya Radyosu')
     }));
   }, [isTurkey, stations, showAllPriority]);
 
   const activeDisplayList = useMemo(() => {
     if (isTurkey) {
-      return showAllPriority ? turkeyRadios : turkeyRadios.slice(0, 8);
+      return showAllPriority ? turkeyRadios : turkeyRadios.slice(0, 10);
     }
     return foreignRadios;
   }, [isTurkey, turkeyRadios, foreignRadios, showAllPriority]);
+
+  // Category chips with live station counts for the active country
+  const categoryStats = useMemo(() => {
+    const sourceList = isTurkey
+      ? (allStations && allStations.length > 0 ? allStations : ALL_TURKISH_STATIONS)
+      : (allStations && allStations.length > 0 ? allStations : stations);
+
+    return GENRE_CATEGORIES.map((cat) => {
+      const count = cat.id === 'all'
+        ? sourceList.length
+        : sourceList.filter((s) => matchesCategory(s, cat.id)).length;
+      return {
+        ...cat,
+        count
+      };
+    }).filter((c) => isTurkey || c.id === 'all' || c.count > 0);
+  }, [isTurkey, allStations, stations]);
 
   // Recent history items - deduplicated by title and ID
   const recentItems = useMemo(() => {
@@ -266,7 +254,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
           Keşfet
         </h1>
 
-        {/* Mobile Country Selector (Requirement 10) */}
+        {/* Mobile Country Selector */}
         <div className="flex md:hidden relative items-center shrink-0" title="Radyo ülkesi">
           <Globe2 className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 absolute left-2.5 pointer-events-none" />
           <select
@@ -286,16 +274,16 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
         </div>
       </div>
 
-      {/* 1. Popüler Radyolar (Country-aware) */}
+      {/* 1. Popüler İlk 20 / Ülke Popüler Radyoları */}
       <section className="space-y-3.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Radio className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center space-x-2 min-w-0">
+            <Radio className="w-5 h-5 text-teal-600 dark:text-teal-400 shrink-0" />
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate">
               {sectionTitle}
             </h2>
             {!isTurkey && stations.length > 0 && (
-              <span className="text-[11px] font-semibold text-teal-700 dark:text-teal-400/80 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20">
+              <span className="text-[11px] font-semibold text-teal-700 dark:text-teal-400/80 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20 shrink-0">
                 {stations.length} istasyon
               </span>
             )}
@@ -303,14 +291,15 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
           <button
             onClick={() => {
               if (onNavigateToRadios) {
+                if (isTurkey) setSelectedCategory('all');
                 onNavigateToRadios();
               } else {
                 setShowAllPriority(!showAllPriority);
               }
             }}
-            className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer"
+            className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer shrink-0"
           >
-            <span>{showAllPriority ? 'Daha Az Göster' : 'Tümünü Gör'}</span>
+            <span>{isTurkey ? 'Tüm Radyolar' : 'Tümünü Gör'}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -350,76 +339,106 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
             </button>
           </div>
         ) : (
-          /* 2-Column Compact Station Cards Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {activeDisplayList.map(({ radio, badgeText, badgeBg, tags }) => {
-              const stId = radio.stationuuid || radio.id;
-              const isFav = favoriteSet.has(stId);
-              const isCurrent = currentStation?.stationuuid === radio.stationuuid || currentStation?.name === radio.name;
-              const isPlayingThis = isCurrent && isPlaying;
+          <div className="space-y-3.5">
+            {/* 2-Column Compact Station Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {activeDisplayList.map(({ radio, rank, badgeText, badgeBg, tags }) => {
+                const stId = radio.stationuuid || radio.id;
+                const isFav = favoriteSet.has(stId);
+                const isCurrent = currentStation?.stationuuid === radio.stationuuid || currentStation?.name === radio.name;
+                const isPlayingThis = isCurrent && isPlaying;
 
-              return (
-                <div
-                  key={stId}
-                  onClick={() => onPlayStation(radio)}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group ${
-                    isCurrent
-                      ? 'bg-teal-50/80 dark:bg-[#152331] border-teal-500/50 dark:border-teal-500/40 shadow-sm ring-1 ring-teal-500/30'
-                      : 'bg-white dark:bg-[#131B24] border-slate-200 dark:border-[#1F2937]/80 hover:bg-slate-50 dark:hover:bg-[#182330] hover:border-slate-300 dark:hover:border-zinc-700/80 shadow-sm'
-                  }`}
+                return (
+                  <div
+                    key={`${rank}-${stId}`}
+                    onClick={() => onPlayStation(radio)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 group ${
+                      isCurrent
+                        ? 'bg-teal-50/80 dark:bg-[#152331] border-teal-500/50 dark:border-teal-500/40 shadow-sm ring-1 ring-teal-500/30'
+                        : 'bg-white dark:bg-[#131B24] border-slate-200 dark:border-[#1F2937]/80 hover:bg-slate-50 dark:hover:bg-[#182330] hover:border-slate-300 dark:hover:border-zinc-700/80 shadow-sm'
+                    }`}
+                  >
+                    {/* Left: Rank + Badge Logo + Info */}
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className="relative shrink-0">
+                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-[11px] shadow-sm tracking-tight text-center leading-tight px-1 ${badgeBg}`}>
+                          {badgeText}
+                        </div>
+                        {isTurkey && (
+                          <span className="absolute -top-1.5 -left-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-900 dark:bg-teal-500 text-white dark:text-zinc-950 text-[10px] font-extrabold flex items-center justify-center shadow ring-1 ring-white/20">
+                            {rank}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-300 transition-colors truncate">
+                          {radio.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">
+                          {tags}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right: Heart & Play Actions */}
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleFavorite(radio);
+                        }}
+                        className="p-1.5 rounded-full text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+                        title={isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
+                      >
+                        <Heart className={`w-4 h-4 ${isFav ? 'text-teal-600 dark:text-teal-400 fill-teal-600 dark:fill-teal-400' : ''}`} />
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPlayStation(radio);
+                        }}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-sm ${
+                          isPlayingThis
+                            ? 'bg-teal-500 text-black'
+                            : 'bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white group-hover:bg-teal-500 group-hover:text-black'
+                        }`}
+                        title={isPlayingThis ? 'Durdur' : 'Oynat'}
+                      >
+                        {isPlayingThis ? (
+                          <Pause className="w-4 h-4 fill-current" />
+                        ) : (
+                          <Play className="w-4 h-4 fill-current ml-0.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Expand / Collapse Popüler İlk 20 */}
+            {((isTurkey && turkeyRadios.length > 10) || (!isTurkey && stations.length > 10)) && (
+              <div className="flex justify-center pt-1">
+                <button
+                  onClick={() => setShowAllPriority(!showAllPriority)}
+                  className="px-4 py-2 rounded-full bg-white dark:bg-[#131B24] border border-slate-200 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#182330] text-xs font-semibold text-teal-600 dark:text-teal-400 flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
                 >
-                  {/* Left: Badge Logo + Info */}
-                  <div className="flex items-center space-x-3 min-w-0">
-                    {/* Styled Monogram / Brand Badge */}
-                    <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-xs shadow-sm tracking-wider ${badgeBg}`}>
-                      {badgeText}
-                    </div>
-
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-300 transition-colors truncate">
-                        {radio.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">
-                        {tags}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Right: Heart & Play Actions */}
-                  <div className="flex items-center space-x-2 shrink-0">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleFavorite(radio);
-                      }}
-                      className="p-1.5 rounded-full text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
-                      title={isFav ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
-                    >
-                      <Heart className={`w-4 h-4 ${isFav ? 'text-teal-600 dark:text-teal-400 fill-teal-600 dark:fill-teal-400' : ''}`} />
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPlayStation(radio);
-                      }}
-                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-sm ${
-                        isPlayingThis
-                          ? 'bg-teal-500 text-black'
-                          : 'bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white group-hover:bg-teal-500 group-hover:text-black'
-                      }`}
-                      title={isPlayingThis ? 'Durdur' : 'Oynat'}
-                    >
-                      {isPlayingThis ? (
-                        <Pause className="w-4 h-4 fill-current" />
-                      ) : (
-                        <Play className="w-4 h-4 fill-current ml-0.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                  {showAllPriority ? (
+                    <>
+                      <span>Daha Az Göster</span>
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </>
+                  ) : (
+                    <>
+                      <span>{isTurkey ? "Popüler İlk 20'nin Tamamını Göster (20)" : 'Daha Fazla Göster'}</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -480,33 +499,52 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
         </div>
       </section>
 
-      {/* 3. Kategorilere Göz At */}
+      {/* 3. Radyo Kategorileri */}
       <section className="space-y-3.5">
-        <div className="flex items-center space-x-2">
-          <Layers className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-            Kategorilere Göz At
-          </h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Layers className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+              Kategorilere Göz At
+            </h2>
+          </div>
+          {onNavigateToRadios && (
+            <button
+              onClick={() => {
+                setSelectedCategory('all');
+                onNavigateToRadios();
+              }}
+              className="text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <span>Tüm Kategoriler</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        {/* Horizontal Category Pill Buttons */}
-        <div className="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar flex-wrap gap-y-2">
-          {CATEGORY_CHIPS.map((cat) => {
-            const isSelected = selectedCategory === cat.id;
+        {/* Real Radio Category Pill Buttons with Station Counts */}
+        <div className="flex items-center flex-wrap gap-2">
+          {categoryStats.map((cat) => {
+            const isSelected = (!selectedCategory && cat.id === 'all') || selectedCategory === cat.id;
             return (
               <button
                 key={cat.id}
                 onClick={() => {
-                  setSelectedCategory(cat.id);
+                  setSelectedCategory(cat.id === 'all' ? '' : cat.id);
                   if (onNavigateToRadios) onNavigateToRadios();
                 }}
-                className={`px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0 shadow-sm ${
+                className={`px-3.5 py-2 rounded-full text-xs font-medium transition-all cursor-pointer shrink-0 shadow-sm flex items-center gap-1.5 ${
                   isSelected
                     ? 'bg-teal-500/15 dark:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 dark:border-teal-500/40 font-bold'
                     : 'bg-white dark:bg-[#131B24] text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-[#1F2937] hover:bg-slate-50 dark:hover:bg-[#182330] hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                {cat.name}
+                <span>{cat.name}</span>
+                {cat.count > 0 && (
+                  <span className="text-[10px] font-bold opacity-70 tabular-nums">
+                    {cat.count}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -527,7 +565,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = memo(({
             {recentItems.map((item, idx) => {
               const isRadio = item.type === 'radio';
               const name = isRadio ? item.radioStation?.name : item.podcastEpisode?.title;
-              const sub = isRadio ? 'Canlı Radyo' : item.podcastEpisode?.showTitle;
+              const sub = isRadio ? (item.radioStation?.mainCategory || 'Canlı Radyo') : item.podcastEpisode?.showTitle;
 
               return (
                 <div

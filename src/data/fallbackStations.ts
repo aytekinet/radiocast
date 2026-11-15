@@ -16,19 +16,24 @@ for (const e of VERIFIED_TURKISH_STATIONS) {
   }
 }
 
-// Exactly 629 Turkish stations, each enriched with high-quality verified stream URLs
+// Enriched Turkish stations catalog with verified stream URLs & TXT categorization
 export const ALL_TURKISH_STATIONS: RadioStation[] = (allTurkishStationsJson as RadioStation[]).map(s => {
   const k = (s.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const verified = excelMap.get(k);
   if (verified) {
     return {
       ...s,
-      playUrl: verified.playUrl || verified.streamUrl || s.playUrl,
-      streamUrl: verified.streamUrl || verified.playUrl || s.streamUrl,
-      url_resolved: verified.url_resolved || verified.playUrl || s.url_resolved,
-      fallbackUrl: verified.fallbackUrl || s.fallbackUrl,
+      playUrl: s.playUrl || verified.playUrl || verified.streamUrl,
+      streamUrl: s.streamUrl || s.playUrl || verified.streamUrl || verified.playUrl,
+      url_resolved: s.url_resolved || verified.url_resolved || verified.playUrl,
+      fallbackUrl: s.fallbackUrl || verified.fallbackUrl,
       favicon: verified.favicon || s.favicon,
-      votes: (s.votes || 0) + 100 // Boost verified live stations
+      mainCategory: s.mainCategory || verified.mainCategory,
+      categoryGroup: s.categoryGroup || verified.categoryGroup,
+      categoryGroupId: s.categoryGroupId || verified.categoryGroupId,
+      isPopular: Boolean(s.isPopular ?? verified.isPopular),
+      popularRank: s.popularRank ?? verified.popularRank,
+      votes: s.popularRank ? s.votes : ((s.votes || 0) + 100)
     };
   }
   return s;
@@ -62,20 +67,20 @@ const VERIFIED_STATION_STREAM_MAP: Record<string, string[]> = {
     'https://turkmedya.radyotvonline.net/alemfm/playlist.m3u8'
   ],
   kralpop: [
-    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8',
-    'https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8'
+    'https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8',
+    'https://dygedge2.radyotvonline.net/kralpop/playlist.m3u8'
   ],
   kralfm: [
-    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8'
+    'https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8',
+    'https://ssldyg.radyotvonline.com/smil/smil:kralfm.smil/playlist.m3u8'
   ],
   powerturk: [
-    'https://listen.powerapp.com.tr/powerturkslow/mpeg/icecast.audio',
     'https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8',
-    'https://live.powerapp.com.tr/powerturk/abr/powerturk/128/playlist.m3u8'
+    'https://listen.powerapp.com.tr/powerturk/mpeg/icecast.audio'
   ],
   superfm: [
-    'https://yayin.superfmradyo.com.tr/superfm/stream',
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC'
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC',
+    'https://yayin.superfmradyo.com.tr/superfm/stream'
   ],
   radyo7: [
     'https://moondigitaledge.radyotvonline.net/radyo7/playlist.m3u8',
@@ -85,7 +90,21 @@ const VERIFIED_STATION_STREAM_MAP: Record<string, string[]> = {
     'https://dygedge2.radyotvonline.net/ntvradyo/playlist.m3u8'
   ],
   slowturk: [
-    'https://radyo.duhnet.tv/ak_dtvh_slowturk'
+    'https://radyo.duhnet.tv/ak_dtvh_slowturk',
+    'https://radyo.duhnet.tv/slowturk'
+  ],
+  radyoseymen: [
+    'https://yayin.radyoseymen.com.tr:1070/stream'
+  ],
+  kalpfm: [
+    'https://yayin.kalpfm.com:8080/'
+  ],
+  showradyo: [
+    'https://showradyo.radyotvonline.net/showradyo',
+    'https://showradyo.radyotvonline.net/showradyo/playlist.m3u8'
+  ],
+  radyoturkuvaz: [
+    'https://trkvz-radyolar.ercdn.net/radyoturkuvaz/playlist.m3u8'
   ],
   acikradyo: [
     'http://stream.34bit.net/ar.aac'
@@ -94,14 +113,16 @@ const VERIFIED_STATION_STREAM_MAP: Record<string, string[]> = {
     'https://playerservices.streamtheworld.com/api/livestream-redirect/METRO_FM_SC'
   ],
   joyturk: [
-    'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_SC'
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_SC',
+    'https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_ITUNES.mp3'
   ],
   powerfm: [
+    'https://live.powerapp.com.tr/powerfm/abr/powerfm/128/playlist.m3u8',
     'https://live.powerapp.com.tr/powerfm/abr/playlist.m3u8'
   ],
   radyod: [
-    'https://moondigitaledge.radyotvonline.net/radyod/playlist.m3u8',
-    'https://dygedge2.radyotvonline.net/radyod/playlist.m3u8'
+    'https://ssldyg.radyotvonline.com/radyod/radyod.stream/playlist.m3u8',
+    'https://moondigitaledge.radyotvonline.net/radyod/playlist.m3u8'
   ],
   radyo45lik: [
     'https://stream.radyo45lik.com:4545/'

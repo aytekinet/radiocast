@@ -104,7 +104,10 @@ function normalizeStation(s: any) {
     lastCheckOk: s.lastcheckok === 1,
     isHttps,
     mainCategory: s.mainCategory || undefined,
+    categoryGroup: s.categoryGroup || undefined,
+    categoryGroupId: s.categoryGroupId || undefined,
     isPopular: Boolean(s.isPopular),
+    popularRank: typeof s.popularRank === 'number' ? s.popularRank : undefined,
     requiresProxy: Boolean(s.requiresProxy)
   };
 }
@@ -164,7 +167,7 @@ export async function handleRadioStations(req: Request, res: Response) {
   const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit as string || '600', 10)));
   const offset = Math.max(0, parseInt(req.query.offset as string || '0', 10));
 
-  const cacheKey = `radio_stations_v3_${country}_p${page}_l${limit}_o${offset}`;
+  const cacheKey = `radio_stations_v4_${country}_p${page}_l${limit}_o${offset}`;
   const cached = getFromCache<any[]>(cacheKey);
   if (cached) {
     return res.setHeader('Content-Type', 'application/json').json(cached);

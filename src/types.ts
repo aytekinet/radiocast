@@ -26,7 +26,10 @@ export interface RadioStation {
   sslError?: number;
   isHttps?: boolean;
   mainCategory?: string;
+  categoryGroup?: string;
+  categoryGroupId?: string;
   isPopular?: boolean;
+  popularRank?: number;
   requiresProxy?: boolean;
 }
 
