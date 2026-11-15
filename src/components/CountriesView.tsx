@@ -478,15 +478,8 @@ export const CountriesView: React.FC<CountriesViewProps> = memo(({
                     >
                       {/* Left: Badge Logo + Info */}
                       <div className="flex items-center space-x-3 min-w-0">
-                        <div className="relative shrink-0">
-                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-black text-xs shadow-sm tracking-wider ${badgeClass}`}>
-                            {monogram}
-                          </div>
-                          {station.popularRank && station.popularRank <= 20 && (
-                            <span className="absolute -top-1.5 -left-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-slate-900 dark:bg-teal-500 text-white dark:text-zinc-950 text-[10px] font-extrabold flex items-center justify-center shadow">
-                              {station.popularRank}
-                            </span>
-                          )}
+                        <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-xs shadow-sm tracking-wider ${badgeClass}`}>
+                          {monogram}
                         </div>
 
                         <div className="min-w-0">
